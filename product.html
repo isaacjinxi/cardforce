@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product - Card Force</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js"></script>
+    <script>
+        // Handle malformed URLs that might cause 404 errors
+        (function() {
+            const path = window.location.pathname;
+            
+            // If the path is just a number (like /3), redirect to index
+            if (path.match(/^\/\d+$/)) {
+                console.log('Redirecting malformed URL:', path, 'to index.html');
+                window.location.href = '/';
+                return;
+            }
+            
+            // If the path is just a single character or number, redirect to index
+            if (path.match(/^\/[a-zA-Z0-9]$/)) {
+                console.log('Redirecting single character URL:', path, 'to index.html');
+                window.location.href = '/';
+                return;
+            }
+        })();
+    </script>
+    <script type="module">
+      // Firebase Configuration
+      import { initializeApp, getApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getFirestore, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, collection } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+      import { getAuth, onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCJNv4DDv8Gbvtw3zRzsvNk3xW3e2sog7k",
+        authDomain: "card-force-472100.firebaseapp.com",
+        projectId: "card-force-472100",
+        storageBucket: "card-force-472100.firebasestorage.app",
+        messagingSenderId: "91438507562",
+        appId: "1:91438507562:web:85673cf7f40190f4310553",
+        measurementId: "G-J2Q14Y5FXS"
+      };
+
+      // Initialize Firebase
+      let app, db, auth, GoogleAuthProvider;
+
+      try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        // Try to get existing instances if already initialized
+        try {
+          app = getApp();
+          db = getFirestore(app);
+          auth = getAuth(app);
+        } catch (retryError) {
+          console.error('Failed to get existing Firebase instances:', retryError);
+        }
+      }
+
+      // Make Firebase functions globally available
+      window.firebaseApp = app;
+      window.db = db;
+      window.auth = auth;
+      window.GoogleAuthProvider = GoogleAuthProvider;
+      window.doc = doc;
+      window.setDoc = setDoc;
+      window.getDoc = getDoc;
+      window.getDocs = getDocs;
+      window.addDoc = addDoc;
+      window.updateDoc = updateDoc;
+      window.deleteDoc = deleteDoc;
+      window.onSnapshot = onSnapshot;
+      window.query = query;
+      window.where = where;
+      window.orderBy = orderBy;
+      window.collection = collection;
+
+      // Firebase Collections
+      const COLLECTIONS = {
+        USERS: 'users',
+        ORDERS: 'orders',
+        CARTS: 'carts',
+        PRODUCTS: 'products',
+        ADDRESSES: 'addresses',
+        REFUNDS: 'refunds',
+        CHAT_MESSAGES: 'chatMessages'
+      };
+
+      // Firebase Helper Functions
+      class FirebaseService {
+        constructor() {
+          this.isInitialized = false;
+          this.currentUser = null;
+          this.init();
+        }
+
+        async init() {
+          try {
+            // Check for existing Google OAuth user in localStorage
+            const googleUser = localStorage.getItem('googleUser');
+            if (googleUser) {
+              const userData = JSON.parse(googleUser);
+              // Create a mock currentUser object for FirebaseService
+              this.currentUser = {
+                uid: userData.sub,
+                email: userData.email,
+                displayName: userData.name,
+                photoURL: userData.picture
+              };
+              this.isInitialized = true;
+              console.log('Firebase service initialized with existing Google user:', this.currentUser.uid);
+              this.syncUserData(this.currentUser);
+              return;
+            }
+
+            // Listen for auth state changes
+            onAuthStateChanged(auth, (user) => {
+              this.currentUser = user;
+              this.isInitialized = true;
+              
+              if (user) {
+                console.log('Firebase user signed in:', user.uid);
+                this.syncUserData(user);
+              } else {
+                console.log('Firebase user signed out');
+              }
+            });
+          } catch (error) {
+            console.error('Firebase initialization error:', error);
+          }
+        }
+
+        // Product Management
+        async loadProductsFromFirebase() {
+          try {
+            const querySnapshot = await getDocs(collection(db, COLLECTIONS.PRODUCTS));
+            const products = [];
+            querySnapshot.forEach((doc) => {
+              products.push({ id: doc.id, ...doc.data() });
+            });
+            return products;
+          } catch (error) {
+            console.error('Error loading products from Firebase:', error);
+            return [];
+          }
+        }
+
+        async syncUserData(user) {
+          try {
+            const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+            const userSnap = await getDoc(userRef);
+            
+            if (!userSnap.exists()) {
+              // Create new user document
+              await setDoc(userRef, {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString()
+              });
+            } else {
+              // Update last login
+              await updateDoc(userRef, {
+                lastLogin: new Date().toISOString()
+              });
+            }
+          } catch (error) {
+            console.error('Error syncing user data:', error);
+          }
+        }
+      }
+      
+      // Initialize Firebase Service
+      window.firebaseService = new FirebaseService();
+      window.COLLECTIONS = COLLECTIONS;
+      
+      // Load product data from Firebase after initialization
+      setTimeout(async () => {
+        console.log('🔄 Product Page: Attempting to load product data from Firebase...');
+        
+        // Ensure Firebase service is initialized
+        const googleUser = localStorage.getItem('googleUser');
+        if (googleUser && !window.firebaseService?.currentUser) {
+          console.log('🔄 Product Page: Initializing Firebase service with Google user...');
+          const userData = JSON.parse(googleUser);
+          window.firebaseService.currentUser = {
+            uid: userData.sub,
+            email: userData.email,
+            displayName: userData.name,
+            photoURL: userData.picture
+          };
+          window.firebaseService.isInitialized = true;
+        }
+        
+        if (window.loadProductDataFromFirebase) {
+          await window.loadProductDataFromFirebase();
+        }
+        
+        // Set up real-time listener for product changes
+        if (window.setupProductDataListener) {
+          window.setupProductDataListener();
+        }
+      }, 2000);
+      
+      // Listen for product data updates
+      window.addEventListener('productDataUpdated', () => {
+        console.log('📡 Product Page: Product data updated, refreshing display...');
+        // Refresh the product display
+        if (typeof loadProduct === 'function') {
+          loadProduct();
+        }
+      });
+    </script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Raleway', sans-serif; background:#fff; color:#333; }
+        .navbar { background: linear-gradient(135deg, #6a4c93, #8e44ad); padding: 0.5rem 0; position: sticky; top:0; z-index:1000; }
+        .nav-container { max-width:1200px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; padding:0 1.25rem; position:relative; }
+        .logo { color:#fff; text-decoration:none; font-weight:700; font-size:1.4rem; display:flex; align-items:center; gap:10px; }
+        .logo-icon { width:40px; height:48px; background:#2c2c2c; border:3px solid #1a1a1a; border-radius:8px; position:relative; display:flex; flex-direction:column; justify-content:center; align-items:center; overflow:hidden; }
+        .logo-text { color:#fff; font-size:0.6rem; font-weight:800; line-height:0.8; text-align:center; }
+        .logo-divider { width:24px; height:2px; background:#1a1a1a; margin:2px 0; }
+        .nav-menu { display:flex; list-style:none; gap:1rem; }
+        .nav-menu a { color:#fff; text-decoration:none; padding:0.35rem 0.75rem; border-radius:25px; transition:all 0.3s ease; font-weight:500; }
+        .nav-menu a:hover { background-color:rgba(255,255,255,0.2); transform:translateY(-2px) scale(1.05); box-shadow:0 4px 8px rgba(106,76,147,0.4); }
+        .main { max-width:1200px; margin:0 auto; padding:2rem; }
+        .grid { display:grid; grid-template-columns: 1fr 1fr; gap:2rem; }
+        .imgwrap { border:1px solid #eee; border-radius:12px; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:380px; }
+        .imgwrap img { max-width:100%; max-height:100%; object-fit:contain; }
+        .title { font-size:2rem; font-weight:800; color:#6a4c93; margin-bottom:0.5rem; }
+        .price { font-size:1.4rem; font-weight:700; color:#8e44ad; margin-bottom:0.25rem; }
+        .discount-chip { display:inline-block; margin-left:8px; padding:2px 8px; border-radius:999px; background:#dc3545; color:#fff; font-size:0.75rem; font-weight:700; }
+        .price-extra { font-size:0.95rem; color:#333; margin-bottom:0.75rem; }
+        .desc { color:#555; margin:1rem 0; line-height:1.6; }
+        .meta { color:#666; font-size:0.9rem; margin:0.5rem 0; }
+        .actions { display:flex; gap:0.75rem; margin-top:1rem; }
+        .btn { border:none; padding:0.8rem 1.2rem; border-radius:25px; font-weight:600; cursor:pointer; transition:.2s; }
+        .btn.buy { background: linear-gradient(135deg, #6a4c93, #8e44ad); color:#fff; }
+        .btn.cart { background: linear-gradient(135deg, #28a745, #20c997); color:#fff; }
+        .disabled-btn { background:#b0b0b0 !important; color:#eee !important; cursor:not-allowed !important; }
+        .stock { font-size:0.9rem; color:#666; margin-top:0.5rem; font-style:italic; }
+        .footer { background: linear-gradient(135deg, #6a4c93, #8e44ad); color:#fff; text-align:center; padding:2rem 0; margin-top:3rem; }
+    </style>
+    </head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+                <span>Card Force</span>
+            </a>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
+                <li><a href="marketplace.html" onclick="closeMenu()">Marketplace</a></li>
+                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
+            </ul>
+        </div>
+    </nav>
+    <main class="main">
+        <div class="grid">
+            <div class="imgwrap"><img id="productImage" alt="Product"></div>
+            <div>
+                <div class="title" id="productTitle">Product</div>
+                <div class="price" id="productPrice"></div>
+                <div class="price-extra" id="productPriceExtra"></div>
+                <div class="meta" id="productStatus"></div>
+                <div class="desc" id="productDesc"></div>
+                <div class="actions">
+                    <button class="btn buy" id="buyBtn">Buy Now</button>
+                    <button class="btn cart" id="cartBtn">Add to Cart</button>
+                </div>
+                <div class="stock" id="productStock"></div>
+            </div>
+        </div>
+    </main>
+    <footer class="footer">© 2025 Card Force. All rights reserved.</footer>
+
+    <script>
+        function qs(name) { return new URLSearchParams(location.search).get(name); }
+        const id = qs('id');
+        const img = document.getElementById('productImage');
+        const titleEl = document.getElementById('productTitle');
+        const priceEl = document.getElementById('productPrice');
+        const priceExtra = document.getElementById('productPriceExtra');
+        const statusEl = document.getElementById('productStatus');
+        const descEl = document.getElementById('productDesc');
+        const stockEl = document.getElementById('productStock');
+        const buyBtn = document.getElementById('buyBtn');
+        const cartBtn = document.getElementById('cartBtn');
+
+        function loadProduct() {
+            if (!id) { titleEl.textContent = 'Product not found'; return; }
+            
+            // Fallback if admin-utils functions aren't available
+            if (typeof getProductCatalog !== 'function') {
+                console.warn('Admin-utils functions not loaded, using fallback');
+                const fallbackProduct = {
+                    'pig-princess': { name:'Pig-princess', imageUrl:'PigPrincess.png', description:'Royal pig character with high defense.', price:7.99 },
+                    'mike': { name:'Mike', imageUrl:'mike.png', description:'Stick figure warrior with balanced stats.', price:5.99 }
+                };
+                const p = fallbackProduct[id] || { name: id, imageUrl: '', description: 'Product description', price: 0 };
+                
+                img.src = p.imageUrl || '';
+                titleEl.textContent = p.name || id;
+                priceEl.innerHTML = `$${p.price.toFixed(2)}`;
+                priceExtra.textContent = '';
+                statusEl.textContent = 'Available';
+                descEl.textContent = p.description || '';
+                stockEl.textContent = 'Stock: 10';
+                
+                buyBtn.onclick = function(){
+                    const paypalUrl = `https://www.paypal.com/paypalme/SongboJin/${p.price.toFixed(2)}`;
+                    window.open(paypalUrl, '_blank', 'noopener,noreferrer');
+                };
+                cartBtn.onclick = function(){
+                    alert('Added to cart');
+                };
+                return;
+            }
+            
+            const catalog = getProductCatalog();
+            const builtin = {
+                'pig-princess': { name:'Pig-princess', imageUrl:'PigPrincess.png', description:'Royal pig character with high defense.', price:7.99 },
+                'mike': { name:'Mike', imageUrl:'mike.png', description:'Stick figure warrior with balanced stats.', price:5.99 }
+            };
+            const p = catalog.find(x => x.id === id) || ({ id, ...(builtin[id]||{}) });
+            const basePrice = getProductPrice(id) ?? p.price ?? 0;
+            const discount = getProductDiscount(id) || 0;
+            const discounted = basePrice * (1 - discount/100);
+            const status = getProductStatus(id);
+            const stock = getStock(id);
+
+            img.src = p.imageUrl || '';
+            titleEl.textContent = p.name || id;
+            priceEl.innerHTML = `$${basePrice.toFixed(2)}` + (discount>0 ? ` <span class="discount-chip">-${discount}%</span>` : '');
+            priceExtra.textContent = discount>0 ? `You pay: $${discounted.toFixed(2)}` : '';
+            statusEl.textContent = status === 'Backorder' ? `Backorder - Ships in ${(getProductData()[id]?.backorderDays || 7)} days` : status;
+            descEl.textContent = p.description || '';
+            stockEl.textContent = status === 'Retired' ? 'Retired' : `Stock: ${stock}`;
+
+            const disable = status==='Retired' || status==='Out of Stock' || stock===0;
+            ;[buyBtn, cartBtn].forEach(b => { if (!b) return; b.classList.toggle('disabled-btn', disable); b.disabled = disable; });
+
+            buyBtn.onclick = function(){
+                if (disable) return;
+                const paypalUrl = `https://www.paypal.com/paypalme/SongboJin/${(discount>0? discounted: basePrice).toFixed(2)}`;
+                window.open(paypalUrl, '_blank', 'noopener,noreferrer');
+            };
+            cartBtn.onclick = function(){
+                if (disable) return;
+                const googleUser = localStorage.getItem('googleUser');
+                if (!googleUser) { alert('Please sign in to add to cart.'); return; }
+                const userData = JSON.parse(googleUser);
+                const cartKey = `cart_${userData.sub}`;
+                const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+                cart.push({ id: Date.now(), name: p.name || id, price: (discount>0? discounted: basePrice), type:'trading-card', image: p.imageUrl || '' , cardId:id });
+                localStorage.setItem(cartKey, JSON.stringify(cart));
+                reduceStock(id, 1);
+                loadProduct();
+                alert('Added to cart');
+            };
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for admin-utils to load
+            setTimeout(() => {
+                loadProduct();
+                if (typeof addGlobalNavElements === 'function') {
+                    addGlobalNavElements();
+                }
+            }, 100);
+        });
+
+        // Hamburger menu functions
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+
+        function goToCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                alert('Please sign in to access your cart! 🛒');
+                window.location.href = 'account.html';
+                return;
+            }
+            window.location.href = 'cart.html';
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            const navbar = document.querySelector('.navbar');
+            
+            if (!navbar.contains(event.target) && navMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+    </script>
+</body>
+</html>
+

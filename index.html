@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Force - The Ultimate Card Game Experience</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js"></script>
+    <script>
+        // Handle malformed URLs that might cause 404 errors
+        (function() {
+            const path = window.location.pathname;
+            const host = window.location.host;
+            
+            // If the path is just a number (like /3), redirect to index
+            if (path.match(/^\/\d+$/)) {
+                console.log('Redirecting malformed URL:', path, 'to index.html');
+                window.location.href = '/';
+                return;
+            }
+            
+            // If the path is just a single character or number, redirect to index
+            if (path.match(/^\/[a-zA-Z0-9]$/)) {
+                console.log('Redirecting single character URL:', path, 'to index.html');
+                window.location.href = '/';
+                return;
+            }
+        })();
+    </script>
+    <script type="module">
+      // Firebase Configuration
+      import { initializeApp, getApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getFirestore, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, collection } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+      import { getAuth, onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCJNv4DDv8Gbvtw3zRzsvNk3xW3e2sog7k",
+        authDomain: "card-force-472100.firebaseapp.com",
+        projectId: "card-force-472100",
+        storageBucket: "card-force-472100.firebasestorage.app",
+        messagingSenderId: "91438507562",
+        appId: "1:91438507562:web:85673cf7f40190f4310553",
+        measurementId: "G-J2Q14Y5FXS"
+      };
+
+      // Initialize Firebase
+      let app, db, auth;
+
+      try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        try {
+          app = getApp();
+          db = getFirestore(app);
+          auth = getAuth(app);
+        } catch (retryError) {
+          console.error('Failed to get existing Firebase instances:', retryError);
+        }
+      }
+
+      // Make Firebase functions globally available
+      window.firebaseApp = app;
+      window.db = db;
+      window.auth = auth;
+      window.GoogleAuthProvider = GoogleAuthProvider;
+      window.doc = doc;
+      window.setDoc = setDoc;
+      window.getDoc = getDoc;
+      window.getDocs = getDocs;
+      window.addDoc = addDoc;
+      window.updateDoc = updateDoc;
+      window.deleteDoc = deleteDoc;
+      window.onSnapshot = onSnapshot;
+      window.query = query;
+      window.where = where;
+      window.orderBy = orderBy;
+      window.collection = collection;
+
+      // Firebase Collections
+      const COLLECTIONS = {
+        USERS: 'users',
+        ORDERS: 'orders',
+        CARTS: 'carts',
+        PRODUCTS: 'products',
+        ADDRESSES: 'addresses',
+        REFUNDS: 'refunds',
+        CHAT_MESSAGES: 'chatMessages'
+      };
+
+      // Firebase Helper Functions
+      class FirebaseService {
+        constructor() {
+          this.isInitialized = false;
+          this.currentUser = null;
+          this.init();
+        }
+
+        async init() {
+          try {
+            const googleUser = localStorage.getItem('googleUser');
+            if (googleUser) {
+              const userData = JSON.parse(googleUser);
+              this.currentUser = {
+                uid: userData.sub,
+                email: userData.email,
+                displayName: userData.name,
+                photoURL: userData.picture
+              };
+              this.isInitialized = true;
+              console.log('Firebase service initialized with existing Google user:', this.currentUser.uid);
+              this.syncUserData(this.currentUser);
+              return;
+            }
+
+            onAuthStateChanged(auth, (user) => {
+              this.currentUser = user;
+              this.isInitialized = true;
+              
+              if (user) {
+                console.log('Firebase user signed in:', user.uid);
+                this.syncUserData(user);
+              } else {
+                console.log('Firebase user signed out');
+              }
+            });
+          } catch (error) {
+            console.error('Firebase initialization error:', error);
+          }
+        }
+
+        async loadProductsFromFirebase() {
+          try {
+            const querySnapshot = await getDocs(collection(db, COLLECTIONS.PRODUCTS));
+            const products = [];
+            querySnapshot.forEach((doc) => {
+              products.push({ id: doc.id, ...doc.data() });
+            });
+            return products;
+          } catch (error) {
+            console.error('Error loading products from Firebase:', error);
+            return [];
+          }
+        }
+
+        async syncUserData(user) {
+          try {
+            const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+            const userSnap = await getDoc(userRef);
+            
+            if (!userSnap.exists()) {
+              await setDoc(userRef, {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString()
+              });
+            } else {
+              await updateDoc(userRef, {
+                lastLogin: new Date().toISOString()
+              });
+            }
+          } catch (error) {
+            console.error('Error syncing user data:', error);
+          }
+        }
+      }
+      
+      // Initialize Firebase Service
+      window.firebaseService = new FirebaseService();
+      window.COLLECTIONS = COLLECTIONS;
+      
+      // Load product data from Firebase after initialization
+      setTimeout(async () => {
+        console.log('🔄 Index Page: Attempting to load product data from Firebase...');
+        
+        // Ensure Firebase service is initialized
+        const googleUser = localStorage.getItem('googleUser');
+        if (googleUser && !window.firebaseService?.currentUser) {
+          console.log('🔄 Index Page: Initializing Firebase service with Google user...');
+          const userData = JSON.parse(googleUser);
+          window.firebaseService.currentUser = {
+            uid: userData.sub,
+            email: userData.email,
+            displayName: userData.name,
+            photoURL: userData.picture
+          };
+          window.firebaseService.isInitialized = true;
+        }
+        
+        if (window.loadProductDataFromFirebase) {
+          await window.loadProductDataFromFirebase();
+        }
+        
+        // Set up real-time listener for product changes
+        if (window.setupProductDataListener) {
+          window.setupProductDataListener();
+        }
+      }, 2000);
+      
+      // Listen for product data updates
+      window.addEventListener('productDataUpdated', () => {
+        console.log('📡 Index: Product data updated, refreshing display...');
+        // Refresh any product displays on the index page
+        if (typeof refreshProductDisplay === 'function') {
+          refreshProductDisplay();
+        }
+      });
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: white;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            padding: 0.5rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            50% { box-shadow: 0 2px 20px rgba(106, 76, 147, 0.3); }
+            100% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1.25rem;
+            position: relative;
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-decoration: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: bounce 1s infinite alternate;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 48px;
+            background: #2c2c2c;
+            border: 3px solid #1a1a1a;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 15px 15px 0;
+            border-color: transparent #1a1a1a transparent transparent;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 12px 12px 0;
+            border-color: transparent #2c2c2c transparent transparent;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 0.8;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-divider {
+            width: 30px;
+            height: 2px;
+            background: #1a1a1a;
+            margin: 2px 0;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-3px); }
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 1rem;
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background-color: white;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.4);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .discount-banner { background:#fff6f6; border:2px dashed #dc3545; color:#b02a37; padding:12px 16px; border-radius:12px; margin: 0 0 1rem 0; font-weight:700; display:none; }
+
+        .hero-section {
+            display: flex;
+            align-items: center;
+            gap: 4rem;
+            margin: 3rem 0;
+            min-height: 500px;
+        }
+
+        .hero-content {
+            flex: 1;
+            text-align: left;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            color: #6a4c93;
+            margin-bottom: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            animation: glow 2s ease-in-out infinite alternate;
+            line-height: 1.2;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 2px 2px 4px rgba(0,0,0,0.1), 0 0 10px rgba(106, 76, 147, 0.5); }
+            to { text-shadow: 2px 2px 4px rgba(0,0,0,0.1), 0 0 20px rgba(106, 76, 147, 0.8); }
+        }
+
+        .hero-subtitle {
+            font-size: 1.4rem;
+            color: #666;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .hero-cta {
+            font-size: 1.8rem;
+            color: #8e44ad;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            animation: pulse-text 2s infinite;
+        }
+
+        .hero-image-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card-image-container {
+            width: 100%;
+            max-width: 500px;
+            height: 400px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.2);
+            border: 3px solid #6a4c93;
+        }
+
+        .card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+
+        /* Game Features Section */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(106, 76, 147, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .feature-card:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .feature-card:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .feature-card:hover {
+            border-color: #6a4c93;
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(106, 76, 147, 0.3);
+            animation: none;
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+
+        .feature-title {
+            color: #6a4c93;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            animation: slide-in 1s ease-out;
+        }
+
+        @keyframes slide-in {
+            0% { transform: translateX(-100px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+
+        .feature-description {
+            color: #666;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-container {
+            text-align: center;
+            color: white;
+        }
+
+        .loading-logo {
+            margin-bottom: 2rem;
+            animation: bounce 1s infinite alternate;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            opacity: 0.9;
+            animation: pulse 2s infinite;
+        }
+
+        /* Footer */
+        .footer {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            animation: wave 2s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: skewY(0deg); }
+            50% { transform: skewY(1deg); }
+        }
+
+        /* Custom Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h2 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .modal p {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: #6a4c93;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #5a3d83;
+            transform: translateY(-2px);
+        }
+
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .logo {
+                font-size: 1.4rem;
+            }
+
+            .logo-icon {
+                width: 40px;
+                height: 50px;
+            }
+
+            .logo-text {
+                font-size: 0.6rem;
+            }
+
+            .logo-divider {
+                width: 25px;
+            }
+
+            .nav-menu {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 100%;
+                height: 100vh;
+                background: linear-gradient(135deg, #6a4c93, #8e44ad);
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                gap: 2rem;
+                transition: right 0.3s ease;
+                z-index: 1000;
+            }
+
+            .nav-menu.active {
+                right: 0;
+            }
+
+            .nav-menu a {
+                font-size: 1.5rem;
+                padding: 1rem 2rem;
+                border-radius: 10px;
+                width: 200px;
+                text-align: center;
+            }
+
+            .hero-section {
+                flex-direction: column;
+                text-align: center;
+                gap: 2rem;
+            }
+
+            .hero-content {
+                text-align: center;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-cta {
+                font-size: 1.4rem;
+            }
+
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+                <span>Card Force</span>
+            </a>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#home" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
+                <li><a href="marketplace.html" onclick="closeMenu()">Marketplace</a></li>
+                <li><a href="about.html" onclick="closeMenu()">About</a></li>
+                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-container">
+            <div class="loading-logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+            </div>
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Shuffling the deck...</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent" style="display: none;">
+        <div id="discountBanner" class="discount-banner"></div>
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Welcome to Card Force</h1>
+                <p class="hero-subtitle">Experience the ultimate card game adventure with stunning graphics and exciting gameplay</p>
+                <div class="hero-cta">Make Your Own Custom Cards</div>
+            </div>
+            
+            <div class="hero-image-container">
+                <!-- Pig-princess Card Image -->
+                <div class="card-image-container">
+                    <img src="PigPrincess.png" alt="Pig-princess Card" class="card-image">
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3 class="feature-title">Strategic Gameplay</h3>
+                <p class="feature-description">Master complex strategies and outsmart your opponents in intense card battles.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🔥</div>
+                <h3 class="feature-title">Tournaments</h3>
+                <p class="feature-description">Compete in exciting tournaments and climb the global leaderboards.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">💥</div>
+                <h3 class="feature-title">Multiplayer</h3>
+                <p class="feature-description">Play with friends or challenge players from around the world.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Card Force. All rights reserved. | The Ultimate Card Game Experience</p>
+    </footer>
+
+    <script>
+        // Load cart items on page load
+        window.onload = function() {
+            // Show loading screen for a moment
+            setTimeout(() => {
+                hideLoadingScreen();
+                showDiscountBanner();
+            }, 1500);
+        };
+
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const mainContent = document.getElementById('mainContent');
+            
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+            }, 500);
+        }
+
+        function showDiscountBanner() {
+            const banner = document.getElementById('discountBanner');
+            if (!banner) return;
+            // Scan for any active discounts
+            const catalog = getProductCatalog ? getProductCatalog() : [];
+            const builtin = [
+                { id:'pig-princess', name:'Pig-princess' },
+                { id:'mike', name:'Mike' }
+            ];
+            const products = [...builtin, ...catalog];
+            const discounted = products
+                .map(p => ({ p, d:(getProductDiscount ? getProductDiscount(p.id) : 0) }))
+                .filter(x => x.d && x.d > 0)
+                .sort((a,b) => b.d - a.d);
+            if (!discounted.length) return;
+            const top = discounted.slice(0,3)
+                .map(x => `${x.p.name || x.p.id} -${x.d}%`)
+                .join(' • ');
+            banner.textContent = `Limited discounts live: ${top}`;
+            banner.style.display = 'block';
+        }
+
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            const navbar = document.querySelector('.navbar');
+            
+            if (!navbar.contains(event.target) && navMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+
+        function goToCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showSignInModal();
+                return;
+            }
+            window.location.href = 'cart.html';
+        }
+
+        function showSignInModal() {
+            showModal(
+                'Sign In Required',
+                'You need to sign in to access your cart. Please sign in to continue.',
+                function() {
+                    window.location.href = 'account.html';
+                }
+            );
+        }
+
+        function showModal(title, message, onConfirm = null) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('customModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'customModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h2 id="modalTitle">Modal Title</h2>
+                        <p id="modalMessage">Modal message goes here.</p>
+                        <div class="modal-buttons">
+                            <button class="modal-btn modal-btn-primary" id="modalConfirm">Confirm</button>
+                            <button class="modal-btn modal-btn-secondary" id="modalCancel">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalConfirm = document.getElementById('modalConfirm');
+            const modalCancel = document.getElementById('modalCancel');
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+
+            if (onConfirm) {
+                modalConfirm.style.display = 'inline-block';
+                modalConfirm.onclick = function() {
+                    onConfirm();
+                    modal.style.display = 'none';
+                };
+            } else {
+                modalConfirm.style.display = 'none';
+            }
+
+            modalCancel.onclick = function() {
+                modal.style.display = 'none';
+            };
+
+            modal.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

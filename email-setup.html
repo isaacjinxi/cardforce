@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Setup Guide - Card Force</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #6a4c93;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            border-left: 4px solid #6a4c93;
+        }
+        .step h3 {
+            color: #6a4c93;
+            margin-top: 0;
+        }
+        .code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 1rem;
+            border-radius: 5px;
+            border: 1px solid #ffeaa7;
+            margin: 1rem 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 5px;
+            border: 1px solid #c3e6cb;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 Email Setup Guide for Card Force</h1>
+        
+        <p>Currently, the email system opens your default email client with pre-filled emails. To enable automatic email sending, follow these steps:</p>
+
+        <div class="step">
+            <h3>Option 1: EmailJS Setup (Recommended - Free & Easy)</h3>
+            <p>EmailJS allows you to send emails directly from your frontend without a backend server.</p>
+            
+            <h4>Step 1: Create EmailJS Account</h4>
+            <p>1. Go to <a href="https://www.emailjs.com/" target="_blank">https://www.emailjs.com/</a></p>
+            <p>2. Create a free account (100 emails/month free)</p>
+            
+            <h4>Step 2: Add Email Service</h4>
+            <p>1. In your EmailJS dashboard, go to "Email Services"</p>
+            <p>2. Click "Add New Service"</p>
+            <p>3. Choose your email provider (Gmail, Outlook, etc.)</p>
+            <p>4. Follow the setup instructions</p>
+            
+            <h4>Step 3: Create Email Template</h4>
+            <p>1. Go to "Email Templates"</p>
+            <p>2. Create a new template with these variables:</p>
+            <div class="code">
+Subject: {{subject}}
+To: {{to_email}}
+
+{{message}}
+            </div>
+            
+            <h4>Step 4: Add EmailJS to Your Site</h4>
+            <p>Add this script tag to your HTML files (before the closing &lt;/body&gt; tag):</p>
+            <div class="code">
+&lt;script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+    emailjs.init('YOUR_PUBLIC_KEY');
+&lt;/script&gt;
+            </div>
+            
+            <h4>Step 5: Update Configuration</h4>
+            <p>In <code>admin-utils.js</code>, replace these values:</p>
+            <div class="code">
+// Replace these with your actual EmailJS IDs
+emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', {
+    to_email: to,
+    subject: subject,
+    message: body
+});
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Option 2: Backend Email Service</h3>
+            <p>For production use, consider setting up a backend email service:</p>
+            <ul>
+                <li><strong>SendGrid:</strong> Professional email API service</li>
+                <li><strong>Mailgun:</strong> Developer-friendly email service</li>
+                <li><strong>AWS SES:</strong> Amazon's email service</li>
+                <li><strong>Nodemailer:</strong> Node.js email library</li>
+            </ul>
+            <p>Create a simple API endpoint that accepts email data and sends emails using one of these services.</p>
+        </div>
+
+        <div class="step">
+            <h3>Current Implementation</h3>
+            <p>The current system works by:</p>
+            <ul>
+                <li>Opening the user's default email client</li>
+                <li>Pre-filling the email with subject and body</li>
+                <li>Showing a notification that the email client was opened</li>
+            </ul>
+            <div class="success">
+                ✅ This works immediately without any setup!
+            </div>
+        </div>
+
+        <div class="highlight">
+            <h3>Testing Email Functionality</h3>
+            <p>To test the current email system:</p>
+            <ol>
+                <li>Go to your Card Force website</li>
+                <li>Add items to cart and proceed to checkout</li>
+                <li>Check the "I would like to receive emails regarding my order" checkbox</li>
+                <li>Complete the order</li>
+                <li>Your email client should open with a pre-filled confirmation email</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Email Templates</h3>
+            <p>The system sends three types of emails:</p>
+            <ul>
+                <li><strong>Order Confirmation:</strong> Sent when order is created</li>
+                <li><strong>Cancellation Notice:</strong> Sent when order is cancelled</li>
+                <li><strong>Shipping Confirmation:</strong> Sent when order is shipped</li>
+            </ul>
+            <p>All emails include order details, customer information, and professional formatting.</p>
+        </div>
+    </div>
+</body>
+</html>

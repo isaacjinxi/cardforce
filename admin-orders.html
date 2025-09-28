@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Orders - Card Force</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js"></script>
+    <!-- Firebase CDN -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+      import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+      
+      // Firebase Configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCJNv4DDv8Gbvtw3zRzsvNk3xW3e2sog7k",
+        authDomain: "card-force-472100.firebaseapp.com",
+        projectId: "card-force-472100",
+        storageBucket: "card-force-472100.firebasestorage.app",
+        messagingSenderId: "91438507562",
+        appId: "1:91438507562:web:85673cf7f40190f4310553",
+        measurementId: "G-J2Q14Y5FXS"
+      };
+      
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const auth = getAuth(app);
+      
+      // Make available globally
+      window.db = db;
+      window.auth = auth;
+      window.GoogleAuthProvider = GoogleAuthProvider;
+    </script>
+    <!-- Firebase Service -->
+    <script type="module" src="firebase-config.js"></script>
+    <script>
+      // Load product data from Firebase after initialization
+      setTimeout(async () => {
+        console.log('🔄 Admin Orders: Attempting to load product data from Firebase...');
+        
+        // Ensure Firebase service is initialized
+        const googleUser = localStorage.getItem('googleUser');
+        if (googleUser && !window.firebaseService?.currentUser) {
+          console.log('🔄 Admin Orders: Initializing Firebase service with Google user...');
+          const userData = JSON.parse(googleUser);
+          window.firebaseService.currentUser = {
+            uid: userData.sub,
+            email: userData.email,
+            displayName: userData.name,
+            photoURL: userData.picture
+          };
+          window.firebaseService.isInitialized = true;
+        }
+        
+        if (window.loadProductDataFromFirebase) {
+          await window.loadProductDataFromFirebase();
+        }
+        
+        // Set up real-time listener for product changes
+        if (window.setupProductDataListener) {
+          window.setupProductDataListener();
+        }
+      }, 2000);
+      
+      // Listen for product data updates
+      window.addEventListener('productDataUpdated', () => {
+        console.log('📡 Admin Orders: Product data updated, refreshing display...');
+        // Refresh any product-related displays on the admin orders page
+        if (typeof refreshProductDisplay === 'function') {
+          refreshProductDisplay();
+        }
+      });
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: white;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+            position: relative;
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-decoration: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 60px;
+            background: #2c2c2c;
+            border: 3px solid #1a1a1a;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 15px 15px 0;
+            border-color: transparent #1a1a1a transparent transparent;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 12px 12px 0;
+            border-color: transparent #ff6b6b transparent transparent;
+        }
+
+        .logo-text {
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .logo-divider {
+            width: 20px;
+            height: 2px;
+            background: #1a1a1a;
+            margin: 2px 0;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.4);
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background-color: white;
+            margin: 3px 0;
+            transition: 0.3s;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .nav-menu {
+                position: fixed;
+                left: -100%;
+                top: 70px;
+                flex-direction: column;
+                background: linear-gradient(135deg, #6a4c93, #8e44ad);
+                width: 100%;
+                text-align: center;
+                transition: 0.3s;
+                box-shadow: 0 10px 27px rgba(0, 0, 0, 0.05);
+                padding: 2rem 0;
+                gap: 0;
+            }
+
+            .nav-menu.active {
+                left: 0;
+            }
+
+            .nav-menu li {
+                margin: 1rem 0;
+            }
+
+            .nav-menu a {
+                padding: 1rem 2rem;
+                display: block;
+                width: 100%;
+            }
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #6a4c93;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .orders-section {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #6a4c93;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .orders-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .order-card {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .order-card:hover {
+            border-color: #6a4c93;
+            box-shadow: 0 5px 15px rgba(106, 76, 147, 0.2);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .order-number {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #6a4c93;
+        }
+
+        .order-status {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-shipped {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .order-details {
+            margin-bottom: 1rem;
+        }
+
+        .order-details h4 {
+            color: #6a4c93;
+            margin-bottom: 0.5rem;
+        }
+
+        .order-items {
+            margin-bottom: 1rem;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .order-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-ship {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-ship:hover {
+            background: linear-gradient(135deg, #218838, #1ea085);
+            transform: translateY(-2px);
+        }
+
+        .btn-cancel {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: linear-gradient(135deg, #c82333, #bd2130);
+            transform: translateY(-2px);
+        }
+
+        .btn-shipped {
+            background: #6c757d;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        .btn-cancelled {
+            background: #6c757d;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6a4c93;
+            font-weight: bold;
+        }
+
+        .modal-close:hover {
+            color: #dc3545;
+        }
+
+        .modal h2 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #6a4c93;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .modal-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: linear-gradient(135deg, #5a3d83, #7d3c98);
+            transform: translateY(-2px);
+        }
+
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 1rem;
+            color: #6a4c93;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+                <span>Card Force Admin</span>
+            </a>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
+                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <h1 class="page-title">Admin Orders Management</h1>
+        
+        <section class="orders-section">
+            <h2 class="section-title">All Orders</h2>
+            <div class="orders-grid" id="ordersGrid">
+                <!-- Orders will be loaded here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Ship Order Modal -->
+    <div class="modal" id="shipModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeShipModal()">&times;</button>
+            <h2>Ship Order</h2>
+            <form id="shipForm">
+                <div class="form-group">
+                    <label for="shippingCompany">Shipping Company:</label>
+                    <select id="shippingCompany" required>
+                        <option value="">Select Shipping Company</option>
+                        <option value="UPS">UPS</option>
+                        <option value="USPS">USPS</option>
+                        <option value="FedEx">FedEx</option>
+                        <option value="DHL">DHL</option>
+                        <option value="BEAR MAIL">BEAR MAIL</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="trackingNumber">Tracking Number:</label>
+                    <input type="text" id="trackingNumber" placeholder="Enter tracking number" required>
+                </div>
+            </form>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" onclick="confirmShip()">Confirm Ship</button>
+                <button class="modal-btn modal-btn-secondary" onclick="closeShipModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Order Modal -->
+    <div class="modal" id="cancelModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeCancelModal()">&times;</button>
+            <h2>Cancel Order</h2>
+            <form id="cancelForm">
+                <div class="form-group">
+                    <label for="cancelReason">Reason for Cancellation:</label>
+                    <textarea id="cancelReason" rows="4" placeholder="Please provide a reason for cancelling this order..." required></textarea>
+                </div>
+            </form>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" onclick="confirmCancel()">Confirm Cancel</button>
+                <button class="modal-btn modal-btn-secondary" onclick="closeCancelModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentOrderId = null;
+
+        // Check if user is admin
+        function checkAdminAccess() {
+            if (!isAdmin()) {
+                showModal('Access Denied', 'You must be an admin to access this page.');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+                return false;
+            }
+            return true;
+        }
+
+        // Load orders on page load
+        window.onload = function() {
+            if (checkAdminAccess()) {
+                loadOrders();
+            }
+        };
+
+        // Load and display orders
+        function loadOrders() {
+            // Try to load from Firebase first, fallback to localStorage
+            if (window.firebaseService && window.firebaseService.currentUser) {
+                firebaseService.loadOrdersFromFirebase().then(firebaseOrders => {
+                    if (firebaseOrders.length > 0) {
+                        // Update localStorage with Firebase data
+                        saveOrders(firebaseOrders);
+                        renderOrders(firebaseOrders);
+                    } else {
+                        const localOrders = getOrders();
+                        renderOrders(localOrders);
+                    }
+                }).catch(error => {
+                    console.error('Error loading orders from Firebase:', error);
+                    const localOrders = getOrders();
+                    renderOrders(localOrders);
+                });
+            } else {
+                const orders = getOrders();
+                renderOrders(orders);
+            }
+        }
+        
+        function renderOrders(orders) {
+            const ordersGrid = document.getElementById('ordersGrid');
+            
+            if (orders.length === 0) {
+                ordersGrid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Orders Yet</h3>
+                        <p>Orders will appear here once customers start making purchases.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            ordersGrid.innerHTML = orders.map(order => `
+                <div class="order-card">
+                    <div class="order-header">
+                        <div class="order-number">Order #${order.orderNumber}</div>
+                        <div class="order-status status-${order.status}">${order.status.toUpperCase()}</div>
+                    </div>
+                    <div class="order-details">
+                        <h4>Order Details</h4>
+                        <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
+                        <p><strong>Total:</strong> $${order.totalPrice.toFixed(2)}</p>
+                        <p><strong>Items:</strong> ${order.items.length} item(s)</p>
+                    </div>
+                    <div class="order-items">
+                        <h4>Items</h4>
+                        ${order.items.map(item => `
+                            <div class="order-item">
+                                <span>${item.name} ${item.type === 'custom' || item.editorType ? '(Custom Card)' : ''}</span>
+                                <span>$${item.price.toFixed(2)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="order-details">
+                        <h4>Shipping Address</h4>
+                        <p>${order.shippingAddress.name}</p>
+                        <p>${order.shippingAddress.streetAddress}</p>
+                        <p>${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zipCode}</p>
+                        <p>${order.shippingAddress.country}</p>
+                    </div>
+                    ${order.shippingCompany ? `
+                        <div class="order-details">
+                            <h4>Shipping Information</h4>
+                            <p><strong>Company:</strong> ${order.shippingCompany}</p>
+                            <p><strong>Tracking:</strong> ${order.trackingNumber}</p>
+                        </div>
+                    ` : ''}
+                    <div class="order-actions">
+                        ${order.status === 'pending' ? `
+                            <button class="btn btn-ship" onclick="openShipModal(${order.id})">Ship Order</button>
+                            <button class="btn btn-cancel" onclick="openCancelModal(${order.id})">Cancel Order</button>
+                        ` : order.status === 'shipped' ? `
+                            <button class="btn btn-shipped">Shipped</button>
+                        ` : `
+                            <button class="btn btn-cancelled">Cancelled</button>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Open ship modal
+        function openShipModal(orderId) {
+            currentOrderId = orderId;
+            document.getElementById('shipModal').style.display = 'block';
+        }
+
+        // Close ship modal
+        function closeShipModal() {
+            document.getElementById('shipModal').style.display = 'none';
+            document.getElementById('shipForm').reset();
+            currentOrderId = null;
+        }
+
+        // Confirm ship
+        function confirmShip() {
+            const shippingCompany = document.getElementById('shippingCompany').value;
+            const trackingNumber = document.getElementById('trackingNumber').value;
+            
+            if (!shippingCompany || !trackingNumber) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            updateOrderStatus(currentOrderId, 'shipped', shippingCompany, trackingNumber);
+            closeShipModal();
+            loadOrders();
+            showModal('Success', 'Order has been marked as shipped! 📦✨');
+        }
+
+        // Open cancel modal
+        function openCancelModal(orderId) {
+            currentOrderId = orderId;
+            document.getElementById('cancelModal').style.display = 'block';
+        }
+
+        // Close cancel modal
+        function closeCancelModal() {
+            document.getElementById('cancelModal').style.display = 'none';
+            document.getElementById('cancelForm').reset();
+            currentOrderId = null;
+        }
+
+        // Confirm cancel
+        function confirmCancel() {
+            const cancelReason = document.getElementById('cancelReason').value;
+            
+            if (!cancelReason.trim()) {
+                alert('Please provide a reason for cancellation');
+                return;
+            }
+            
+            cancelOrder(currentOrderId, cancelReason);
+            closeCancelModal();
+            loadOrders();
+            showModal('Order Cancelled', 'Order has been cancelled successfully. Reason: ' + cancelReason);
+        }
+
+        // Hamburger menu functions
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+
+        function goToCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showModal('Sign In Required', 'You need to sign in to access your cart. Please sign in to continue.');
+                return;
+            }
+            window.location.href = 'cart.html';
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            const navbar = document.querySelector('.navbar');
+            
+            if (!navbar.contains(event.target) && navMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+
+        // Modal functions
+        function showModal(title, message) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    <h2>${title}</h2>
+                    <p>${message}</p>
+                    <div class="modal-buttons">
+                        <button class="modal-btn modal-btn-primary" onclick="this.parentElement.parentElement.parentElement.remove()">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const shipModal = document.getElementById('shipModal');
+            const cancelModal = document.getElementById('cancelModal');
+            
+            if (event.target === shipModal) {
+                closeShipModal();
+            }
+            if (event.target === cancelModal) {
+                closeCancelModal();
+            }
+        }
+    </script>
+</body>
+</html>

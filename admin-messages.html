@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Messages - Card Force</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js"></script>
+    <style>
+        body { font-family: 'Raleway', sans-serif; background:#f7f7fb; color:#333; margin:0; }
+        .navbar { background: linear-gradient(135deg, #6a4c93, #8e44ad); padding: 0.5rem 0; position:sticky; top:0; z-index:10; }
+        .nav-container { max-width:1200px; margin:0 auto; padding:0 1.25rem; display:flex; justify-content:space-between; align-items:center; }
+        .logo { color:#fff; text-decoration:none; font-weight:800; font-size:1.2rem; display:flex; align-items:center; gap:10px; }
+        .logo-icon { width:40px; height:48px; background:#2c2c2c; border:3px solid #1a1a1a; border-radius:8px; position:relative; display:flex; align-items:center; justify-content:center; }
+        .logo-text { color:#fff; font-size:0.6rem; font-weight:800; line-height:0.8; text-align:center; }
+        .logo-divider { width:24px; height:2px; background:#1a1a1a; margin:2px 0; }
+
+        .nav-menu { display:flex; list-style:none; gap:1rem; }
+        .nav-menu a { color:#fff; text-decoration:none; padding:0.35rem 0.75rem; border-radius:25px; transition:all 0.3s ease; font-weight:500; }
+        .nav-menu a:hover { background-color:rgba(255,255,255,0.2); transform:translateY(-2px) scale(1.05); box-shadow:0 4px 8px rgba(106,76,147,0.4); }
+
+
+        .container { max-width:1200px; margin:20px auto; padding:0 1.25rem; display:grid; grid-template-columns:320px 1fr; gap:16px; }
+        .panel { background:#fff; border:1px solid #eee; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,0.06); overflow:hidden; }
+        .panel-header { padding:10px 12px; border-bottom:1px solid #f0f0f0; font-weight:700; color:#6a4c93; }
+        .list { max-height:70vh; overflow:auto; }
+        .list-item { padding:10px 12px; border-bottom:1px solid #f5f5f5; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+        .list-item:hover { background:#faf7ff; }
+        .badge { background:#ffe3e3; color:#b02a37; border-radius:999px; padding:2px 8px; font-size:12px; }
+        .chat { display:flex; flex-direction:column; height:70vh; }
+        .chat-messages { flex:1; overflow:auto; padding:12px; background:#fafafa; }
+        .chat-input { display:flex; gap:8px; padding:10px; border-top:1px solid #eee; align-items:center; }
+        .chat-input input[type="text"] { flex:1; padding:10px; border:1px solid #ddd; border-radius:10px; }
+        .btn { background: linear-gradient(135deg, #6a4c93, #8e44ad); color:#fff; border:none; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600; transition:all 0.2s ease; }
+        .btn:hover { transform:translateY(-1px); box-shadow:0 4px 8px rgba(106,76,147,0.3); }
+        .btn-danger { background:#e74c3c; }
+        .btn-danger:hover { background:#c0392b; box-shadow:0 4px 8px rgba(231,76,60,0.3); }
+        .btn-secondary { background:#6c757d; }
+        .btn-secondary:hover { background:#5a6268; box-shadow:0 4px 8px rgba(108,117,125,0.3); }
+        .uploader { display:none; }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+    </head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+                <span>Card Force</span>
+            </a>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
+                <li><a href="marketplace.html" onclick="closeMenu()">Marketplace</a></li>
+                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="panel">
+            <div class="panel-header">Conversations</div>
+            <div id="convoList" class="list"></div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">Chat</div>
+            <div class="chat">
+                <div id="adminChatMessages" class="chat-messages"></div>
+                <div class="chat-input">
+                    <input id="adminChatText" type="text" placeholder="Reply..." />
+                    <label for="adminChatImage" class="btn">Image</label>
+                    <input id="adminChatImage" class="uploader" type="file" accept="image/*" />
+                    <button id="adminRecBtn" class="btn" onclick="toggleAdminRecording()">Record</button>
+                    <span id="adminRecStatus" style="font-size:0.85rem;color:#666"></span>
+                    <button class="btn" onclick="adminSendMessage()">Send</button>
+                    <button class="btn" onclick="openProceed()">Proceed</button>
+                    <button class="btn btn-danger" onclick="deleteAllMessages()">Delete All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        if (!isAdmin()) {
+            alert('This page is for admins only! 🔒');
+            window.location.href = 'index.html';
+        }
+
+        let activeConvoId = null;
+
+        function renderConversations() {
+            const list = listConversations();
+            const el = document.getElementById('convoList');
+            if (!list.length) { el.innerHTML = '<div style="padding:12px;color:#666;">No conversations yet</div>'; return; }
+            el.innerHTML = list.map(c => {
+                const name = c.userName || c.userEmail || c.userSub;
+                const last = (c.messages[c.messages.length-1]||{}).text || '';
+                return `<div class="list-item" onclick="openConvo('${c.id}')"><div><div style=\"font-weight:700\">${name}</div><div style=\"font-size:12px;color:#666\">${last}</div></div><div class="badge">${c.messages.length}</div></div>`;
+            }).join('');
+        }
+
+        function openConvo(id) {
+            activeConvoId = id;
+            renderChat();
+        }
+
+        function renderChat() {
+            if (!activeConvoId) return;
+            const convo = getConversation(activeConvoId);
+            const box = document.getElementById('adminChatMessages');
+            box.innerHTML = (convo.messages||[]).map(m => {
+                const align = m.from==='admin' ? 'flex-end' : 'flex-start';
+                const bg = m.from==='admin' ? '#e8f5e9' : '#f1f3f5';
+                if (m.type==='image') return `<div style="display:flex;justify-content:${align};margin:6px 0;"><div style="background:${bg};padding:6px 8px;border-radius:8px;max-width:80%"><img src="${m.src}" style="max-width:240px;border-radius:8px"/></div></div>`;
+                if (m.type==='audio') return `<div style="display:flex;justify-content:${align};margin:6px 0;"><div style="background:${bg};padding:6px 8px;border-radius:8px;max-width:80%"><audio controls src="${m.src}"></audio></div></div>`;
+                return `<div style="display:flex;justify-content:${align};margin:6px 0;"><div style="background:${bg};padding:8px 10px;border-radius:8px;max-width:80%">${m.text||''}</div></div>`;
+            }).join('');
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function adminSendMessage() {
+            if (!activeConvoId) return;
+            const text = (document.getElementById('adminChatText').value||'').trim();
+            const img = document.getElementById('adminChatImage').files[0] || null;
+            if (!text && !img && !adminPendingAudioBlob) return;
+            if (text) appendMessage(activeConvoId, { from:'admin', type:'text', text });
+            if (img) { const r=new FileReader(); r.onload=e=>{ appendMessage(activeConvoId, { from:'admin', type:'image', src:e.target.result }); renderChat(); }; r.readAsDataURL(img); document.getElementById('adminChatImage').value=''; }
+            if (adminPendingAudioBlob) { const r2=new FileReader(); r2.onload=e=>{ appendMessage(activeConvoId, { from:'admin', type:'audio', src:e.target.result }); renderChat(); }; r2.readAsDataURL(adminPendingAudioBlob); adminPendingAudioBlob = null; }
+            document.getElementById('adminChatText').value='';
+            renderChat();
+            renderConversations();
+        }
+
+        // Admin voice recording
+        let adminMediaRecorder = null;
+        let adminAudioChunks = [];
+        let adminPendingAudioBlob = null;
+
+        async function toggleAdminRecording() {
+            const btn = document.getElementById('adminRecBtn');
+            const status = document.getElementById('adminRecStatus');
+            if (!adminMediaRecorder || adminMediaRecorder.state === 'inactive') {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    adminMediaRecorder = new MediaRecorder(stream);
+                    adminAudioChunks = [];
+                    adminMediaRecorder.ondataavailable = e => { if (e.data.size > 0) adminAudioChunks.push(e.data); };
+                    adminMediaRecorder.onstop = () => {
+                        adminPendingAudioBlob = new Blob(adminAudioChunks, { type: 'audio/webm' });
+                        status.textContent = 'Voice recorded';
+                        // Auto-send the voice message
+                        setTimeout(() => {
+                            adminSendMessage();
+                        }, 500);
+                    };
+                    adminMediaRecorder.start();
+                    btn.textContent = 'Stop';
+                    status.textContent = 'Recording...';
+                } catch (e) {
+                    alert('Please allow microphone access to record voice messages!');
+                }
+            } else {
+                adminMediaRecorder.stop();
+                btn.textContent = 'Record';
+                status.textContent = 'Processing...';
+                // Stop all tracks to turn off microphone
+                adminMediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function deleteAllMessages() {
+            if (confirm('Are you sure you want to delete all messages in this conversation?')) {
+                const messages = getMessages();
+                messages[activeConvoId] = [];
+                saveMessages(messages);
+                renderChat();
+                renderConversations();
+            }
+        }
+
+        function openProceed() {
+            if (!activeConvoId) {
+                alert('Please select a conversation first! 💬');
+                return;
+            }
+            console.log('Opening proceed modal for conversation:', activeConvoId);
+            
+            // Remove any existing modal
+            const existingModal = document.getElementById('proceedModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            const overlay = document.createElement('div');
+            overlay.id = 'proceedModal';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;';
+            overlay.innerHTML = `
+                <div style="background:#fff;border-radius:12px;padding:16px;max-width:520px;width:90%;">
+                    <div style="font-weight:800;color:#6a4c93;margin-bottom:8px;">Proceed with Order</div>
+                    <div style="font-size:0.9rem;color:#666;margin-bottom:8px;">Upload files (up to 15). These will be visible to admin and used for order reference.</div>
+                    <input id="proceedFiles" type="file" multiple accept="image/*,application/pdf,.doc,.docx,.txt" />
+                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+                        <button class="btn btn-secondary" onclick="cancelProceed()">Cancel</button>
+                        <button class="btn" onclick="confirmProceed()">Confirm</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function cancelProceed() {
+            const modal = document.getElementById('proceedModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function confirmProceed() {
+            console.log('Confirming proceed...');
+            const modal = document.getElementById('proceedModal');
+            if (!modal) {
+                alert('Modal not found! Please try again.');
+                return;
+            }
+            
+            const files = modal.querySelector('#proceedFiles').files;
+            console.log('Files selected:', files.length);
+            
+            if (files.length === 0) {
+                alert('Please select at least one file to proceed with the order! 📁');
+                return;
+            }
+            
+            if (files.length > 15) {
+                alert('Maximum 15 files allowed! Please select fewer files.');
+                return;
+            }
+            
+            const max = files.length;
+            let filesProcessed = 0;
+            
+            console.log('Processing', max, 'files...');
+            
+            for (let i=0;i<max;i++) {
+                const f = files[i];
+                const r = new FileReader();
+                r.onload = e => {
+                    console.log('File', i+1, 'processed');
+                    appendMessage(activeConvoId, { from:'admin', type:'image', src:e.target.result });
+                    filesProcessed++;
+                    if (filesProcessed === max) {
+                        console.log('All files processed, sending prompt...');
+                        // Send customer prompt after all files are processed
+                        appendMessage(activeConvoId, { from:'system', type:'prompt', text:'Add to cart?', options:['No','Yes','Preview cards'] });
+                        renderChat();
+                        renderConversations();
+                    }
+                };
+                r.readAsDataURL(f);
+            }
+            
+            modal.remove();
+            alert(`Successfully uploaded ${max} file(s)! The customer will now see the "Add to cart?" prompt. 🎉`);
+        }
+
+        // Hamburger menu functions
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+
+        function goToCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                alert('Please sign in to access your cart! 🛒');
+                window.location.href = 'account.html';
+                return;
+            }
+            window.location.href = 'cart.html';
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            const navbar = document.querySelector('.navbar');
+            
+            if (!navbar.contains(event.target) && navMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+
+        // Initialize
+        renderConversations();
+    </script>
+</body>
+</html>
+

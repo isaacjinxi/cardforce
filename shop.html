@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop - Card Force</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js"></script>
+    <script type="module">
+      // Firebase Configuration
+      import { initializeApp, getApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getFirestore, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, collection } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+      import { getAuth, onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCJNv4DDv8Gbvtw3zRzsvNk3xW3e2sog7k",
+        authDomain: "card-force-472100.firebaseapp.com",
+        projectId: "card-force-472100",
+        storageBucket: "card-force-472100.firebasestorage.app",
+        messagingSenderId: "91438507562",
+        appId: "1:91438507562:web:85673cf7f40190f4310553",
+        measurementId: "G-J2Q14Y5FXS"
+      };
+
+      // Initialize Firebase
+      let app, db, auth, GoogleAuthProvider;
+
+      try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        try {
+          app = getApp();
+          db = getFirestore(app);
+          auth = getAuth(app);
+        } catch (retryError) {
+          console.error('Failed to get existing Firebase instances:', retryError);
+        }
+      }
+
+      // Make Firebase functions globally available
+      window.firebaseApp = app;
+      window.db = db;
+      window.auth = auth;
+      window.GoogleAuthProvider = GoogleAuthProvider;
+      window.doc = doc;
+      window.setDoc = setDoc;
+      window.getDoc = getDoc;
+      window.getDocs = getDocs;
+      window.addDoc = addDoc;
+      window.updateDoc = updateDoc;
+      window.deleteDoc = deleteDoc;
+      window.onSnapshot = onSnapshot;
+      window.query = query;
+      window.where = where;
+      window.orderBy = orderBy;
+      window.collection = collection;
+
+       // Firebase Collections
+       const COLLECTIONS = {
+         USERS: 'users',
+         ORDERS: 'orders',
+         CARTS: 'carts',
+         PRODUCTS: 'products',
+         ADDRESSES: 'addresses',
+         REFUNDS: 'refunds',
+         CHAT_MESSAGES: 'chatMessages',
+         STOCK: 'stock'
+       };
+
+      // Firebase Helper Functions
+      class FirebaseService {
+        constructor() {
+          this.isInitialized = false;
+          this.currentUser = null;
+          this.init();
+        }
+
+        async init() {
+          try {
+            // Always initialize Firebase service, even without user
+            this.isInitialized = true;
+            
+            const googleUser = localStorage.getItem('googleUser');
+            if (googleUser) {
+              const userData = JSON.parse(googleUser);
+              this.currentUser = {
+                uid: userData.sub,
+                email: userData.email,
+                displayName: userData.name,
+                photoURL: userData.picture
+              };
+              console.log('Firebase service initialized with existing Google user:', this.currentUser.uid);
+              this.syncUserData(this.currentUser);
+            } else {
+              console.log('Firebase service initialized without user - public access mode');
+            }
+
+            onAuthStateChanged(auth, (user) => {
+              this.currentUser = user;
+              
+              if (user) {
+                console.log('Firebase user signed in:', user.uid);
+                this.syncUserData(user);
+              } else {
+                console.log('Firebase user signed out - continuing in public mode');
+              }
+            });
+          } catch (error) {
+            console.error('Firebase initialization error:', error);
+          }
+        }
+
+         async loadProductsFromFirebase() {
+           try {
+             const querySnapshot = await getDocs(collection(db, COLLECTIONS.PRODUCTS));
+             const products = [];
+             querySnapshot.forEach((doc) => {
+               products.push({ id: doc.id, ...doc.data() });
+             });
+             console.log('✅ Products loaded from Firebase:', products.length);
+             return products;
+           } catch (error) {
+             console.error('❌ Error loading products from Firebase:', error);
+             return [];
+           }
+         }
+
+         async saveProductToFirebase(product) {
+           try {
+             const productRef = doc(db, COLLECTIONS.PRODUCTS, product.id);
+             await setDoc(productRef, {
+               ...product,
+               lastUpdated: new Date().toISOString()
+             });
+           } catch (error) {
+             console.error('Error saving product to Firebase:', error);
+           }
+         }
+
+         async saveStockToFirebase(itemId, stock) {
+           try {
+             const stockRef = doc(db, COLLECTIONS.STOCK, itemId);
+             await setDoc(stockRef, {
+               itemId: itemId,
+               stock: stock,
+               lastUpdated: new Date().toISOString()
+             });
+           } catch (error) {
+             console.error('Error saving stock to Firebase:', error);
+           }
+         }
+
+         async loadStockFromFirebase() {
+           try {
+             const q = query(collection(db, COLLECTIONS.STOCK));
+             const querySnapshot = await getDocs(q);
+             const stockData = {};
+             querySnapshot.forEach((doc) => {
+               stockData[doc.id] = doc.data().stock;
+             });
+             return stockData;
+           } catch (error) {
+             console.error('Error loading stock from Firebase:', error);
+             return {};
+           }
+         }
+
+         async saveOrderToFirebase(order) {
+           try {
+             const orderRef = doc(db, COLLECTIONS.ORDERS, order.id);
+             await setDoc(orderRef, {
+               ...order,
+               firebaseCreated: new Date().toISOString()
+             });
+           } catch (error) {
+             console.error('Error saving order to Firebase:', error);
+           }
+         }
+
+         async loadOrdersFromFirebase(userId = null) {
+           try {
+             let q;
+             if (userId) {
+               q = query(collection(db, COLLECTIONS.ORDERS), where('userId', '==', userId));
+             } else {
+               q = query(collection(db, COLLECTIONS.ORDERS), orderBy('createdAt', 'desc'));
+             }
+             
+             const querySnapshot = await getDocs(q);
+             const orders = [];
+             querySnapshot.forEach((doc) => {
+               orders.push({ id: doc.id, ...doc.data() });
+             });
+             return orders;
+           } catch (error) {
+             console.error('Error loading orders from Firebase:', error);
+             return [];
+           }
+         }
+
+         async saveCartToFirebase(userId, cartItems) {
+           try {
+             const cartRef = doc(db, COLLECTIONS.CARTS, userId);
+             await setDoc(cartRef, {
+               userId: userId,
+               items: cartItems,
+               lastUpdated: new Date().toISOString()
+             });
+           } catch (error) {
+             console.error('Error saving cart to Firebase:', error);
+           }
+         }
+
+         async loadCartFromFirebase(userId) {
+           try {
+             const cartRef = doc(db, COLLECTIONS.CARTS, userId);
+             const cartSnap = await getDoc(cartRef);
+             
+             if (cartSnap.exists()) {
+               return cartSnap.data().items || [];
+             }
+             return [];
+           } catch (error) {
+             console.error('Error loading cart from Firebase:', error);
+             return [];
+           }
+         }
+
+        async syncUserData(user) {
+          try {
+            const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+            const userSnap = await getDoc(userRef);
+            
+            if (!userSnap.exists()) {
+              await setDoc(userRef, {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString()
+              });
+            } else {
+              await updateDoc(userRef, {
+                lastLogin: new Date().toISOString()
+              });
+            }
+          } catch (error) {
+            console.error('Error syncing user data:', error);
+          }
+        }
+      }
+      
+       // Initialize Firebase Service
+       window.firebaseService = new FirebaseService();
+       window.COLLECTIONS = COLLECTIONS;
+       
+       // Define product data functions locally
+       function getProductData() {
+         return JSON.parse(localStorage.getItem('productData') || '{}');
+       }
+
+        function updateProductData(productData, skipFirebaseSync = false) {
+          localStorage.setItem('productData', JSON.stringify(productData));
+          
+          // Sync to Firebase if available and not skipping sync
+          if (!skipFirebaseSync && window.firebaseService && window.firebaseService.isInitialized) {
+            console.log('🔄 Syncing product data to Firebase...');
+            // Save each product to Firebase
+            Object.keys(productData).forEach(productId => {
+              const product = productData[productId];
+              if (product) {
+                console.log(`📦 Syncing product ${productId}:`, product);
+                window.firebaseService.saveProductToFirebase({
+                  id: productId,
+                  ...product
+                }).then(() => {
+                  console.log(`✅ Product ${productId} synced to Firebase`);
+                }).catch(error => {
+                  console.error(`❌ Failed to sync product ${productId}:`, error);
+                });
+              }
+            });
+          } else if (!skipFirebaseSync) {
+            console.log('⚠️ Firebase sync skipped - service not available');
+          }
+        }
+
+        // Load product data from Firebase and merge with local data
+        async function loadProductDataFromFirebase() {
+          if (!window.firebaseService || !window.firebaseService.isInitialized) {
+            console.log('⚠️ Firebase service not initialized for product data loading');
+            return;
+          }
+          
+          try {
+            const firebaseProducts = await window.firebaseService.loadProductsFromFirebase();
+            const localProductData = getProductData();
+            
+            // Merge Firebase data with local data (Firebase takes precedence)
+            firebaseProducts.forEach(product => {
+              localProductData[product.id] = {
+                ...localProductData[product.id], // Keep local data
+                ...product // Override with Firebase data
+              };
+            });
+            
+            // Update local storage with merged data (skip Firebase sync to avoid circular calls)
+            updateProductData(localProductData, true);
+            console.log('✅ Product data synced from Firebase');
+            
+            // Trigger page refresh if needed
+            triggerProductDataRefresh();
+            
+          } catch (error) {
+            console.error('❌ Error loading product data from Firebase:', error);
+          }
+        }
+
+       // Function to trigger page refresh when product data changes
+       function triggerProductDataRefresh() {
+         console.log('🔄 Triggering product data refresh across pages...');
+         
+         // Dispatch custom event for pages to listen to
+         window.dispatchEvent(new CustomEvent('productDataUpdated', {
+           detail: { timestamp: new Date().toISOString() }
+         }));
+         
+         // Force refresh of all common page functions
+         setTimeout(() => {
+           // Shop page
+           if (typeof refreshProductDisplay === 'function') {
+             console.log('🔄 Refreshing shop display...');
+             refreshProductDisplay();
+           }
+           
+           console.log('✅ All page refresh functions called');
+         }, 100);
+       }
+
+        // Set up real-time listener for product data changes
+        function setupProductDataListener() {
+          if (!window.firebaseService || !window.firebaseService.isInitialized || !window.db || !window.COLLECTIONS) {
+            console.log('⚠️ Firebase not ready for real-time listener');
+            console.log('Firebase Service:', !!window.firebaseService);
+            console.log('Service Initialized:', !!window.firebaseService?.isInitialized);
+            console.log('DB:', !!window.db);
+            console.log('Collections:', !!window.COLLECTIONS);
+            return;
+          }
+         
+         console.log('🔄 Setting up real-time product data listener...');
+         
+         const productsRef = window.collection(window.db, window.COLLECTIONS.PRODUCTS);
+         
+         window.onSnapshot(productsRef, (snapshot) => {
+           console.log('📡 Real-time product data update received');
+           console.log('Changes:', snapshot.docChanges().length);
+           
+           const localProductData = getProductData();
+           let hasChanges = false;
+           
+           snapshot.docChanges().forEach((change) => {
+             const product = { id: change.doc.id, ...change.doc.data() };
+             
+             if (change.type === 'added' || change.type === 'modified') {
+               console.log(`📦 Product ${product.id} ${change.type}:`, product);
+               localProductData[product.id] = {
+                 ...localProductData[product.id],
+                 ...product
+               };
+               hasChanges = true;
+             } else if (change.type === 'removed') {
+               console.log(`🗑️ Product ${product.id} removed`);
+               delete localProductData[product.id];
+               hasChanges = true;
+             }
+           });
+           
+           if (hasChanges) {
+             // Update local storage (skip Firebase sync to avoid circular calls)
+             updateProductData(localProductData, true);
+             console.log('✅ Local product data updated from real-time changes');
+             
+             // Trigger page refresh
+             triggerProductDataRefresh();
+           } else {
+             console.log('📡 No changes detected in real-time update');
+           }
+         }, (error) => {
+           console.error('❌ Real-time listener error:', error);
+           console.error('Error code:', error.code);
+           console.error('Error message:', error.message);
+         });
+       }
+
+        // Load stock data from Firebase and merge with local data
+        async function loadStockFromFirebase() {
+          if (!window.firebaseService || !window.firebaseService.isInitialized) {
+            console.log('⚠️ Firebase not available for loading stock');
+            return;
+          }
+         
+         try {
+           const firebaseStock = await window.firebaseService.loadStockFromFirebase();
+           const localStockData = JSON.parse(localStorage.getItem('stockData') || '{}');
+           
+           // Merge Firebase stock with local stock (Firebase takes precedence)
+           Object.keys(firebaseStock).forEach(itemId => {
+             localStockData[itemId] = firebaseStock[itemId];
+           });
+           
+           // Update local storage with merged data
+           localStorage.setItem('stockData', JSON.stringify(localStockData));
+           console.log('✅ Stock data synced from Firebase');
+           
+         } catch (error) {
+           console.error('❌ Error loading stock from Firebase:', error);
+         }
+       }
+
+       // Make functions globally available
+       window.getProductData = getProductData;
+       window.updateProductData = updateProductData;
+       window.loadProductDataFromFirebase = loadProductDataFromFirebase;
+       window.setupProductDataListener = setupProductDataListener;
+       window.triggerProductDataRefresh = triggerProductDataRefresh;
+       window.loadStockFromFirebase = loadStockFromFirebase;
+      
+       // Load product data from Firebase after initialization
+       setTimeout(async () => {
+         console.log('🔄 Shop Page: Attempting to load product data from Firebase...');
+         
+         // Firebase service should already be initialized (works with or without user)
+         if (!window.firebaseService?.isInitialized) {
+           console.log('⚠️ Firebase service not initialized, waiting...');
+           return;
+         }
+         
+         // Load product data from Firebase (works for both signed-in and anonymous users)
+         if (window.loadProductDataFromFirebase) {
+           await window.loadProductDataFromFirebase();
+         }
+         
+         // Load stock from Firebase (works for both signed-in and anonymous users)
+         if (window.loadStockFromFirebase) {
+           await window.loadStockFromFirebase();
+         }
+         
+         // Set up real-time listener for product changes (works for both signed-in and anonymous users)
+         if (window.setupProductDataListener) {
+           window.setupProductDataListener();
+         }
+       }, 2000);
+      
+      // Listen for product data updates
+      window.addEventListener('productDataUpdated', () => {
+        console.log('📡 Shop: Product data updated, refreshing display...');
+        // Refresh any product displays on the shop page
+        if (typeof refreshProductDisplay === 'function') {
+          refreshProductDisplay();
+        }
+      });
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: white;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            padding: 0.5rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            50% { box-shadow: 0 2px 20px rgba(106, 76, 147, 0.3); }
+            100% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1.25rem;
+            position: relative;
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-decoration: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: bounce 1s infinite alternate;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-3px); }
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 48px;
+            background: #2c2c2c;
+            border: 3px solid #1a1a1a;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 15px 15px 0;
+            border-color: transparent #1a1a1a transparent transparent;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 12px 12px 0;
+            border-color: transparent #2c2c2c transparent transparent;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 0.8;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-divider {
+            width: 30px;
+            height: 2px;
+            background: #1a1a1a;
+            margin: 2px 0;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 1rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.4);
+        }
+
+        .nav-menu a.active {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.4);
+            font-weight: 600;
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background-color: white;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .shop-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 70vh;
+            margin: 2rem 0;
+        }
+
+        /* Top category bar */
+        .shop-topbar {
+            background: #f8f9fa;
+            border-bottom: 2px solid #eee;
+            padding: 0.75rem 0;
+        }
+        .shop-topbar-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .shop-topbar .left-buttons { display:flex; gap:0.75rem; align-items:center; }
+        .shop-topbar button {
+            background: white;
+            color: #6a4c93;
+            border: 2px solid #6a4c93;
+            padding: 0.6rem 1rem;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .shop-topbar button:hover {
+            background: #6a4c93;
+            color: white;
+        }
+        .shop-banner {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            text-align: center;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+        }
+
+        .shop-container {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .shop-container:hover {
+            border-color: #6a4c93;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(106, 76, 147, 0.2);
+            animation: none;
+        }
+
+        .shop-title {
+            font-size: 2.5rem;
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 2px 2px 4px rgba(0,0,0,0.1), 0 0 10px rgba(106, 76, 147, 0.5); }
+            to { text-shadow: 2px 2px 4px rgba(0,0,0,0.1), 0 0 20px rgba(106, 76, 147, 0.8); }
+        }
+
+        .shop-subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .shop-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Design Help section */
+        .design-help {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #fff7ff;
+            border: 1px dashed #8e44ad;
+            border-radius: 12px;
+        }
+        .chat-box {
+            display:none;
+            border:1px solid #eee;
+            border-radius:10px;
+            margin-top:1rem;
+            overflow:hidden;
+        }
+        .chat-header { background:#6a4c93; color:#fff; padding:8px 12px; font-weight:700; }
+        .chat-messages { height:240px; overflow:auto; padding:10px; background:#fafafa; }
+        .chat-input { display:flex; gap:8px; padding:10px; border-top:1px solid #eee; background:#fff; align-items:center; }
+        .chat-input input[type="text"] { flex:1; padding:8px; border:1px solid #ddd; border-radius:8px; }
+        .chat-input input[type="file"] { display:none; }
+        .chat-helpnote { font-size:0.85rem; color:#666; margin-top:6px; }
+
+        .shop-btn {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            border: none;
+            padding: 1.5rem 3rem;
+            border-radius: 50px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            box-shadow: 0 5px 20px rgba(106, 76, 147, 0.3);
+            animation: pulse-btn 2s infinite;
+        }
+
+        @keyframes pulse-btn {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .shop-btn:hover {
+            background: linear-gradient(135deg, #5a3c83, #7e349d);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(106, 76, 147, 0.4);
+            animation: none;
+        }
+
+        .shop-btn-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            animation: wave 2s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: skewY(0deg); }
+            50% { transform: skewY(1deg); }
+        }
+
+        /* Custom Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h2 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .modal p {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: #6a4c93;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #5a3d83;
+            transform: translateY(-2px);
+        }
+
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .logo {
+                font-size: 1.4rem;
+            }
+
+            .logo-icon {
+                width: 40px;
+                height: 50px;
+            }
+
+            .logo-text {
+                font-size: 0.6rem;
+            }
+
+            .logo-divider {
+                width: 25px;
+            }
+
+            .nav-menu {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 100%;
+                height: 100vh;
+                background: linear-gradient(135deg, #6a4c93, #8e44ad);
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                gap: 2rem;
+                transition: right 0.3s ease;
+                z-index: 1000;
+            }
+
+            .nav-menu.active {
+                right: 0;
+            }
+
+            .nav-menu a {
+                font-size: 1.5rem;
+                padding: 1rem 2rem;
+                border-radius: 10px;
+                width: 200px;
+                text-align: center;
+            }
+
+            .shop-container {
+                padding: 2rem;
+                margin: 1rem;
+            }
+
+            .shop-title {
+                font-size: 2rem;
+            }
+
+            .shop-btn {
+                padding: 1.2rem 2rem;
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+                <span>Card Force</span>
+            </a>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" class="active" onclick="closeMenu()">Shop</a></li>
+                <li><a href="marketplace.html" onclick="closeMenu()">Marketplace</a></li>
+                <li><a href="about.html" onclick="closeMenu()">About</a></li>
+                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Category Top Bar -->
+        <div class="shop-topbar">
+            <div class="shop-topbar-inner">
+                <div class="left-buttons">
+                    <button onclick="showComingSoon('Custom Cards Editor')" style="opacity: 0.6; cursor: not-allowed;">Custom Cards (Coming Soon)</button>
+                    <button onclick="goToTradingCards()">Trading Cards</button>
+                </div>
+                <button onclick="showComingSoon('Design Help Page')" style="opacity: 0.6; cursor: not-allowed;">We help you design (Coming Soon)</button>
+            </div>
+        </div>
+
+        <!-- Online Shopping Banner -->
+        <div class="shop-banner">Shop online securely with PayPal • Fast order processing • Track your orders in Account → My Orders</div>
+        <section class="shop-section">
+            <div class="shop-container">
+                <h1 class="shop-title">Card Force Shop</h1>
+                <p class="shop-subtitle">Choose your card experience - collect trading cards or create your own custom designs</p>
+                
+                <div class="shop-buttons">
+                    <button class="shop-btn" onclick="goToTradingCards()">
+                        <span class="shop-btn-icon">🃏</span>
+                        <span>Trading Cards</span>
+                    </button>
+                    
+                    <button class="shop-btn" onclick="showComingSoon('Custom Cards Editor')" style="opacity: 0.6; cursor: not-allowed;">
+                        <span class="shop-btn-icon">✏</span>
+                        <span>Custom Cards (Coming Soon)</span>
+                    </button>
+                    
+                    <div class="design-help">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                            <div style="font-weight:700;color:#6a4c93;">We help you design</div>
+                            <button class="shop-btn" style="padding:0.8rem 1.2rem;font-size:1rem;border-radius:12px;opacity:0.6;cursor:not-allowed;" onclick="showComingSoon('Design Help Chat')">Coming Soon</button>
+                        </div>
+                        <div class="chat-helpnote" style="color:#999;">Design help feature is coming soon!</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Card Force. All rights reserved. | The Ultimate Card Game Experience</p>
+    </footer>
+
+    <script>
+        function showComingSoon(feature) {
+            alert(`${feature} is coming soon! Stay tuned for updates.`);
+        }
+        
+        function goToTradingCards() {
+            window.location.href = 'trading-cards.html';
+        }
+
+        function goToCustomCards() {
+            // Check if user is signed in by looking for Google auth data
+            const savedUser = localStorage.getItem('googleUser');
+            if (!savedUser) {
+                // Redirect to account page to sign in
+                showModal(
+                    'Sign In Required',
+                    'Please sign in to create custom cards!',
+                    function() {
+                        window.location.href = 'account.html';
+                    }
+                );
+            } else {
+                // User is signed in, go to custom cards page
+                window.location.href = 'custom-cards.html';
+            }
+        }
+
+        // ----- Design Help Chat -----
+        function openDesignHelpPage() {
+            const savedUser = localStorage.getItem('googleUser');
+            if (!savedUser) {
+                showCustomModal('Sign In Required', 'Please sign in to chat with a designer! 💬', {
+                    confirm: true,
+                    confirmText: 'Sign In',
+                    onConfirm: () => window.location.href='account.html'
+                });
+                return;
+            }
+            window.location.href = 'design-help.html';
+        }
+
+        function renderChat(convoId) {
+            const convo = getConversation(convoId);
+            if (!convo) return;
+            const box = document.getElementById('chatMessages');
+            box.dataset.convoId = convoId;
+            box.innerHTML = (convo.messages||[]).map(m => {
+                const align = m.from==='admin' ? 'flex-end' : 'flex-start';
+                const bg = m.from==='admin' ? '#e8f5e9' : '#f1f3f5';
+                if (m.type==='image') return `<div style="display:flex;justify-content:${align};margin:6px 0;"><div style="background:${bg};padding:6px 8px;border-radius:8px;max-width:80%"><img src="${m.src}" style="max-width:220px;border-radius:8px"/></div></div>`;
+                if (m.type==='audio') return `<div style="display:flex;justify-content:${align};margin:6px 0;"><div style="background:${bg};padding:6px 8px;border-radius:8px;max-width:80%"><audio controls src="${m.src}"></audio></div></div>`;
+                return `<div style="display:flex;justify-content:${align};margin:6px 0;"><div style="background:${bg};padding:8px 10px;border-radius:8px;max-width:80%">${m.text||''}</div></div>`;
+            }).join('');
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function sendChatMessage() {
+            const box = document.getElementById('chatMessages');
+            const convoId = box.dataset.convoId;
+            if (!convoId) return;
+            const text = (document.getElementById('chatText').value||'').trim();
+            const imgFile = document.getElementById('chatImage').files[0] || null;
+            const audioFile = document.getElementById('chatAudio').files[0] || null;
+            if (!text && !imgFile && !audioFile) return;
+            if (text) appendMessage(convoId, { from:'user', type:'text', text });
+            if (imgFile) {
+                const r = new FileReader();
+                r.onload = e => { appendMessage(convoId, { from:'user', type:'image', src:e.target.result }); renderChat(convoId); };
+                r.readAsDataURL(imgFile);
+                document.getElementById('chatImage').value='';
+            }
+            if (audioFile) {
+                const r2 = new FileReader();
+                r2.onload = e => { appendMessage(convoId, { from:'user', type:'audio', src:e.target.result }); renderChat(convoId); };
+                r2.readAsDataURL(audioFile);
+                document.getElementById('chatAudio').value='';
+            }
+            document.getElementById('chatText').value='';
+            renderChat(convoId);
+        }
+
+        // Hamburger menu functions
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            const navbar = document.querySelector('.navbar');
+            
+            if (!navbar.contains(event.target) && navMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+
+        function goToCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showSignInModal();
+                return;
+            }
+            window.location.href = 'cart.html';
+        }
+
+        function showSignInModal() {
+            showModal(
+                'Sign In Required',
+                'You need to sign in to access your cart. Please sign in to continue.',
+                function() {
+                    window.location.href = 'account.html';
+                }
+            );
+        }
+
+        function showModal(title, message, onConfirm = null) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('customModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'customModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h2 id="modalTitle">Modal Title</h2>
+                        <p id="modalMessage">Modal message goes here.</p>
+                        <div class="modal-buttons">
+                            <button class="modal-btn modal-btn-primary" id="modalConfirm">Confirm</button>
+                            <button class="modal-btn modal-btn-secondary" id="modalCancel">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalConfirm = document.getElementById('modalConfirm');
+            const modalCancel = document.getElementById('modalCancel');
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+
+            if (onConfirm) {
+                modalConfirm.style.display = 'inline-block';
+                modalConfirm.onclick = function() {
+                    onConfirm();
+                    modal.style.display = 'none';
+                };
+            } else {
+                modalConfirm.style.display = 'none';
+            }
+
+            modalCancel.onclick = function() {
+                modal.style.display = 'none';
+            };
+
+            modal.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

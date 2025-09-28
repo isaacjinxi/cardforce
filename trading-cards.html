@@ -1,0 +1,1954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- Safari-specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="format-detection" content="telephone=no">
+    <title>Trading Cards - Card Force</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js?v=2.3"></script>
+    <!-- Firebase CDN -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+      import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+      
+      // Firebase Configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCJNv4DDv8Gbvtw3zRzsvNk3xW3e2sog7k",
+        authDomain: "card-force-472100.firebaseapp.com",
+        projectId: "card-force-472100",
+        storageBucket: "card-force-472100.firebasestorage.app",
+        messagingSenderId: "91438507562",
+        appId: "1:91438507562:web:85673cf7f40190f4310553",
+        measurementId: "G-J2Q14Y5FXS"
+      };
+      
+      // Initialize Firebase (only if not already initialized)
+      let app, db, auth;
+      try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+      } catch (error) {
+        // Firebase already initialized, get existing instances
+        app = window.firebaseApp || initializeApp(firebaseConfig, 'card-force-app');
+        db = window.db || getFirestore(app);
+        auth = window.auth || getAuth(app);
+      }
+      
+      // Make available globally
+      window.firebaseApp = app;
+      window.db = db;
+      window.auth = auth;
+      window.GoogleAuthProvider = GoogleAuthProvider;
+      
+      // Make all Firestore functions globally available
+      window.doc = doc;
+      window.setDoc = setDoc;
+      window.getDoc = getDoc;
+      window.getDocs = getDocs;
+      window.addDoc = addDoc;
+      window.updateDoc = updateDoc;
+      window.deleteDoc = deleteDoc;
+      window.onSnapshot = onSnapshot;
+      window.query = query;
+      window.where = where;
+      window.orderBy = orderBy;
+      window.collection = collection;
+      
+      // Firebase Collections
+      const COLLECTIONS = {
+        USERS: 'users',
+        ORDERS: 'orders',
+        CARTS: 'carts',
+        PRODUCTS: 'products',
+        ADDRESSES: 'addresses',
+        REFUNDS: 'refunds',
+        CHAT_MESSAGES: 'chatMessages',
+        STOCK: 'stock'
+      };
+      
+      // Firebase Service Class
+      class FirebaseService {
+        constructor() {
+          this.isInitialized = false;
+          this.currentUser = null;
+          this.init();
+        }
+
+        async init() {
+          try {
+            // Listen for auth state changes
+            onAuthStateChanged(auth, (user) => {
+              this.currentUser = user;
+              this.isInitialized = true;
+              
+              if (user) {
+                console.log('Firebase user signed in:', user.uid);
+                this.syncUserData(user);
+              } else {
+                console.log('Firebase user signed out');
+              }
+            });
+          } catch (error) {
+            console.error('Firebase initialization error:', error);
+          }
+        }
+
+        // Cart Management
+        async saveCartToFirebase(userId, cartItems) {
+          try {
+            const cartRef = doc(db, COLLECTIONS.CARTS, userId);
+            await setDoc(cartRef, {
+              userId: userId,
+              items: cartItems,
+              lastUpdated: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error saving cart to Firebase:', error);
+          }
+        }
+
+        async loadCartFromFirebase(userId) {
+          try {
+            const cartRef = doc(db, COLLECTIONS.CARTS, userId);
+            const cartSnap = await getDoc(cartRef);
+            
+            if (cartSnap.exists()) {
+              return cartSnap.data().items || [];
+            }
+            return [];
+          } catch (error) {
+            console.error('Error loading cart from Firebase:', error);
+            return [];
+          }
+        }
+
+        // Order Management
+        async saveOrderToFirebase(order) {
+          try {
+            const orderRef = doc(db, COLLECTIONS.ORDERS, order.id);
+            await setDoc(orderRef, {
+              ...order,
+              firebaseCreated: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error saving order to Firebase:', error);
+          }
+        }
+
+        // User Data Management
+        async syncUserData(user) {
+          try {
+            const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+            const userSnap = await getDoc(userRef);
+            
+            if (!userSnap.exists()) {
+              // Create new user document
+              await setDoc(userRef, {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString()
+              });
+            } else {
+              // Update last login
+              await updateDoc(userRef, {
+                lastLogin: new Date().toISOString()
+              });
+            }
+          } catch (error) {
+            console.error('Error syncing user data:', error);
+          }
+        }
+
+        // Product Management Methods
+        async saveProductToFirebase(product) {
+          try {
+            const productRef = doc(db, COLLECTIONS.PRODUCTS, product.id);
+            await setDoc(productRef, {
+              ...product,
+              lastUpdated: new Date().toISOString()
+            });
+            console.log('✅ Product saved to Firebase:', product.id);
+          } catch (error) {
+            console.error('❌ Error saving product to Firebase:', error);
+          }
+        }
+
+        async loadProductsFromFirebase() {
+          try {
+            const productsRef = collection(db, COLLECTIONS.PRODUCTS);
+            const snapshot = await getDocs(productsRef);
+            const products = {};
+            
+            snapshot.forEach((doc) => {
+              products[doc.id] = doc.data();
+            });
+            
+            console.log('✅ Products loaded from Firebase:', Object.keys(products).length);
+            return products;
+          } catch (error) {
+            console.error('❌ Error loading products from Firebase:', error);
+            return {};
+          }
+        }
+
+        // Stock Management
+        async saveStockToFirebase(itemId, stock) {
+          try {
+            const stockRef = doc(db, COLLECTIONS.STOCK, itemId);
+            await setDoc(stockRef, {
+              itemId: itemId,
+              stock: stock,
+              lastUpdated: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error saving stock to Firebase:', error);
+          }
+        }
+
+        async loadStockFromFirebase() {
+          try {
+            const q = query(collection(db, COLLECTIONS.STOCK));
+            const querySnapshot = await getDocs(q);
+            const stockData = {};
+            querySnapshot.forEach((doc) => {
+              stockData[doc.id] = doc.data().stock;
+            });
+            return stockData;
+          } catch (error) {
+            console.error('Error loading stock from Firebase:', error);
+            return {};
+          }
+        }
+      }
+      
+      // Initialize Firebase Service
+      window.firebaseService = new FirebaseService();
+      window.COLLECTIONS = COLLECTIONS;
+      
+      // Load product data from Firebase after initialization
+      setTimeout(async () => {
+        console.log('🔄 Trading Cards: Attempting to load product data from Firebase...');
+        
+        // Ensure Firebase service is initialized
+        const googleUser = localStorage.getItem('googleUser');
+        if (googleUser && !window.firebaseService?.currentUser) {
+          console.log('🔄 Trading Cards: Initializing Firebase service with Google user...');
+          const userData = JSON.parse(googleUser);
+          window.firebaseService.currentUser = {
+            uid: userData.sub,
+            email: userData.email,
+            displayName: userData.name,
+            photoURL: userData.picture
+          };
+          window.firebaseService.isInitialized = true;
+        }
+        
+        if (window.loadProductDataFromFirebase) {
+          await window.loadProductDataFromFirebase();
+          // Re-render products after loading from Firebase
+          if (typeof renderCatalogProducts === 'function') {
+            renderCatalogProducts();
+          }
+        }
+        
+        // Set up real-time listener for product changes
+        if (window.setupProductDataListener) {
+          window.setupProductDataListener();
+        }
+      }, 2000);
+      
+       // Listen for product data updates
+       window.addEventListener('productDataUpdated', () => {
+         console.log('📡 Trading Cards: Product data updated, refreshing display...');
+         if (typeof renderCatalogProducts === 'function') {
+           renderCatalogProducts();
+         }
+       });
+       
+       // Listen for cart updates from other devices
+       window.addEventListener('cartUpdated', (event) => {
+         console.log('📡 Trading Cards: Cart updated from another device:', event.detail);
+         // Cart was updated from Firebase, could update UI indicators if needed
+       });
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: white;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            padding: 0.5rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            50% { box-shadow: 0 2px 20px rgba(106, 76, 147, 0.3); }
+            100% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1.25rem;
+            position: relative;
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-decoration: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: bounce 1s infinite alternate;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-3px); }
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 48px;
+            background: #2c2c2c;
+            border: 3px solid #1a1a1a;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 15px 15px 0;
+            border-color: transparent #1a1a1a transparent transparent;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 12px 12px 0;
+            border-color: transparent #2c2c2c transparent transparent;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 0.8;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-divider {
+            width: 30px;
+            height: 2px;
+            background: #1a1a1a;
+            margin: 2px 0;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 1rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.4);
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background-color: white;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .trading-cards-section {
+            margin: 2rem 0;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 2px 2px 4px rgba(0,0,0,0.1), 0 0 10px rgba(106, 76, 147, 0.5); }
+            to { text-shadow: 2px 2px 4px rgba(0,0,0,0.1), 0 0 20px rgba(106, 76, 147, 0.8); }
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 3rem;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .card-placeholder {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(106, 76, 147, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+            text-align: center;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+
+        .card-placeholder:hover {
+            border-color: #6a4c93;
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(106, 76, 147, 0.2);
+            animation: none;
+        }
+
+
+        .card-image-container {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 1.5rem;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(106, 76, 147, 0.2);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+
+        .card-title {
+            color: #6a4c93;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .card-description {
+            color: #666;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-price {
+            color: #8e44ad;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .discount-chip {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #dc3545;
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 700;
+            vertical-align: middle;
+        }
+        .price-extra {
+            font-size: 0.9rem;
+            color: #333;
+            margin-top: 4px;
+        }
+
+        .card-stock {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            font-style: italic;
+        }
+
+        .card-stock.low-stock {
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+
+        .card-stock.out-of-stock {
+            color: #dc3545;
+            font-weight: 700;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            justify-content: center;
+        }
+
+        .buy-btn, .add-to-cart-btn {
+            border: none;
+            padding: 0.8rem 1.2rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .buy-btn {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+        }
+
+        .add-to-cart-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .buy-btn:hover {
+            background: linear-gradient(135deg, #5a3c83, #7e349d);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(106, 76, 147, 0.3);
+        }
+
+        .add-to-cart-btn:hover {
+            background: linear-gradient(135deg, #218838, #1ea085);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        .disabled-btn,
+        .disabled-btn:hover {
+            background: #b0b0b0 !important;
+            color: #eee !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* Buy Now Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 20px;
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal h2 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+        }
+
+        .modal-price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #6a4c93;
+            margin: 1rem 0;
+        }
+
+        .paypal-btn {
+            background: linear-gradient(135deg, #0070ba, #005ea6);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 1rem;
+        }
+
+        .paypal-btn:hover {
+            background: linear-gradient(135deg, #005ea6, #004c8c);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 112, 186, 0.3);
+        }
+
+        .close-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        /* Custom Modal Styles */
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .modal-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: #6a4c93;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #5a3d83;
+            transform: translateY(-2px);
+        }
+
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .btn-venmo {
+            background: #3d95ce;
+            color: white;
+        }
+        
+        .btn-venmo:hover {
+            background: #2d85be;
+        }
+
+        /* Footer */
+        .footer {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            animation: wave 2s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: skewY(0deg); }
+            50% { transform: skewY(1deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .logo {
+                font-size: 1.4rem;
+            }
+
+            .logo-icon {
+                width: 40px;
+                height: 50px;
+            }
+
+            .logo-text {
+                font-size: 0.6rem;
+            }
+
+            .logo-divider {
+                width: 25px;
+            }
+
+            .nav-menu {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 100%;
+                height: 100vh;
+                background: linear-gradient(135deg, #6a4c93, #8e44ad);
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                gap: 2rem;
+                transition: right 0.3s ease;
+                z-index: 1000;
+            }
+
+            .nav-menu.active {
+                right: 0;
+            }
+
+            .nav-menu a {
+                font-size: 1.5rem;
+                padding: 1rem 2rem;
+                border-radius: 10px;
+                width: 200px;
+                text-align: center;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+                <span>Card Force</span>
+            </a>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
+                <li><a href="marketplace.html" onclick="closeMenu()">Marketplace</a></li>
+                <li><a href="about.html" onclick="closeMenu()">About</a></li>
+                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <section class="trading-cards-section">
+            <h1 class="section-title">Trading Cards Collection</h1>
+            <p class="section-subtitle">Discover rare and powerful cards to enhance your gameplay experience</p>
+            <div style="max-width: 600px; margin: 0 auto 1.5rem;">
+                <input id="cardSearch" type="text" placeholder="Search cards..." style="width: 100%; padding: 0.8rem 1rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem;">
+            </div>
+            <div id="adminAddProduct" style="display: none; text-align: center; margin-bottom: 2rem;">
+                <button class="btn" onclick="addNewProduct()" style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 10px;">
+                    ➕ Add New Product
+                </button>
+            </div>
+            
+            <div class="cards-grid" id="cardsGrid">
+                <div class="card-placeholder" data-card-id="pig-princess">
+                    <div class="card-image-container">
+                        <img src="PigPrincess.png" alt="Pig-princess Card" class="card-image">
+                    </div>
+                    <h3 class="card-title">Pig-princess</h3>
+                    <p class="card-description">A royal pig character with high defense and low damage. Special ability: "I'm so pretty" - reduces opponent's attack by 50% for one turn.</p>
+                    <div class="card-price" data-price="7.99">$7.99</div>
+                    <div class="card-stock" id="stock-pig-princess">Stock: <span id="stock-count-pig-princess">50</span></div>
+                    <div class="card-actions">
+                        <button class="buy-btn" onclick="buyCard('Pig-princess')">Buy Now</button>
+                        <a class="add-to-cart-btn" href="product.html?id=pig-princess" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
+                        <button class="add-to-cart-btn" onclick="addToCart('Pig-princess', 7.99)">Add to Cart</button>
+                        <div class="admin-controls" id="admin-pig-princess" style="display: none;">
+                            <button class="btn btn-sm" onclick="editItem('pig-princess')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteItem('pig-princess')">Delete</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-placeholder" data-card-id="mike">
+                    <div class="card-image-container">
+                        <img src="mike.png" alt="Mike Card" class="card-image">
+                    </div>
+                    <h3 class="card-title">Mike</h3>
+                    <p class="card-description">A fierce stick figure warrior with balanced stats. Special ability: "Sword Master" - increases attack by 25% when health is below 50%.</p>
+                    <div class="card-price" data-price="5.99">$5.99</div>
+                    <div class="card-stock" id="stock-mike">Stock: <span id="stock-count-mike">30</span></div>
+                    <div class="card-actions">
+                        <button class="buy-btn" onclick="buyCard('Mike')">Buy Now</button>
+                        <a class="add-to-cart-btn" href="product.html?id=mike" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
+                        <button class="add-to-cart-btn" onclick="addToCart('Mike', 5.99)">Add to Cart</button>
+                        <div class="admin-controls" id="admin-mike" style="display: none;">
+                            <button class="btn btn-sm" onclick="editItem('mike')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteItem('mike')">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Card Force. All rights reserved. | The Ultimate Card Game Experience</p>
+    </footer>
+
+    <!-- Custom Modal -->
+    <div class="modal" id="customModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Modal Title</h2>
+            <p id="modalMessage">Modal message goes here.</p>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" id="modalConfirm">Confirm</button>
+                <button class="modal-btn modal-btn-secondary" id="modalCancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign In Modal -->
+    <div class="modal" id="signInModal">
+        <div class="modal-content">
+            <h2>Sign In Required</h2>
+            <p>You need to sign in to add items to your cart.</p>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" onclick="goToAccount()">Sign In</button>
+                <button class="modal-btn modal-btn-secondary" onclick="closeSignInModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buy Now Modal -->
+    <div id="buyModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalCardName">Card Name</h2>
+            <div class="modal-price">$<span id="modalPrice">0.00</span></div>
+            <p>Pay securely with PayPal</p>
+            <button class="paypal-btn" onclick="payWithPayPal()">Pay with PayPal</button>
+            <br>
+            <button class="close-btn" onclick="closeBuyModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Cache bust: v2.3 - Force reload to fix modal errors
+        console.log('Trading Cards script loaded - v2.3 - ' + new Date().toISOString());
+        
+        // Clear any cached functions
+        if (typeof showModal !== 'undefined') {
+            delete window.showModal;
+        }
+        
+        // Force reload if old version detected
+        if (typeof window.tradingCardsVersion === 'undefined') {
+            window.tradingCardsVersion = 'v2.3';
+        } else if (window.tradingCardsVersion !== 'v2.3') {
+            console.log('Detected old version, forcing reload...');
+            window.location.reload(true);
+        }
+        
+        // Clear browser cache for this page
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                for (let name of names) {
+                    caches.delete(name);
+                }
+            });
+        }
+        
+        // Override any cached showModal function immediately
+        window.showModal = function(title, message, onConfirm = null) {
+            console.log('NEW showModal called with:', { title, message, onConfirm: !!onConfirm });
+            
+            // Use setTimeout to ensure DOM is ready
+            setTimeout(() => {
+                try {
+                    const modal = document.getElementById('customModal');
+                    const modalTitle = document.getElementById('modalTitle');
+                    const modalMessage = document.getElementById('modalMessage');
+                    const modalConfirm = document.getElementById('modalConfirm');
+                    const modalCancel = document.getElementById('modalCancel');
+
+                    console.log('Modal elements check:', {
+                        modal: !!modal,
+                        modalTitle: !!modalTitle,
+                        modalMessage: !!modalMessage,
+                        modalConfirm: !!modalConfirm,
+                        modalCancel: !!modalCancel
+                    });
+
+                    // Check if all required elements exist
+                    if (!modal || !modalTitle || !modalMessage || !modalConfirm || !modalCancel) {
+                        console.error('Modal elements not found, falling back to alert');
+                        alert(`${title}\n\n${message}`);
+                        return;
+                    }
+
+                    modalTitle.textContent = title;
+                    modalMessage.textContent = message;
+
+                    if (onConfirm) {
+                        modalConfirm.style.display = 'inline-block';
+                        modalConfirm.onclick = function() {
+                            onConfirm();
+                            modal.style.display = 'none';
+                        };
+                    } else {
+                        modalConfirm.style.display = 'none';
+                    }
+
+                    modalCancel.onclick = function() {
+                        modal.style.display = 'none';
+                    };
+
+                    modal.style.display = 'flex';
+                    console.log('Modal displayed successfully');
+                } catch (error) {
+                    console.error('Error in showModal:', error);
+                    alert(`${title}\n\n${message}`);
+                }
+            }, 100);
+        };
+        
+        // Safari-compatible page initialization
+        function initializePage() {
+            console.log('Page loaded, initializing...');
+            
+            // Safari localStorage check
+            try {
+                localStorage.setItem('safari-test', 'test');
+                localStorage.removeItem('safari-test');
+                console.log('Safari localStorage working');
+            } catch (error) {
+                console.error('Safari localStorage blocked:', error);
+                alert('Please enable localStorage in Safari settings to use the cart feature.');
+                return;
+            }
+            
+            updateStockDisplays();
+            showAdminControls();
+            loadProductData();
+            const search = document.getElementById('cardSearch');
+            if (search) {
+                search.addEventListener('input', function() { filterCards(this.value); });
+            }
+            
+            console.log('Page initialization complete');
+        }
+        
+        // Initialize page
+        window.onload = function() {
+            // Safari compatibility delay
+            if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
+                setTimeout(initializePage, 500);
+            } else {
+                initializePage();
+            }
+        };
+
+        function loadProductData() {
+            const cards = ['pig-princess', 'mike'];
+            cards.forEach(cardId => {
+                updateProductDisplay(cardId);
+            });
+            // Render admin-added products
+            renderCatalogProducts();
+        }
+
+        function updateStockDisplays() {
+            const cards = ['pig-princess', 'mike'];
+            cards.forEach(cardId => {
+                const stock = getStock(cardId);
+                const stockElement = document.getElementById(`stock-count-${cardId}`);
+                const stockContainer = document.getElementById(`stock-${cardId}`);
+                
+                if (stockElement) {
+                    stockElement.textContent = stock;
+                    
+                    // Update stock styling
+                    stockContainer.className = 'card-stock';
+                    if (stock === 0) {
+                        stockContainer.classList.add('out-of-stock');
+                    } else if (stock < 10) {
+                        stockContainer.classList.add('low-stock');
+                    }
+                }
+            });
+        }
+
+        function renderCatalogProducts() {
+            const grid = document.getElementById('cardsGrid');
+            
+            // Get products from both catalog and merged Firebase data
+            const catalog = getProductCatalog();
+            const productData = getProductData();
+            
+            // Combine catalog products with Firebase products
+            const allProducts = [...catalog];
+            
+            // Add products from Firebase that aren't already in catalog
+            Object.keys(productData).forEach(productId => {
+                const product = productData[productId];
+                if (product && product.name && !catalog.find(p => p.id === productId)) {
+                    allProducts.push({
+                        id: productId,
+                        name: product.name,
+                        price: product.price,
+                        stock: product.stock,
+                        status: product.status,
+                        description: product.description,
+                        imageUrl: product.imageUrl,
+                        discount: product.discount,
+                        backorderDays: product.backorderDays
+                    });
+                }
+            });
+            
+            console.log('🔄 Rendering products:', {
+                catalogCount: catalog.length,
+                productDataCount: Object.keys(productData).length,
+                totalProducts: allProducts.length
+            });
+            
+            allProducts.forEach(p => {
+                if (document.querySelector(`[data-card-id="${p.id}"]`)) return;
+                const card = document.createElement('div');
+                card.className = 'card-placeholder';
+                card.setAttribute('data-card-id', p.id);
+                card.innerHTML = `
+                    <div class="card-image-container">
+                        <img src="${p.imageUrl || ''}" alt="${p.name} Card" class="card-image">
+                    </div>
+                    <h3 class="card-title">${p.name}</h3>
+                    <p class="card-description">${p.description || ''}</p>
+                    <div class="card-price" data-price="${p.price}">$${(+p.price).toFixed(2)}</div>
+                    <div class="card-stock" id="stock-${p.id}">Stock: <span id="stock-count-${p.id}">${p.stock ?? 0}</span></div>
+                    <div class="card-actions">
+                        <button class="buy-btn" onclick="buyCard('${p.name}')">Buy Now</button>
+                        <a class="add-to-cart-btn" href="product.html?id=${p.id}" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
+                        <button class="add-to-cart-btn" onclick="addToCart('${p.name}', ${p.price})">Add to Cart</button>
+                        <div class="admin-controls" id="admin-${p.id}" style="display: none;">
+                            <button class="btn btn-sm" onclick="editItem('${p.id}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteItem('${p.id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+                // initialize product data records
+                setProductPrice(p.id, p.price);
+                updateStock(p.id, p.stock ?? 0);
+                setProductStatus(p.id, p.status || 'Available', p.backorderDays || null);
+                setProductDiscount(p.id, p.discount || 0);
+                updateProductDisplay(p.id);
+                if (isAdmin()) {
+                    const adminCtl = document.getElementById(`admin-${p.id}`);
+                    if (adminCtl) adminCtl.style.display = 'block';
+                }
+            });
+        }
+
+        function showAdminControls() {
+            if (isAdmin()) {
+                const adminControls = document.querySelectorAll('.admin-controls');
+                adminControls.forEach(control => {
+                    control.style.display = 'block';
+                });
+                
+                // Show add product button
+                const addProductBtn = document.getElementById('adminAddProduct');
+                if (addProductBtn) {
+                    addProductBtn.style.display = 'block';
+                }
+            }
+        }
+
+        function editItem(cardId) {
+            const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+            const currentPrice = parseFloat(cardElement.querySelector('.card-price').dataset.price);
+            const currentStock = getStock(cardId);
+            const currentStatus = getProductStatus(cardId);
+            const currentDiscount = getProductDiscount(cardId);
+            
+            // Create edit modal
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    <h2>Edit Product: ${cardId}</h2>
+                    <form id="editForm">
+                        <div class="form-group">
+                            <label for="editPrice">Price:</label>
+                            <input type="number" id="editPrice" value="${currentPrice}" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editStock">Stock:</label>
+                            <input type="number" id="editStock" value="${currentStock}" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editStatus">Status:</label>
+                            <select id="editStatus" required>
+                                <option value="Available" ${currentStatus === 'Available' ? 'selected' : ''}>Available</option>
+                                <option value="Out of Stock" ${currentStatus === 'Out of Stock' ? 'selected' : ''}>Out of Stock</option>
+                                <option value="Backorder" ${currentStatus === 'Backorder' ? 'selected' : ''}>Backorder</option>
+                                <option value="Retired" ${currentStatus === 'Retired' ? 'selected' : ''}>Retired</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="backorderDaysGroup" style="display: none;">
+                            <label for="editBackorderDays">Backorder Days:</label>
+                            <input type="number" id="editBackorderDays" min="1" placeholder="Days until shipping">
+                        </div>
+                        <div class="form-group">
+                            <label for="editDiscount">Discount (%):</label>
+                            <input type="number" id="editDiscount" value="${currentDiscount}" min="0" max="100" step="1">
+                        </div>
+                    </form>
+                    <div class="modal-buttons">
+                        <button class="modal-btn modal-btn-primary" onclick="saveProductEdit('${cardId}')">Save Changes</button>
+                        <button class="modal-btn modal-btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Show/hide backorder days based on status
+            document.getElementById('editStatus').addEventListener('change', function() {
+                const backorderGroup = document.getElementById('backorderDaysGroup');
+                if (this.value === 'Backorder') {
+                    backorderGroup.style.display = 'block';
+                } else {
+                    backorderGroup.style.display = 'none';
+                }
+            });
+        }
+
+        function saveProductEdit(cardId) {
+            const price = parseFloat(document.getElementById('editPrice').value);
+            const stock = parseInt(document.getElementById('editStock').value);
+            const status = document.getElementById('editStatus').value;
+            const discount = parseInt(document.getElementById('editDiscount').value);
+            const backorderDays = document.getElementById('editBackorderDays').value;
+            
+            if (isNaN(price) || isNaN(stock) || isNaN(discount)) {
+                alert('Please enter valid numbers');
+                return;
+            }
+            
+            // Update price (keep top bar showing base price in admin preview externally)
+            setProductPrice(cardId, price);
+            
+            // Update stock
+            updateStock(cardId, stock);
+            
+            // Update status
+            setProductStatus(cardId, status, backorderDays ? parseInt(backorderDays) : null);
+            
+            // Update discount (does not change top price display)
+            setProductDiscount(cardId, discount);
+            
+            // Update display
+            updateProductDisplay(cardId);
+            
+            // Close modal
+            const editModal = document.querySelector('.modal');
+            if (editModal) {
+                console.log('Removing edit modal:', editModal.id || 'no-id');
+                editModal.remove();
+            }
+            
+            // Show success message using alert (more reliable)
+            console.log('Showing success message for product update');
+            alert('Product updated successfully! 🎉');
+        }
+
+        function updateProductDisplay(cardId) {
+            const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+            const price = getProductPrice(cardId);
+            const stock = getStock(cardId);
+            const status = getProductStatus(cardId);
+            const discount = getProductDiscount(cardId);
+            
+            // Update price: keep top price base, add discount chip and 'You pay' below
+            if (price !== null) {
+                const priceEl = cardElement.querySelector('.card-price');
+                const discountedPrice = price * (1 - (discount || 0) / 100);
+                priceEl.innerHTML = `$${price.toFixed(2)}` + (discount > 0 ? ` <span class="discount-chip">-${discount}%</span>` : '');
+                priceEl.dataset.price = price;
+                let extra = cardElement.querySelector('.price-extra');
+                if (!extra) {
+                    extra = document.createElement('div');
+                    extra.className = 'price-extra';
+                    priceEl.insertAdjacentElement('afterend', extra);
+                }
+                extra.textContent = discount > 0 ? `You pay: $${discountedPrice.toFixed(2)}` : '';
+            }
+            
+            // Update stock display
+            const stockElement = document.getElementById(`stock-count-${cardId}`);
+            const stockContainer = document.getElementById(`stock-${cardId}`);
+            
+            if (stockElement) {
+                stockElement.textContent = stock;
+                
+                // Update stock styling based on status
+                stockContainer.className = 'card-stock';
+                if (status === 'Out of Stock' || stock === 0) {
+                    stockContainer.classList.add('out-of-stock');
+                    stockContainer.textContent = 'Out of Stock';
+                } else if (status === 'Backorder') {
+                    stockContainer.classList.add('low-stock');
+                    const backorderDays = getProductData()[cardId]?.backorderDays || 7;
+                    stockContainer.textContent = `Backorder - Ships in ${backorderDays} days`;
+                } else if (status === 'Retired') {
+                    stockContainer.classList.add('out-of-stock');
+                    stockContainer.textContent = 'Retired';
+                } else if (stock < 10) {
+                    stockContainer.classList.add('low-stock');
+                    stockContainer.textContent = `Stock: ${stock}`;
+                } else {
+                    stockContainer.textContent = `Stock: ${stock}`;
+                }
+            }
+        }
+
+        function filterCards(query) {
+            const q = (query || '').toLowerCase();
+            document.querySelectorAll('.cards-grid .card-placeholder').forEach(card => {
+                const title = (card.querySelector('.card-title')?.textContent || '').toLowerCase();
+                const desc = (card.querySelector('.card-description')?.textContent || '').toLowerCase();
+                card.style.display = (title.includes(q) || desc.includes(q)) ? '' : 'none';
+            });
+        }
+
+        function deleteItem(cardId) {
+            if (confirm(`Are you sure you want to delete ${cardId}? This action cannot be undone!`)) {
+                const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+                cardElement.remove();
+            }
+        }
+
+        function addNewProduct() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    <h2>Add New Product</h2>
+                    <form id="newProductForm">
+                        <div class="form-group">
+                            <label for="newProductName">Product Name:</label>
+                            <input type="text" id="newProductName" placeholder="Enter product name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newProductId">Product ID:</label>
+                            <input type="text" id="newProductId" placeholder="e.g., dragon-warrior" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newProductPrice">Price:</label>
+                            <input type="number" id="newProductPrice" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newProductStock">Initial Stock:</label>
+                            <input type="number" id="newProductStock" min="0" placeholder="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newProductStatus">Status:</label>
+                            <select id="newProductStatus" required>
+                                <option value="Available">Available</option>
+                                <option value="Out of Stock">Out of Stock</option>
+                                <option value="Backorder">Backorder</option>
+                                <option value="Retired">Retired</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="newBackorderDaysGroup" style="display: none;">
+                            <label for="newBackorderDays">Backorder Days:</label>
+                            <input type="number" id="newBackorderDays" min="1" placeholder="Days until shipping">
+                        </div>
+                        <div class="form-group">
+                            <label for="newProductDiscount">Discount (%):</label>
+                            <input type="number" id="newProductDiscount" min="0" max="100" step="1" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="newProductDescription">Description:</label>
+                            <textarea id="newProductDescription" rows="3" placeholder="Enter product description" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="newProductImage">Image URL:</label>
+                            <input type="url" id="newProductImage" placeholder="https://example.com/image.png" required>
+                        </div>
+                    </form>
+                    <div class="modal-buttons">
+                        <button class="modal-btn modal-btn-primary" onclick="saveNewProduct()">Create Product</button>
+                        <button class="modal-btn modal-btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Show/hide backorder days based on status
+            document.getElementById('newProductStatus').addEventListener('change', function() {
+                const backorderGroup = document.getElementById('newBackorderDaysGroup');
+                if (this.value === 'Backorder') {
+                    backorderGroup.style.display = 'block';
+                } else {
+                    backorderGroup.style.display = 'none';
+                }
+            });
+        }
+
+        function saveNewProduct() {
+            const name = document.getElementById('newProductName').value.trim();
+            const id = document.getElementById('newProductId').value.trim().toLowerCase().replace(/\s+/g, '-');
+            const price = parseFloat(document.getElementById('newProductPrice').value);
+            const stock = parseInt(document.getElementById('newProductStock').value);
+            const status = document.getElementById('newProductStatus').value;
+            const discount = parseInt(document.getElementById('newProductDiscount').value);
+            const backorderDays = document.getElementById('newBackorderDays').value;
+            const description = document.getElementById('newProductDescription').value.trim();
+            const imageUrl = document.getElementById('newProductImage').value.trim();
+            
+            if (!name || !id || isNaN(price) || isNaN(stock) || isNaN(discount) || !description || !imageUrl) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            // Check if product ID already exists
+            if (document.querySelector(`[data-card-id="${id}"]`)) {
+                alert('Product ID already exists. Please choose a different one.');
+                return;
+            }
+            
+            // Persist to catalog and re-render
+            upsertCatalogProduct({ id, name, price, stock, status, backorderDays: backorderDays ? parseInt(backorderDays) : null, discount, description, imageUrl });
+            document.querySelector('.modal').remove();
+            renderCatalogProducts();
+            alert('New product created successfully! 🎉');
+        }
+
+        function buyCard(cardName) {
+            const cardElement = event.target.closest('.card-placeholder');
+            const priceElement = cardElement.querySelector('.card-price');
+            const price = parseFloat(priceElement.textContent.replace('$', ''));
+            const cardId = cardName.toLowerCase().replace(/\s+/g, '-');
+            const status = getProductStatus(cardId);
+            const currentStock = getStock(cardId);
+
+            // Check if user is signed in
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showSignInModal();
+                return;
+            }
+
+            if (status === 'Retired') {
+                showModal('Product Retired', 'Sorry, this product has been retired and is no longer available!');
+                return;
+            }
+            if (status === 'Out of Stock' || currentStock <= 0) {
+                showModal('Out of Stock', 'This item is currently out of stock!');
+                return;
+            }
+
+            // Create order with pending status
+            const userData = JSON.parse(googleUser);
+            const addresses = getAddresses();
+            const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0];
+            
+            if (!defaultAddress) {
+                showModal('Address Required', 'Please add a shipping address before purchasing.', function() {
+                    window.location.href = 'account.html';
+                });
+                return;
+            }
+            
+            // Create single-item cart for buy now
+            const buyNowCart = [{
+                id: Date.now(),
+                name: cardName,
+                price: price,
+                type: 'trading-card',
+                image: cardName === 'Pig-princess' ? 'PigPrincess.png' : 'mike.png',
+                cardId: cardId
+            }];
+            
+            // Create order with pending status
+            const order = createOrder(buyNowCart, price, defaultAddress, false);
+            order.status = 'pending_payment';
+            order.paymentMethod = 'paypal';
+            
+            // Store order ID for payment completion
+            localStorage.setItem('pendingOrderId', order.id);
+            
+            // Show payment options
+            showBuyNowPaymentOptions(price, cardName);
+        }
+
+        // Auto-sync cart to Firebase (Safari-compatible)
+        function autoSyncCart() {
+            let googleUser = null;
+            try {
+                googleUser = localStorage.getItem('googleUser');
+            } catch (error) {
+                console.error('Safari autoSync localStorage error:', error);
+                return;
+            }
+            
+            if (!googleUser || !window.firebaseService || !window.firebaseService.isInitialized) {
+                console.log('Auto-sync skipped: User not signed in or Firebase not available');
+                return;
+            }
+            
+            try {
+                const userData = JSON.parse(googleUser);
+                const cartKey = `cart_${userData.sub}`;
+                const cartData = localStorage.getItem(cartKey);
+                const cart = cartData ? JSON.parse(cartData) : [];
+                
+                console.log('🔄 Auto-syncing cart to Firebase...', cart);
+                
+                if (window.firebaseService && window.firebaseService.saveCartToFirebase) {
+                    window.firebaseService.saveCartToFirebase(userData.sub, cart).then(() => {
+                        console.log('✅ Cart auto-synced to Firebase successfully');
+                    }).catch(error => {
+                        console.error('❌ Cart auto-sync failed:', error);
+                    });
+                }
+            } catch (error) {
+                console.error('Safari autoSync cart processing error:', error);
+            }
+        }
+
+        function addToCart(cardName, price) {
+            console.log('=== ADDING TO CART ===');
+            console.log('Card:', cardName, 'Price:', price);
+            
+            // Safari-compatible localStorage check
+            let googleUser = null;
+            try {
+                googleUser = localStorage.getItem('googleUser');
+                console.log('Google user check:', googleUser ? 'Found' : 'Not found');
+            } catch (error) {
+                console.error('Safari localStorage error:', error);
+                alert('Please enable localStorage in Safari to use the cart feature.');
+                return;
+            }
+            
+            if (!googleUser) {
+                console.log('No user signed in - showing sign in modal');
+                showSignInModal();
+                return;
+            }
+
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            
+            console.log('User ID:', userData.sub);
+            console.log('Cart key:', cartKey);
+
+            // Check product status
+            const cardId = cardName.toLowerCase().replace(/\s+/g, '-');
+            const status = getProductStatus(cardId);
+            const currentStock = getStock(cardId);
+            
+            console.log('Card ID:', cardId, 'Status:', status, 'Stock:', currentStock);
+            
+            if (status === 'Out of Stock' || currentStock <= 0) {
+                console.log('Item out of stock');
+                showModal('Out of Stock', 'Sorry, this item is currently out of stock!');
+                return;
+            }
+            
+            if (status === 'Retired') {
+                console.log('Item retired');
+                showModal('Product Retired', 'Sorry, this product has been retired and is no longer available!');
+                return;
+            }
+
+            // Safari-compatible cart operations
+            let cart = [];
+            try {
+                const existingCart = localStorage.getItem(cartKey);
+                cart = existingCart ? JSON.parse(existingCart) : [];
+                console.log('Current cart:', cart);
+            } catch (error) {
+                console.error('Safari cart read error:', error);
+                cart = [];
+            }
+            
+            // Create new item
+            const newItem = {
+                id: Date.now(),
+                name: cardName,
+                price: parseFloat(price),
+                type: 'trading-card',
+                image: cardName === 'Pig-princess' ? 'PigPrincess.png' : 'mike.png',
+                cardId: cardId
+            };
+            
+            console.log('New item:', newItem);
+            
+            // Add to cart
+            cart.push(newItem);
+            console.log('Cart after adding:', cart);
+            
+            // Safari-compatible localStorage save
+            try {
+                localStorage.setItem(cartKey, JSON.stringify(cart));
+                console.log('Cart saved to localStorage successfully');
+            } catch (error) {
+                console.error('Safari cart save error:', error);
+                alert('Failed to save cart. Please check Safari settings.');
+                return;
+            }
+            
+            // Auto-sync to Firebase
+            autoSyncCart();
+            
+            // Safari-compatible verification
+            let savedCart = [];
+            try {
+                const verifiedCart = localStorage.getItem(cartKey);
+                savedCart = verifiedCart ? JSON.parse(verifiedCart) : [];
+                console.log('Verified saved cart:', savedCart);
+                console.log('Save successful:', savedCart.length === cart.length);
+            } catch (error) {
+                console.error('Safari cart verification error:', error);
+            }
+            
+            // Reduce stock
+            reduceStock(cardId, 1);
+            updateStockDisplays();
+            
+            // Safari-compatible event dispatch
+            try {
+                const cartUpdateEvent = new CustomEvent('cartUpdated', {
+                    detail: { 
+                        source: 'addToCart',
+                        item: newItem,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+                window.dispatchEvent(cartUpdateEvent);
+                console.log('Cart update event dispatched successfully');
+            } catch (error) {
+                console.error('Safari event dispatch error:', error);
+                // Fallback: trigger a simple event
+                setTimeout(() => {
+                    if (typeof window.cartUpdatedCallback === 'function') {
+                        window.cartUpdatedCallback(newItem);
+                    }
+                }, 100);
+            }
+            
+            // Show success message
+            showModal('Added to Cart', `${cardName} has been added to your cart!`);
+            console.log('=== ADD TO CART COMPLETE ===');
+            
+            // Safari-compatible final cart state logging
+            try {
+                const finalCart = localStorage.getItem(cartKey);
+                const finalCartData = finalCart ? JSON.parse(finalCart) : [];
+                console.log('Final cart state:', finalCartData);
+            } catch (error) {
+                console.error('Safari final cart state error:', error);
+            }
+        }
+
+        function payWithPayPal() {
+            const price = document.getElementById('modalPrice').textContent;
+            const paypalUrl = `https://www.paypal.com/paypalme/SongboJin/${price}`;
+            const link = document.createElement('a');
+            link.href = paypalUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            try {
+                const newWindow = window.open(paypalUrl, '_blank', 'noopener,noreferrer');
+                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            } catch (error) {
+                showModal('PayPal Link', `PayPal payment link: ${paypalUrl}`);
+            }
+            closeBuyModal();
+        }
+        
+        function showBuyNowPaymentOptions(price, cardName) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Buy Now - ${cardName}</h2>
+                    <p>Total: $${price.toFixed(2)}</p>
+                    <br>
+                    <p>Choose your payment method:</p>
+                    <div class="payment-buttons" style="display: flex; gap: 1rem; justify-content: center; margin: 2rem 0;">
+                        <button class="btn btn-primary" onclick="completeBuyNowPayPal()">PayPal</button>
+                        <button class="btn btn-venmo" onclick="completeBuyNowVenmo()">Venmo</button>
+                    </div>
+                    <button class="btn btn-secondary" onclick="closeBuyNowModal()">Cancel</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function completeBuyNowPayPal() {
+            const pendingOrderId = localStorage.getItem('pendingOrderId');
+            if (pendingOrderId) {
+                const orders = getOrders();
+                const order = orders.find(o => o.id === pendingOrderId);
+                if (order) {
+                    order.paymentMethod = 'paypal';
+                    saveOrders(orders);
+                    redirectToPayPal(order.totalPrice.toFixed(2));
+                }
+            }
+            closeBuyNowModal();
+        }
+        
+        function completeBuyNowVenmo() {
+            const pendingOrderId = localStorage.getItem('pendingOrderId');
+            if (pendingOrderId) {
+                const orders = getOrders();
+                const order = orders.find(o => o.id === pendingOrderId);
+                if (order) {
+                    order.paymentMethod = 'venmo';
+                    saveOrders(orders);
+                    redirectToVenmo(order.totalPrice);
+                }
+            }
+            closeBuyNowModal();
+        }
+        
+        function closeBuyNowModal() {
+            const modal = document.querySelector('.modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // Payment system functions (same as cart.html)
+        const PAYPAL_BUSINESS_EMAIL = 'imsongbo@gmail.com';
+        const VENMO_USERNAME = 'SongboJin';
+        
+        function getPayPalReturnParams() {
+            try {
+                const origin = window.location.origin || '';
+                if (origin.startsWith('http')) {
+                    return { 
+                        returnUrl: `${origin}/success.html`, 
+                        cancelUrl: `${origin}/trading-cards.html` 
+                    };
+                }
+            } catch {}
+            return { returnUrl: '', cancelUrl: '' };
+        }
+        
+        function redirectToPayPal(amount, currency = 'USD') {
+            if (!PAYPAL_BUSINESS_EMAIL) {
+                alert('PayPal not configured');
+                return;
+            }
+            
+            const { returnUrl, cancelUrl } = getPayPalReturnParams();
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'https://www.paypal.com/cgi-bin/webscr';
+            form.style.display = 'none';
+            
+            const params = {
+                cmd: '_xclick',
+                business: PAYPAL_BUSINESS_EMAIL,
+                item_name: 'Card Force Order',
+                amount: amount,
+                currency_code: currency,
+                no_note: '1'
+            };
+            
+            if (returnUrl) params.return = returnUrl;
+            if (cancelUrl) params.cancel_return = cancelUrl;
+            
+            Object.entries(params).forEach(([k, v]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = k;
+                input.value = v;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        function getVenmoLinks(amountUSD, note, username) {
+            const encodedNote = encodeURIComponent(note || 'Card Force Order');
+            const usd = (Math.round(amountUSD * 100) / 100).toFixed(2);
+            const uname = (username || VENMO_USERNAME || '').replace(/^@/, '').trim();
+            const app = `venmo://paycharge?txn=pay&recipients=${encodeURIComponent(uname)}&amount=${usd}&note=${encodedNote}`;
+            const web = `https://account.venmo.com/pay?recipients=${encodeURIComponent(uname)}&amount=${usd}&note=${encodedNote}`;
+            return { app, web };
+        }
+        
+        function redirectToVenmo(amountUSD) {
+            const uname = VENMO_USERNAME.replace(/^@/, '').trim();
+            const { app, web } = getVenmoLinks(amountUSD, 'Card Force Order', uname);
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                window.location.href = app;
+                setTimeout(() => {
+                    window.location.href = web;
+                }, 800);
+            } else {
+                window.location.href = web;
+            }
+        }
+
+        function closeBuyModal() {
+            document.getElementById('buyModal').style.display = 'none';
+        }
+
+        function showModal(title, message, onConfirm = null) {
+            console.log('showModal called with:', { title, message, onConfirm: !!onConfirm });
+            
+            // Use setTimeout to ensure DOM is ready
+            setTimeout(() => {
+                try {
+                    const modal = document.getElementById('customModal');
+                    const modalTitle = document.getElementById('modalTitle');
+                    const modalMessage = document.getElementById('modalMessage');
+                    const modalConfirm = document.getElementById('modalConfirm');
+                    const modalCancel = document.getElementById('modalCancel');
+
+                    console.log('Modal elements check:', {
+                        modal: !!modal,
+                        modalTitle: !!modalTitle,
+                        modalMessage: !!modalMessage,
+                        modalConfirm: !!modalConfirm,
+                        modalCancel: !!modalCancel
+                    });
+
+                    // Check if all required elements exist
+                    if (!modal || !modalTitle || !modalMessage || !modalConfirm || !modalCancel) {
+                        console.error('Modal elements not found, falling back to alert');
+                        alert(`${title}\n\n${message}`);
+                        return;
+                    }
+
+                    modalTitle.textContent = title;
+                    modalMessage.textContent = message;
+
+                    if (onConfirm) {
+                        modalConfirm.style.display = 'inline-block';
+                        modalConfirm.onclick = function() {
+                            onConfirm();
+                            modal.style.display = 'none';
+                        };
+                    } else {
+                        modalConfirm.style.display = 'none';
+                    }
+
+                    modalCancel.onclick = function() {
+                        modal.style.display = 'none';
+                    };
+
+                    modal.style.display = 'flex';
+                    console.log('Modal displayed successfully');
+                } catch (error) {
+                    console.error('Error in showModal:', error);
+                    alert(`${title}\n\n${message}`);
+                }
+            }, 100);
+        }
+
+        function showSignInModal() {
+            document.getElementById('signInModal').style.display = 'flex';
+        }
+
+        function closeSignInModal() {
+            document.getElementById('signInModal').style.display = 'none';
+        }
+
+        function goToAccount() {
+            window.location.href = 'account.html';
+        }
+
+        function goToCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showSignInModal();
+                return;
+            }
+            window.location.href = 'cart.html';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('buyModal');
+            if (event.target == modal) {
+                closeBuyModal();
+            }
+        }
+
+        // Hamburger menu functions
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            const navbar = document.querySelector('.navbar');
+            
+            if (!navbar.contains(event.target) && navMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+    </script>
+</body>
+</html>

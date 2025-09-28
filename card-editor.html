@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standard Editor - Card Force</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Standard Editor Logo Flash */
+        .logo-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: flash 3s ease-in-out forwards;
+        }
+
+        @keyframes flash {
+            0% { opacity: 1; }
+            50% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+
+        .logo-flash h1 {
+            color: white;
+            font-size: 4rem;
+            font-weight: 800;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: pulse-flash 0.5s infinite alternate;
+            margin-bottom: 1rem;
+        }
+
+        .logo-flash p {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: pulse-flash 0.5s infinite alternate;
+        }
+
+        @keyframes pulse-flash {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            padding: 0.5rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            50% { box-shadow: 0 2px 20px rgba(106, 76, 147, 0.3); }
+            100% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1.25rem;
+            position: relative;
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-decoration: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: bounce 1s infinite alternate;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 48px;
+            background: #2c2c2c;
+            border: 3px solid #1a1a1a;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 15px 15px 0;
+            border-color: transparent #1a1a1a transparent transparent;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 12px 12px 0;
+            border-color: transparent #2c2c2c transparent transparent;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 0.8;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-divider {
+            width: 30px;
+            height: 2px;
+            background: #1a1a1a;
+            margin: 2px 0;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-3px); }
+        }
+
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 1rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.4);
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background-color: white;
+            margin: 3px 0;
+            transition: 0.3s;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .nav-menu {
+                position: fixed;
+                left: -100%;
+                top: 70px;
+                flex-direction: column;
+                background: linear-gradient(135deg, #6a4c93, #8e44ad);
+                width: 100%;
+                text-align: center;
+                transition: 0.3s;
+                box-shadow: 0 10px 27px rgba(0, 0, 0, 0.05);
+                padding: 2rem 0;
+                gap: 0;
+            }
+
+            .nav-menu.active {
+                left: 0;
+            }
+
+            .nav-menu li {
+                margin: 1rem 0;
+            }
+
+            .nav-menu a {
+                padding: 1rem 2rem;
+                display: block;
+                width: 100%;
+            }
+        }
+
+        /* Price Tag */
+        .price-tag {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 10px rgba(106, 76, 147, 0.3);
+            animation: pulse-price 2s infinite;
+        }
+
+        @keyframes pulse-price {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin: 2rem 0;
+            min-height: calc(100vh - 200px);
+            overflow: hidden;
+        }
+
+        .card-preview {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.1);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 600px;
+            overflow: hidden;
+        }
+
+        .card {
+            width: 300px;
+            height: 420px;
+            background: white;
+            border: 3px solid #6a4c93;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .card-front, .card-back {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .card-back {
+            display: none;
+        }
+
+        .card.show-back .card-front {
+            display: none;
+        }
+
+        .card.show-back .card-back {
+            display: flex;
+        }
+
+        .card-image {
+            width: 200px;
+            height: 200px;
+            background: #f8f9fa;
+            border: 2px solid #6a4c93;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6a4c93;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-description {
+            font-size: 1rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .controls-panel {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.1);
+            padding: 2rem;
+            height: fit-content;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .control-group {
+            margin-bottom: 2rem;
+        }
+
+        .control-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #6a4c93;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .control-input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: #6a4c93;
+            box-shadow: 0 0 0 3px rgba(106, 76, 147, 0.1);
+        }
+
+        .control-textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            min-height: 100px;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        .control-textarea:focus {
+            outline: none;
+            border-color: #6a4c93;
+            box-shadow: 0 0 0 3px rgba(106, 76, 147, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #5a3c83, #7e349d);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(106, 76, 147, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #495057);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #5a6268, #343a40);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #218838, #1e7e34);
+        }
+
+        .card-counter {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .card-count {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6a4c93;
+        }
+
+        .total-cost {
+            font-size: 1.2rem;
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+
+        .flip-btn {
+            background: linear-gradient(135deg, #ffc107, #ff8c00);
+            color: #333;
+        }
+
+        .flip-btn:hover {
+            background: linear-gradient(135deg, #e0a800, #e07b00);
+        }
+
+        /* Done Options Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 20px;
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal h2 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .modal-btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            animation: wave 2s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: skewY(0deg); }
+            50% { transform: skewY(1deg); }
+        }
+
+        /* Custom Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h2 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .modal p {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: #6a4c93;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #5a3d83;
+            transform: translateY(-2px);
+        }
+
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .editor-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                margin: 1rem 0;
+            }
+
+            .card {
+                width: 250px;
+                height: 350px;
+            }
+
+            .card-image {
+                width: 150px;
+                height: 150px;
+            }
+
+            .logo-flash h1 {
+                font-size: 2.5rem;
+            }
+
+            .controls-panel {
+                max-height: none;
+                overflow-y: visible;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+        }
+
+        /* Preview Section */
+        .preview-section {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #6a4c93;
+        }
+
+        .preview-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .preview-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            border: 1px solid #ddd;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .preview-header h3 {
+            color: #6a4c93;
+            margin: 0;
+        }
+
+        .preview-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .preview-nav span {
+            color: #6a4c93;
+            font-weight: 600;
+        }
+
+        .preview-flip {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .preview-card-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 2rem;
+        }
+
+        .preview-card {
+            width: 200px;
+            height: 280px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+
+        .preview-card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .preview-card-front,
+        .preview-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .preview-card-back {
+            transform: rotateY(180deg);
+        }
+
+        /* Page Scroller */
+        .page-scroller {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .page-scroller .btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            background: #6a4c93;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-scroller .btn:hover {
+            background: #5a3d83;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Standard Editor Logo Flash -->
+    <div class="logo-flash" id="logoFlash">
+        <h1>STANDARD EDITOR</h1>
+        <p>Easy Card Creation</p>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+                <span>Standard Editor</span>
+            </a>
+            <div class="price-tag">
+                $0.50 per card
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
+                <li><a href="marketplace.html" onclick="closeMenu()">Marketplace</a></li>
+                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
+            </ul>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div style="background: #ff6b6b; color: white; padding: 1rem; text-align: center; font-weight: bold; position: fixed; top: 0; left: 0; right: 0; z-index: 10000;">
+        🚧 Card Editor is temporarily disabled. Coming Soon! 🚧
+    </div>
+    
+    <div style="margin-top: 4rem; padding: 2rem; text-align: center; background: #f8f9fa; border-radius: 10px; margin: 4rem 1rem 1rem 1rem; position: relative; z-index: 10001;">
+        <h2 style="color: #6a4c93; margin-bottom: 1rem;">Card Editor Coming Soon!</h2>
+        <p style="color: #666; margin-bottom: 1rem;">We're working hard to bring you an amazing card creation experience.</p>
+        <p style="color: #666; margin-bottom: 2rem;">In the meantime, check out our trading cards!</p>
+        <a href="trading-cards.html" style="background: #6a4c93; color: white; padding: 1rem 2rem; border-radius: 25px; text-decoration: none; font-weight: bold;">Browse Trading Cards</a>
+    </div>
+    
+    <style>
+        .editor-container,
+        .card-preview,
+        .sidebar,
+        .bottom-actions,
+        .main-content > *:not(.coming-soon-message) {
+            filter: blur(5px);
+            pointer-events: none;
+            opacity: 0.3;
+        }
+        
+        .coming-soon-message {
+            filter: none !important;
+            pointer-events: auto !important;
+            opacity: 1 !important;
+        }
+    </style>
+            <div class="card-preview">
+                <div class="card" id="card">
+                    <div class="card-front">
+                        <div class="card-image" id="cardImage">
+                        </div>
+                        <h3 class="card-title" id="cardTitle"></h3>
+                        <p class="card-description" id="cardDescription"></p>
+                    </div>
+                    <div class="card-back">
+                        <div class="card-image" id="cardBackImage">
+                        </div>
+                        <h3 class="card-title" id="cardBackTitle"></h3>
+                        <p class="card-description" id="cardBackDescription"></p>
+                    </div>
+                </div>
+                <div style="margin-top:0.75rem;display:flex;gap:8px;">
+                    <button class="btn btn-sm" onclick="flipCard()">Flip in editor</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteCurrentCard()">Delete current card</button>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="card-counter">
+                    <div class="card-count">Cards: <span id="cardCount">1</span> • Current: <span id="currentIndex">1</span></div>
+                    <div class="total-cost">Total: $<span id="totalCost">0.50</span></div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Card Title</label>
+                    <input type="text" class="control-input" id="titleInput" placeholder="" oninput="updateCard()">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Card Description</label>
+                    <textarea class="control-textarea" id="descriptionInput" placeholder="" oninput="updateCard()"></textarea>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Front Image</label>
+                    <input type="file" class="control-input" id="imageInput" accept="image/*" onchange="handleImageUpload(this, 'front')">
+                    <button class="btn" onclick="document.getElementById('imageInput').click()">Import Image</button>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Back Title</label>
+                    <input type="text" class="control-input" id="backTitleInput" placeholder="" oninput="updateCardBack()">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Back Description</label>
+                    <textarea class="control-textarea" id="backDescriptionInput" placeholder="" oninput="updateCardBack()"></textarea>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Back Image</label>
+                    <input type="file" class="control-input" id="backImageInput" accept="image/*" onchange="handleImageUpload(this, 'back')">
+                    <button class="btn" onclick="document.getElementById('backImageInput').click()">Import Back Image</button>
+                </div>
+
+                <div class="control-group">
+                    <button class="btn flip-btn" onclick="flipCard()">Flip Card</button>
+                    <button class="btn btn-secondary" onclick="addCard()">Add Card (+$0.50)</button>
+                    <button class="btn btn-secondary" onclick="prevEditorCard()">Prev</button>
+                    <button class="btn btn-secondary" onclick="nextEditorCard()">Next</button>
+                    <button class="btn btn-success" onclick="finishEditing()">Done</button>
+                    <button class="btn btn-danger" onclick="closeEditor()">Close</button>
+                </div>
+                
+                <!-- Page Scroller -->
+                <div class="control-group">
+                    <label class="control-label">Page Navigation</label>
+                    <div class="page-scroller">
+                        <button class="btn btn-sm" onclick="scrollToTop()">↑ Top</button>
+                        <button class="btn btn-sm" onclick="scrollToCard()">🎴 Card</button>
+                        <button class="btn btn-sm" onclick="scrollToBottom()">↓ Bottom</button>
+                    </div>
+                </div>
+                
+                <!-- Preview Section -->
+                <div class="preview-section">
+                    <div class="preview-controls">
+                        <button class="btn btn-secondary" onclick="showPreview()">Preview Cards</button>
+                        <button class="btn btn-secondary" onclick="hidePreview()">Hide Preview</button>
+                    </div>
+                    <div class="preview-container" id="previewContainer" style="display: none;">
+                        <div class="preview-header">
+                            <h3>Card Preview</h3>
+                            <div class="preview-nav">
+                                <button class="btn btn-sm" onclick="previousCard()">← Previous</button>
+                                <span id="previewCardNumber">1 of 1</span>
+                                <button class="btn btn-sm" onclick="nextCard()">Next →</button>
+                            </div>
+                            <div class="preview-flip">
+                                <button class="btn btn-sm" onclick="flipPreviewCard()">Flip Card</button>
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="closePreview()">Close</button>
+                        </div>
+                        <div class="preview-card-container">
+                            <div class="preview-card" id="previewCard">
+                                <!-- Preview card will be shown here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Card Force. All rights reserved. | The Ultimate Card Game Experience</p>
+    </footer>
+
+    <!-- Done Options Modal -->
+    <div id="doneModal" class="modal">
+        <div class="modal-content">
+            <h2>Card Creation Complete!</h2>
+            <p>You have <span id="modalCardCount">1</span> card(s) for a total of $<span id="modalTotalCost">0.50</span></p>
+            <div class="modal-buttons">
+                <button class="btn modal-btn" onclick="addToCart()">Add to Cart</button>
+                <button class="btn modal-btn" onclick="buyNow()">Buy Now</button>
+                <button class="btn modal-btn" onclick="saveToAccount()">Save to Account</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cardCount = 1;
+        let totalCost = 0.50;
+        let currentEditorIndex = 1;
+        const cardsState = [{ front:{}, back:{} }];
+
+        // Hide logo flash after animation
+        setTimeout(() => {
+            document.getElementById('logoFlash').style.display = 'none';
+        }, 3000);
+
+        function updateCard() {
+            const title = document.getElementById('titleInput').value || '';
+            const description = document.getElementById('descriptionInput').value || '';
+            
+            document.getElementById('cardTitle').textContent = title;
+            document.getElementById('cardDescription').textContent = description;
+        }
+
+        function updateCardBack() {
+            const title = document.getElementById('backTitleInput').value || '';
+            const description = document.getElementById('backDescriptionInput').value || '';
+            
+            document.getElementById('cardBackTitle').textContent = title;
+            document.getElementById('cardBackDescription').textContent = description;
+        }
+
+        function handleImageUpload(input, side) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageId = side === 'front' ? 'cardImage' : 'cardBackImage';
+                    const imageContainer = document.getElementById(imageId);
+                    imageContainer.innerHTML = `<img src="${e.target.result}" alt="Card ${side}">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function flipCard() {
+            const card = document.getElementById('card');
+            card.classList.toggle('show-back');
+        }
+
+        function addCard() {
+            cardCount++;
+            totalCost = cardCount * 0.50;
+            document.getElementById('cardCount').textContent = cardCount;
+            document.getElementById('totalCost').textContent = totalCost.toFixed(2);
+            
+            // Reset form for new card
+            document.getElementById('titleInput').value = '';
+            document.getElementById('descriptionInput').value = '';
+            document.getElementById('backTitleInput').value = '';
+            document.getElementById('backDescriptionInput').value = '';
+            document.getElementById('imageInput').value = '';
+            document.getElementById('backImageInput').value = '';
+            
+            // Reset card display
+            document.getElementById('cardImage').innerHTML = '';
+            document.getElementById('cardBackImage').innerHTML = '';
+            document.getElementById('card').classList.remove('show-back');
+            
+            updateCard();
+            updateCardBack();
+
+            // Track state and move index to new card
+            cardsState.push({ front:{}, back:{} });
+            currentEditorIndex = cardsState.length;
+            document.getElementById('currentIndex').textContent = currentEditorIndex;
+        }
+
+        function persistCurrentCardState() {
+            const idx = currentEditorIndex - 1;
+            cardsState[idx] = {
+                front: {
+                    title: document.getElementById('cardTitle').textContent,
+                    desc: document.getElementById('cardDescription').textContent,
+                    image: document.getElementById('cardImage').innerHTML
+                },
+                back: {
+                    title: document.getElementById('cardBackTitle').textContent,
+                    desc: document.getElementById('cardBackDescription').textContent,
+                    image: document.getElementById('cardBackImage').innerHTML
+                }
+            };
+        }
+
+        function loadCardIntoEditor(idx) {
+            const card = cardsState[idx];
+            document.getElementById('cardTitle').textContent = card.front.title || '';
+            document.getElementById('cardDescription').textContent = card.front.desc || '';
+            document.getElementById('cardImage').innerHTML = card.front.image || '';
+            document.getElementById('cardBackTitle').textContent = card.back.title || '';
+            document.getElementById('cardBackDescription').textContent = card.back.desc || '';
+            document.getElementById('cardBackImage').innerHTML = card.back.image || '';
+            document.getElementById('titleInput').value = card.front.title || '';
+            document.getElementById('descriptionInput').value = card.front.desc || '';
+            document.getElementById('backTitleInput').value = card.back.title || '';
+            document.getElementById('backDescriptionInput').value = card.back.desc || '';
+            document.getElementById('card').classList.remove('show-back');
+        }
+
+        function prevEditorCard() {
+            if (currentEditorIndex <= 1) return;
+            persistCurrentCardState();
+            currentEditorIndex--;
+            loadCardIntoEditor(currentEditorIndex - 1);
+            document.getElementById('currentIndex').textContent = currentEditorIndex;
+        }
+
+        function nextEditorCard() {
+            if (currentEditorIndex >= cardsState.length) return;
+            persistCurrentCardState();
+            currentEditorIndex++;
+            loadCardIntoEditor(currentEditorIndex - 1);
+            document.getElementById('currentIndex').textContent = currentEditorIndex;
+        }
+
+        function deleteCurrentCard() {
+            if (cardsState.length <= 1) {
+                showModal('Cannot Delete', 'You must have at least one card.');
+                return;
+            }
+            cardsState.splice(currentEditorIndex - 1, 1);
+            cardCount = cardsState.length;
+            totalCost = cardCount * 0.50;
+            if (currentEditorIndex > cardsState.length) currentEditorIndex = cardsState.length;
+            document.getElementById('cardCount').textContent = cardCount;
+            document.getElementById('totalCost').textContent = totalCost.toFixed(2);
+            document.getElementById('currentIndex').textContent = currentEditorIndex;
+            loadCardIntoEditor(currentEditorIndex - 1);
+        }
+
+        function finishEditing() {
+            document.getElementById('modalCardCount').textContent = cardCount;
+            document.getElementById('modalTotalCost').textContent = totalCost.toFixed(2);
+            document.getElementById('doneModal').style.display = 'block';
+        }
+
+        function closeEditor() {
+            showModal(
+                'Close Editor',
+                'Are you sure you want to close the editor? Any unsaved changes will be lost! 😱',
+                function() {
+                    // Check if we came from cart or saved designs
+                    const editData = localStorage.getItem('editDesignData');
+                    if (editData) {
+                        const data = JSON.parse(editData);
+                        if (data.fromCart) {
+                            window.location.href = 'cart.html';
+                        } else {
+                            window.location.href = 'saved-designs.html';
+                        }
+                    } else {
+                        window.location.href = 'account.html';
+                    }
+                }
+            );
+        }
+
+        // Preview functionality
+        let currentPreviewCard = 1;
+        let isPreviewFlipped = false;
+
+        function showPreview() {
+            document.getElementById('previewContainer').style.display = 'block';
+            updatePreviewCard();
+        }
+
+        function hidePreview() {
+            document.getElementById('previewContainer').style.display = 'none';
+        }
+
+        function closePreview() {
+            hidePreview();
+        }
+
+        function updatePreviewCard() {
+            const previewCard = document.getElementById('previewCard');
+            const cardNumber = document.getElementById('previewCardNumber');
+            
+            // Update card number display
+            cardNumber.textContent = `${currentPreviewCard} of ${cardCount}`;
+            
+            // Get the current card content
+            const frontImage = document.getElementById('cardImage').innerHTML;
+            const frontTitle = document.getElementById('cardTitle').textContent;
+            const frontDescription = document.getElementById('cardDescription').textContent;
+            const backImage = document.getElementById('cardBackImage').innerHTML;
+            const backTitle = document.getElementById('cardBackTitle').textContent;
+            const backDescription = document.getElementById('cardBackDescription').textContent;
+            
+            // Create preview card content
+            previewCard.innerHTML = `
+                <div class="preview-card-front">
+                    <div class="card-image" style="width: 120px; height: 120px; margin-bottom: 1rem;">
+                        ${frontImage || '<div style="width: 100%; height: 100%; background: #f0f0f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>'}
+                    </div>
+                    <h3 style="color: #6a4c93; margin-bottom: 0.5rem; font-size: 1rem;">${frontTitle || 'Card Title'}</h3>
+                    <p style="color: #666; font-size: 0.8rem; text-align: center;">${frontDescription || 'Card Description'}</p>
+                </div>
+                <div class="preview-card-back">
+                    <div class="card-image" style="width: 120px; height: 120px; margin-bottom: 1rem;">
+                        ${backImage || '<div style="width: 100%; height: 100%; background: #f0f0f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>'}
+                    </div>
+                    <h3 style="color: #6a4c93; margin-bottom: 0.5rem; font-size: 1rem;">${backTitle || 'Back Title'}</h3>
+                    <p style="color: #666; font-size: 0.8rem; text-align: center;">${backDescription || 'Back Description'}</p>
+                </div>
+            `;
+            
+            // Apply flip state
+            if (isPreviewFlipped) {
+                previewCard.classList.add('flipped');
+            } else {
+                previewCard.classList.remove('flipped');
+            }
+        }
+
+        function previousCard() {
+            if (currentPreviewCard > 1) {
+                currentPreviewCard--;
+                updatePreviewCard();
+            }
+        }
+
+        function nextCard() {
+            if (currentPreviewCard < cardCount) {
+                currentPreviewCard++;
+                updatePreviewCard();
+            }
+        }
+
+        function flipPreviewCard() {
+            isPreviewFlipped = !isPreviewFlipped;
+            updatePreviewCard();
+        }
+
+        // Page Scroller Functions
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        function scrollToCard() {
+            const cardElement = document.getElementById('card');
+            if (cardElement) {
+                cardElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        }
+
+        function scrollToBottom() {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        // Auto-sync cart to Firebase
+        function autoSyncCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser || !window.firebaseService || !window.firebaseService.isInitialized) {
+                console.log('Auto-sync skipped: User not signed in or Firebase not available');
+                return;
+            }
+            
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            
+            console.log('🔄 Auto-syncing cart to Firebase...', cart);
+            
+            firebaseService.saveCartToFirebase(userData.sub, cart).then(() => {
+                console.log('✅ Cart auto-synced to Firebase successfully');
+            }).catch(error => {
+                console.error('❌ Cart auto-sync failed:', error);
+            });
+        }
+
+        function addToCart() {
+            console.log('=== ADDING TO CART (CARD EDITOR) ===');
+            
+            // Check if user is signed in
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                console.log('No user signed in');
+                showModal('Sign In Required', 'Please sign in to add items to your cart.', function() {
+                    window.location.href = 'account.html';
+                });
+                return;
+            }
+            
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            
+            console.log('User ID:', userData.sub);
+            console.log('Cart key:', cartKey);
+            console.log('Card count:', cardCount);
+            
+            // Get existing cart
+            let cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            console.log('Current cart:', cart);
+            
+            // Add cards to cart
+            for (let i = 0; i < cardCount; i++) {
+                const newItem = {
+                    id: Date.now() + i,
+                    name: document.getElementById('titleInput').value || 'Custom Card',
+                    price: 0.50,
+                    type: 'custom',
+                    editorType: 'standard'
+                };
+                console.log('Adding item:', newItem);
+                cart.push(newItem);
+            }
+            
+            console.log('Cart after adding:', cart);
+            
+            // Save to localStorage
+            localStorage.setItem(cartKey, JSON.stringify(cart));
+            
+            // Auto-sync to Firebase
+            autoSyncCart();
+            
+            // Verify save
+            const savedCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            console.log('Verified saved cart:', savedCart);
+            console.log('Save successful:', savedCart.length === cart.length);
+            
+            // Dispatch cart update event for other pages to listen to
+            window.dispatchEvent(new CustomEvent('cartUpdated', {
+                detail: { 
+                    source: 'addToCart',
+                    items: newItems,
+                    timestamp: new Date().toISOString()
+                }
+            }));
+            
+            document.getElementById('doneModal').style.display = 'none';
+            showModal('Success', 'Cards added to cart!');
+            console.log('=== ADD TO CART COMPLETE ===');
+        }
+
+        function buyNow() {
+            const total = totalCost.toFixed(2);
+            const paypalUrl = `https://www.paypal.com/paypalme/SongboJin/${total}`;
+            const link = document.createElement('a');
+            link.href = paypalUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            try {
+                const newWindow = window.open(paypalUrl, '_blank', 'noopener,noreferrer');
+                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            } catch (error) {
+                showModal('PayPal Link', `PayPal payment link: ${paypalUrl}`);
+            }
+            document.getElementById('doneModal').style.display = 'none';
+        }
+
+        function saveToAccount() {
+            const googleUser = JSON.parse(localStorage.getItem('googleUser') || 'null');
+            if (!googleUser) {
+                showModal('Sign In Required', 'Please sign in to save your designs.');
+                return;
+            }
+            const designsKey = `savedDesigns_${googleUser.sub}`;
+            const savedDesigns = JSON.parse(localStorage.getItem(designsKey) || '[]');
+            savedDesigns.push({
+                id: Date.now(),
+                title: document.getElementById('titleInput').value || 'Custom Card',
+                description: document.getElementById('descriptionInput').value || '',
+                backTitle: document.getElementById('backTitleInput').value || '',
+                backDescription: document.getElementById('backDescriptionInput').value || '',
+                frontImage: document.getElementById('cardImage').innerHTML,
+                backImage: document.getElementById('cardBackImage').innerHTML,
+                date: new Date().toLocaleDateString(),
+                type: 'standard'
+            });
+            localStorage.setItem(designsKey, JSON.stringify(savedDesigns));
+            document.getElementById('doneModal').style.display = 'none';
+            showModal('Success', 'Design saved to your account!');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('doneModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Hamburger menu functions
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            const navbar = document.querySelector('.navbar');
+            
+            if (!navbar.contains(event.target) && navMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+
+        function goToCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showModal('Sign In Required', 'You need to sign in to access your cart. Please sign in to continue.');
+                return;
+            }
+            window.location.href = 'cart.html';
+        }
+
+        // Load edit data when page loads
+        function loadEditData() {
+            const editData = localStorage.getItem('editDesignData');
+            if (editData) {
+                try {
+                    const data = JSON.parse(editData);
+                    const design = data.design;
+                    
+                    // Load design properties
+                    if (design.title) {
+                        document.getElementById('titleInput').value = design.title;
+                    }
+                    if (design.description) {
+                        document.getElementById('descriptionInput').value = design.description;
+                    }
+                    if (design.backTitle) {
+                        document.getElementById('backTitleInput').value = design.backTitle;
+                    }
+                    if (design.backDescription) {
+                        document.getElementById('backDescriptionInput').value = design.backDescription;
+                    }
+                    if (design.count) {
+                        cardCount = design.count;
+                        updateCardCount();
+                    }
+                    
+                    // Load design content if available
+                    if (design.frontImage) {
+                        document.getElementById('cardImage').innerHTML = design.frontImage;
+                    }
+                    if (design.backImage) {
+                        document.getElementById('cardBackImage').innerHTML = design.backImage;
+                    }
+                    
+                    // Clear edit data
+                    localStorage.removeItem('editDesignData');
+                    
+                    // Show a message that we're editing
+                    const message = document.createElement('div');
+                    message.style.cssText = `
+                        position: fixed; top: 20px; right: 20px; background: #4CAF50; 
+                        color: white; padding: 1rem; border-radius: 8px; z-index: 1000;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    `;
+                    message.textContent = `Editing: ${design.title}`;
+                    document.body.appendChild(message);
+                    
+                    // Remove message after 3 seconds
+                    setTimeout(() => {
+                        if (message.parentNode) {
+                            message.parentNode.removeChild(message);
+                        }
+                    }, 3000);
+                    
+                } catch (error) {
+                    console.error('Error loading edit data:', error);
+                }
+            }
+        }
+
+        // Initialize edit data loading
+        loadEditData();
+
+        function showModal(title, message, onConfirm = null) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('customModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'customModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h2 id="modalTitle">Modal Title</h2>
+                        <p id="modalMessage">Modal message goes here.</p>
+                        <div class="modal-buttons">
+                            <button class="modal-btn modal-btn-primary" id="modalConfirm">Confirm</button>
+                            <button class="modal-btn modal-btn-secondary" id="modalCancel">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalConfirm = document.getElementById('modalConfirm');
+            const modalCancel = document.getElementById('modalCancel');
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+
+            if (onConfirm) {
+                modalConfirm.style.display = 'inline-block';
+                modalConfirm.onclick = function() {
+                    onConfirm();
+                    modal.style.display = 'none';
+                };
+            } else {
+                modalConfirm.style.display = 'none';
+            }
+
+            modalCancel.onclick = function() {
+                modal.style.display = 'none';
+            };
+
+            modal.style.display = 'flex';
+        }
+        
+        // Listen for cart updates from other devices
+        window.addEventListener('cartUpdated', (event) => {
+            console.log('📡 Card Editor: Cart updated from another device:', event.detail);
+            // Cart was updated from Firebase, could show notification if needed
+        });
+    </script>
+</body>
+</html>

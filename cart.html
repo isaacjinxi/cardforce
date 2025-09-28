@@ -1,0 +1,2497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart - Card Force</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js"></script>
+    <!-- Firebase CDN -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+      import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+      
+      // Firebase Configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCJNv4DDv8Gbvtw3zRzsvNk3xW3e2sog7k",
+        authDomain: "card-force-472100.firebaseapp.com",
+        projectId: "card-force-472100",
+        storageBucket: "card-force-472100.firebasestorage.app",
+        messagingSenderId: "91438507562",
+        appId: "1:91438507562:web:85673cf7f40190f4310553",
+        measurementId: "G-J2Q14Y5FXS"
+      };
+      
+      // Initialize Firebase (only if not already initialized)
+      let app, db, auth;
+      try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+      } catch (error) {
+        // Firebase already initialized, get existing instances
+        app = window.firebaseApp || initializeApp(firebaseConfig, 'card-force-app');
+        db = window.db || getFirestore(app);
+        auth = window.auth || getAuth(app);
+      }
+      
+      // Make available globally
+      window.firebaseApp = app;
+      window.db = db;
+      window.auth = auth;
+      window.GoogleAuthProvider = GoogleAuthProvider;
+      
+      // Make Firebase functions available globally
+      window.doc = doc;
+      window.setDoc = setDoc;
+      window.getDoc = getDoc;
+      window.getDocs = getDocs;
+      window.addDoc = addDoc;
+      window.updateDoc = updateDoc;
+      window.deleteDoc = deleteDoc;
+      window.onSnapshot = onSnapshot;
+      window.query = query;
+      window.where = where;
+      window.orderBy = orderBy;
+      window.collection = collection;
+      
+      // Firebase Collections
+      const COLLECTIONS = {
+        USERS: 'users',
+        ORDERS: 'orders',
+        CARTS: 'carts',
+        PRODUCTS: 'products',
+        ADDRESSES: 'addresses',
+        REFUNDS: 'refunds',
+        CHAT_MESSAGES: 'chatMessages',
+        STOCK: 'stock'
+      };
+      
+      // Firebase Service Class
+      class FirebaseService {
+        constructor() {
+          this.isInitialized = false;
+          this.currentUser = null;
+          this.init();
+        }
+
+        async init() {
+          try {
+            // Check if user is already signed in via Google OAuth
+            const googleUser = localStorage.getItem('googleUser');
+            if (googleUser) {
+              const userData = JSON.parse(googleUser);
+              console.log('Found Google user, syncing with Firebase:', userData.email);
+              
+              // Create a mock Firebase user object
+              this.currentUser = {
+                uid: userData.sub,
+                email: userData.email,
+                displayName: userData.name,
+                photoURL: userData.picture
+              };
+              this.isInitialized = true;
+              
+              // Sync user data to Firebase
+              await this.syncUserData(this.currentUser);
+            }
+            
+            // Listen for auth state changes
+            onAuthStateChanged(auth, (user) => {
+              this.currentUser = user;
+              this.isInitialized = true;
+              
+              if (user) {
+                console.log('Firebase user signed in:', user.uid);
+                this.syncUserData(user);
+              } else {
+                console.log('Firebase user signed out');
+              }
+            });
+          } catch (error) {
+            console.error('Firebase initialization error:', error);
+          }
+        }
+
+        // Authentication
+        async signInWithGoogle() {
+          try {
+            const result = await signInWithPopup(auth, new GoogleAuthProvider());
+            return result.user;
+          } catch (error) {
+            console.error('Google sign-in error:', error);
+            throw error;
+          }
+        }
+
+        async signOut() {
+          try {
+            await signOut(auth);
+          } catch (error) {
+            console.error('Sign-out error:', error);
+          }
+        }
+
+        // User Data Management
+        async syncUserData(user) {
+          try {
+            const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+            const userSnap = await getDoc(userRef);
+            
+            if (!userSnap.exists()) {
+              // Create new user document
+              await setDoc(userRef, {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString()
+              });
+            } else {
+              // Update last login
+              await updateDoc(userRef, {
+                lastLogin: new Date().toISOString()
+              });
+            }
+          } catch (error) {
+            console.error('Error syncing user data:', error);
+          }
+        }
+
+        // Cart Management
+        async saveCartToFirebase(userId, cartItems) {
+          try {
+            const cartRef = doc(db, COLLECTIONS.CARTS, userId);
+            await setDoc(cartRef, {
+              userId: userId,
+              items: cartItems,
+              lastUpdated: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error saving cart to Firebase:', error);
+          }
+        }
+
+        async loadCartFromFirebase(userId) {
+          try {
+            const cartRef = doc(db, COLLECTIONS.CARTS, userId);
+            const cartSnap = await getDoc(cartRef);
+            
+            if (cartSnap.exists()) {
+              return cartSnap.data().items || [];
+            }
+            return [];
+          } catch (error) {
+            console.error('Error loading cart from Firebase:', error);
+            return [];
+          }
+        }
+
+        // Order Management
+        async saveOrderToFirebase(order) {
+          try {
+            const orderRef = doc(db, COLLECTIONS.ORDERS, order.id);
+            await setDoc(orderRef, {
+              ...order,
+              firebaseCreated: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error saving order to Firebase:', error);
+          }
+        }
+
+        async loadOrdersFromFirebase(userId = null) {
+          try {
+            let q;
+            if (userId) {
+              q = query(collection(db, COLLECTIONS.ORDERS), where('userId', '==', userId));
+            } else {
+              q = query(collection(db, COLLECTIONS.ORDERS), orderBy('createdAt', 'desc'));
+            }
+            
+            const querySnapshot = await getDocs(q);
+            const orders = [];
+            querySnapshot.forEach((doc) => {
+              orders.push({ id: doc.id, ...doc.data() });
+            });
+            return orders;
+          } catch (error) {
+            console.error('Error loading orders from Firebase:', error);
+            return [];
+          }
+        }
+
+        // Address Management
+        async saveAddressToFirebase(userId, address) {
+          try {
+            const addressRef = doc(db, COLLECTIONS.ADDRESSES, `${userId}_${address.id}`);
+            await setDoc(addressRef, {
+              ...address,
+              userId: userId,
+              lastUpdated: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error saving address to Firebase:', error);
+          }
+        }
+
+        async loadAddressesFromFirebase(userId) {
+          try {
+            const q = query(collection(db, COLLECTIONS.ADDRESSES), where('userId', '==', userId));
+            const querySnapshot = await getDocs(q);
+            const addresses = [];
+            querySnapshot.forEach((doc) => {
+              addresses.push({ id: doc.id.split('_')[1], ...doc.data() });
+            });
+            return addresses;
+          } catch (error) {
+            console.error('Error loading addresses from Firebase:', error);
+            return [];
+          }
+        }
+
+        // Product Management
+        async saveProductToFirebase(product) {
+          try {
+            const productRef = doc(db, COLLECTIONS.PRODUCTS, product.id);
+            await setDoc(productRef, {
+              ...product,
+              lastUpdated: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error saving product to Firebase:', error);
+          }
+        }
+
+        async loadProductsFromFirebase() {
+          try {
+            const q = query(collection(db, COLLECTIONS.PRODUCTS));
+            const querySnapshot = await getDocs(q);
+            const products = [];
+            querySnapshot.forEach((doc) => {
+              products.push({ id: doc.id, ...doc.data() });
+            });
+            return products;
+          } catch (error) {
+            console.error('Error loading products from Firebase:', error);
+            return [];
+          }
+        }
+
+        // Stock Management
+        async saveStockToFirebase(itemId, stock) {
+          try {
+            const stockRef = doc(db, COLLECTIONS.STOCK, itemId);
+            await setDoc(stockRef, {
+              itemId: itemId,
+              stock: stock,
+              lastUpdated: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error saving stock to Firebase:', error);
+          }
+        }
+
+        async loadStockFromFirebase() {
+          try {
+            const q = query(collection(db, COLLECTIONS.STOCK));
+            const querySnapshot = await getDocs(q);
+            const stockData = {};
+            querySnapshot.forEach((doc) => {
+              stockData[doc.id] = doc.data().stock;
+            });
+            return stockData;
+          } catch (error) {
+            console.error('Error loading stock from Firebase:', error);
+            return {};
+          }
+        }
+      }
+      
+      // Initialize Firebase Service
+      window.firebaseService = new FirebaseService();
+      window.COLLECTIONS = COLLECTIONS;
+      
+      // Define product data functions locally
+      function getProductData() {
+        return JSON.parse(localStorage.getItem('productData') || '{}');
+      }
+
+      function updateProductData(productData, skipFirebaseSync = false) {
+        localStorage.setItem('productData', JSON.stringify(productData));
+        
+        // Sync to Firebase if available and not skipping sync
+        if (!skipFirebaseSync && window.firebaseService && window.firebaseService.isInitialized) {
+          console.log('🔄 Syncing product data to Firebase...');
+          // Save each product to Firebase
+          Object.keys(productData).forEach(productId => {
+            const product = productData[productId];
+            if (product) {
+              console.log(`📦 Syncing product ${productId}:`, product);
+              window.firebaseService.saveProductToFirebase({
+                id: productId,
+                ...product
+              }).then(() => {
+                console.log(`✅ Product ${productId} synced to Firebase`);
+              }).catch(error => {
+                console.error(`❌ Failed to sync product ${productId}:`, error);
+              });
+            }
+          });
+        } else if (!skipFirebaseSync) {
+          console.log('⚠️ Firebase sync skipped - service not available or user not signed in');
+        }
+      }
+
+      // Load product data from Firebase and merge with local data
+      async function loadProductDataFromFirebase() {
+        if (!window.firebaseService || !window.firebaseService.isInitialized) {
+          console.log('⚠️ Firebase service not initialized for product data loading');
+          return;
+        }
+        
+        try {
+          const firebaseProducts = await window.firebaseService.loadProductsFromFirebase();
+          const localProductData = getProductData();
+          
+          // Merge Firebase data with local data (Firebase takes precedence)
+          firebaseProducts.forEach(product => {
+            localProductData[product.id] = {
+              ...localProductData[product.id], // Keep local data
+              ...product // Override with Firebase data
+            };
+          });
+          
+          // Update local storage with merged data (skip Firebase sync to avoid circular calls)
+          updateProductData(localProductData, true);
+          console.log('✅ Product data synced from Firebase');
+          
+        } catch (error) {
+          console.error('❌ Error loading product data from Firebase:', error);
+        }
+      }
+
+      // Test function to manually sync product data to Firebase
+      async function testProductSync() {
+        console.log('🧪 Testing product sync to Firebase...');
+        
+        if (!window.firebaseService || !window.firebaseService.isInitialized) {
+          console.log('❌ Firebase service not initialized');
+          return;
+        }
+        
+        const productData = getProductData();
+        console.log('📦 Current product data:', productData);
+        
+        if (Object.keys(productData).length === 0) {
+          console.log('⚠️ No product data to sync');
+          return;
+        }
+        
+        try {
+          // Test syncing each product
+          for (const [productId, product] of Object.entries(productData)) {
+            console.log(`🔄 Syncing product ${productId}...`);
+            await window.firebaseService.saveProductToFirebase({
+              id: productId,
+              ...product
+            });
+            console.log(`✅ Product ${productId} synced successfully`);
+          }
+          
+          console.log('🎉 All products synced to Firebase!');
+          
+        } catch (error) {
+          console.error('❌ Product sync failed:', error);
+        }
+      }
+
+      // Function to create test product data
+      function createTestProductData() {
+        const testProducts = {
+          'test-card-1': {
+            name: 'Test Card 1',
+            price: 9.99,
+            discount: 10,
+            status: 'Available',
+            stock: 50
+          },
+          'test-card-2': {
+            name: 'Test Card 2',
+            price: 15.99,
+            discount: 20,
+            status: 'Available',
+            stock: 25
+          }
+        };
+        
+        updateProductData(testProducts);
+        console.log('✅ Test product data created:', testProducts);
+      }
+
+      // Function to manually initialize Firebase service with Google user
+      function initializeFirebaseWithGoogleUser() {
+        const googleUser = localStorage.getItem('googleUser');
+        if (!googleUser) {
+          console.log('❌ No Google user found in localStorage');
+          return false;
+        }
+        
+        const userData = JSON.parse(googleUser);
+        console.log('🔄 Manually initializing Firebase service with Google user:', userData.email);
+        
+        // Set the currentUser in Firebase service
+        window.firebaseService.currentUser = {
+          uid: userData.sub,
+          email: userData.email,
+          displayName: userData.name,
+          photoURL: userData.picture
+        };
+        window.firebaseService.isInitialized = true;
+        
+        console.log('✅ Firebase service manually initialized');
+        return true;
+      }
+
+      // Function to check all function availability
+      function checkFunctionAvailability() {
+        console.log('🔍 Checking function availability...');
+        console.log('getProductData:', !!window.getProductData);
+        console.log('updateProductData:', !!window.updateProductData);
+        console.log('loadProductDataFromFirebase:', !!window.loadProductDataFromFirebase);
+        console.log('testProductSync:', !!window.testProductSync);
+        console.log('createTestProductData:', !!window.createTestProductData);
+        console.log('firebaseService:', !!window.firebaseService);
+        console.log('currentUser:', !!window.firebaseService?.currentUser);
+        console.log('Google User:', !!localStorage.getItem('googleUser'));
+        
+        // Try to initialize Firebase service if needed
+        if (!window.firebaseService?.currentUser && localStorage.getItem('googleUser')) {
+          console.log('🔄 Attempting to initialize Firebase service...');
+          initializeFirebaseWithGoogleUser();
+        }
+        
+        const productData = getProductData();
+        console.log('Current product data keys:', Object.keys(productData));
+        console.log('Product data:', productData);
+      }
+
+      // Make functions globally available
+      window.getProductData = getProductData;
+      window.updateProductData = updateProductData;
+      window.loadProductDataFromFirebase = loadProductDataFromFirebase;
+      window.testProductSync = testProductSync;
+      window.createTestProductData = createTestProductData;
+      window.checkFunctionAvailability = checkFunctionAvailability;
+      window.initializeFirebaseWithGoogleUser = initializeFirebaseWithGoogleUser;
+
+      // Load product data from Firebase after initialization
+      setTimeout(async () => {
+        console.log('🔄 Attempting to load product data from Firebase...');
+        console.log('Firebase Service:', !!window.firebaseService);
+        console.log('Current User:', !!window.firebaseService?.currentUser);
+        console.log('Load Function:', !!window.loadProductDataFromFirebase);
+        
+        // Check if we have a Google user but Firebase service doesn't have currentUser
+        const googleUser = localStorage.getItem('googleUser');
+        if (googleUser && !window.firebaseService?.currentUser) {
+          console.log('🔄 Google user found but Firebase service not initialized, retrying...');
+          const userData = JSON.parse(googleUser);
+          
+          // Manually set the currentUser in Firebase service
+          window.firebaseService.currentUser = {
+            uid: userData.sub,
+            email: userData.email,
+            displayName: userData.name,
+            photoURL: userData.picture
+          };
+          window.firebaseService.isInitialized = true;
+          
+          console.log('✅ Firebase service manually initialized with Google user');
+        }
+        
+        if (window.loadProductDataFromFirebase) {
+          await window.loadProductDataFromFirebase();
+        } else {
+          console.log('⚠️ loadProductDataFromFirebase function not available');
+        }
+        
+        // Set up real-time listener for product changes
+        if (window.setupProductDataListener) {
+          window.setupProductDataListener();
+        }
+      }, 3000);
+      
+       // Listen for product data updates
+       window.addEventListener('productDataUpdated', () => {
+         console.log('📡 Cart: Product data updated, refreshing cart...');
+         if (typeof loadCartItems === 'function') {
+           loadCartItems();
+         }
+       });
+       
+       // Listen for cart updates from other devices
+       window.addEventListener('cartUpdated', (event) => {
+         console.log('📡 Cart: Cart updated from another device:', event.detail);
+         if (event.detail.source === 'firebase') {
+           // Cart was updated from Firebase, refresh display
+           if (typeof loadCartItems === 'function') {
+             loadCartItems();
+           }
+         }
+       });
+      
+      // Debug: Check Firebase initialization
+      console.log('Firebase initialized:', {
+        app: !!app,
+        db: !!db,
+        auth: !!auth,
+        firebaseService: !!window.firebaseService
+      });
+    </script>
+    
+    <!-- Test Functions Script -->
+    <script>
+        // Test Firebase without authentication
+        async function testFirebaseDirect() {
+            console.log('=== TESTING FIREBASE DIRECT ACCESS ===');
+            try {
+                // Test if we can access Firestore
+                const testRef = window.doc(window.db, 'test', 'test');
+                await window.setDoc(testRef, { test: 'data', timestamp: new Date().toISOString() });
+                console.log('✅ Firebase write test successful');
+                
+                const testSnap = await window.getDoc(testRef);
+                if (testSnap.exists()) {
+                    console.log('✅ Firebase read test successful');
+                    console.log('Test data:', testSnap.data());
+                }
+                
+                // Clean up test data
+                await window.deleteDoc(testRef);
+                console.log('✅ Firebase delete test successful');
+                
+            } catch (error) {
+                console.error('❌ Firebase test failed:', error);
+                console.error('Error code:', error.code);
+                console.error('Error message:', error.message);
+            }
+            console.log('=== END DIRECT TEST ===');
+        }
+        
+        // Make test function available globally
+        window.testFirebaseDirect = testFirebaseDirect;
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: white;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            50% { box-shadow: 0 2px 20px rgba(106, 76, 147, 0.3); }
+            100% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+            position: relative;
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-decoration: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: bounce 1s infinite alternate;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 60px;
+            background: #2c2c2c;
+            border: 3px solid #1a1a1a;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 15px 15px 0;
+            border-color: transparent #1a1a1a transparent transparent;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 12px 12px 0;
+            border-color: transparent #2c2c2c transparent transparent;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 0.8;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-divider {
+            width: 30px;
+            height: 2px;
+            background: #1a1a1a;
+            margin: 2px 0;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-3px); }
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .nav-menu a.active {
+            background-color: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background-color: white;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .cart-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .cart-title {
+            font-size: 2.5rem;
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .cart-subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .cart-items {
+            margin-bottom: 2rem;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+            border: 2px solid #f0f0f0;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            background: #fafafa;
+            transition: all 0.3s ease;
+        }
+
+        .cart-item:hover {
+            border-color: #6a4c93;
+            box-shadow: 0 5px 15px rgba(106, 76, 147, 0.1);
+        }
+
+        .item-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            margin-right: 1.5rem;
+            object-fit: contain;
+            background: white;
+            border: 2px solid #e0e0e0;
+        }
+
+        .item-details {
+            flex: 1;
+        }
+
+        .item-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .item-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .item-price {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #6a4c93;
+        }
+
+        .item-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .remove-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .remove-btn:hover {
+            background: #ff3742;
+            transform: translateY(-2px);
+        }
+
+        .edit-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .edit-btn:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        .preview-btn {
+            background: #6a4c93;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .preview-btn:hover {
+            background: #5a3d83;
+            transform: translateY(-2px);
+        }
+
+        .cart-summary {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .total-items {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .total-price {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+        }
+
+        .cart-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .clear-cart-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .clear-cart-btn:hover {
+            background: #ff3742;
+            transform: translateY(-2px);
+        }
+
+        .checkout-btn {
+            background: #2ed573;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkout-btn:hover {
+            background: #26d065;
+            transform: translateY(-2px);
+        }
+        
+        .venmo-btn {
+            background: #3d95ce;
+        }
+        
+        .venmo-btn:hover {
+            background: #2d85be;
+        }
+
+        .apple-pay-btn {
+            background: #000;
+            color: white;
+        }
+
+        .apple-pay-btn:hover {
+            background: #333;
+        }
+
+        .apple-pay-icon {
+            margin-right: 0.5rem;
+        }
+
+        .empty-cart {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .empty-cart h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #6a4c93;
+        }
+
+        .empty-cart p {
+            margin-bottom: 2rem;
+        }
+
+        .shop-btn {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .shop-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(106, 76, 147, 0.3);
+        }
+
+        /* Custom Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h2 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .modal p {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: #6a4c93;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #5a3d83;
+            transform: translateY(-2px);
+        }
+
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* Footer */
+        .footer {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            animation: wave 2s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: skewY(0deg); }
+            50% { transform: skewY(1deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .nav-menu {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 100%;
+                height: 100vh;
+                background: linear-gradient(135deg, #6a4c93, #8e44ad);
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                gap: 2rem;
+                transition: right 0.3s ease;
+                z-index: 1000;
+            }
+
+            .nav-menu.active {
+                right: 0;
+            }
+
+            .nav-menu a {
+                font-size: 1.5rem;
+                padding: 1rem 2rem;
+                border-radius: 10px;
+                width: 200px;
+                text-align: center;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .cart-item {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .item-image {
+                margin-right: 0;
+                margin-bottom: 1rem;
+            }
+
+            .cart-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .modal-buttons {
+                flex-direction: column;
+            }
+        }
+
+        /* Address List Styles */
+        .address-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 1rem 0;
+        }
+
+        .address-option {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .address-option:hover {
+            border-color: #6a4c93;
+            background: #f8f9ff;
+        }
+
+        .address-option.selected {
+            border-color: #6a4c93;
+            background: #f0f0ff;
+        }
+
+        .address-option h4 {
+            margin-bottom: 0.5rem;
+            color: #6a4c93;
+        }
+
+        .address-option p {
+            margin-bottom: 0.25rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+                <span>Card Force</span>
+            </a>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
+                <li><a href="marketplace.html" onclick="closeMenu()">Marketplace</a></li>
+                <li><a href="about.html" onclick="closeMenu()">About</a></li>
+                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="cart.html" class="active" onclick="closeMenu()">Cart</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <section class="cart-section">
+            <h1 class="cart-title">Your Cart</h1>
+            <p class="cart-subtitle">Review your items before checkout</p>
+            
+            <div class="cart-items" id="cartItems">
+                <!-- Cart items will be loaded here -->
+            </div>
+
+            <div class="cart-summary" id="cartSummary" style="display: none;">
+                <div class="total-items">Total Items: <span id="totalItems">0</span></div>
+                <div class="total-price">Total: $<span id="totalPrice">0.00</span></div>
+                <div class="cart-actions">
+                    <button class="clear-cart-btn" onclick="clearCart()">Clear Cart</button>
+                    <button class="checkout-btn" onclick="goToCheckout()">Checkout</button>
+                </div>
+            </div>
+
+            <div class="empty-cart" id="emptyCart">
+                <h3>Your cart is empty</h3>
+                <p>Add some amazing cards to get started!</p>
+                <a href="shop.html" class="shop-btn">Start Shopping</a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Card Force. All rights reserved. | The Ultimate Card Game Experience</p>
+    </footer>
+
+    <!-- Custom Modal -->
+    <div class="modal" id="customModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Modal Title</h2>
+            <p id="modalMessage">Modal message goes here.</p>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" id="modalConfirm">Confirm</button>
+                <button class="modal-btn modal-btn-secondary" id="modalCancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Address Selector Modal -->
+    <div class="modal" id="addressSelectorModal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>Select Shipping Address</h2>
+            <div id="addressList" class="address-list">
+                <!-- Addresses will be populated here -->
+            </div>
+            <div class="modal-buttons">
+                <button id="addNewAddressBtn" class="modal-btn modal-btn-secondary">Add New Address</button>
+                <button id="cancelAddressBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load cart items on page load
+        window.onload = function() {
+            checkSignIn();
+            
+            // Check Apple Pay availability
+            checkApplePayAvailability();
+        };
+
+        function checkApplePayAvailability() {
+            const applePayButton = document.getElementById('applePayButton');
+            if (applePayButton) {
+                // Check if Apple Pay is supported
+                if (window.ApplePaySession && ApplePaySession.canMakePayments()) {
+                    applePayButton.style.display = 'inline-block';
+                    console.log('✅ Apple Pay is available');
+                } else {
+                    applePayButton.style.display = 'none';
+                    console.log('❌ Apple Pay is not available');
+                }
+            }
+        }
+
+        function goToCheckout() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showModal('Sign In Required', 'Please sign in to checkout.', function() {
+                    window.location.href = 'account.html';
+                });
+                return;
+            }
+            
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            
+            if (cart.length === 0) {
+                alert('Your cart is empty.');
+                return;
+            }
+            
+            // Redirect to checkout page
+            window.location.href = 'checkout.html';
+        }
+        
+        // Test function to debug cart issues
+        // Debug function to test Firebase connection
+        function testFirebaseConnection() {
+            console.log('=== FIREBASE CONNECTION TEST ===');
+            console.log('Firebase App:', !!window.firebaseApp);
+            console.log('Firebase DB:', !!window.db);
+            console.log('Firebase Auth:', !!window.auth);
+            console.log('Firebase Service:', !!window.firebaseService);
+            console.log('Current User:', window.firebaseService?.currentUser);
+            console.log('Collections:', window.COLLECTIONS);
+            
+            // Check Google OAuth status
+            const googleUser = localStorage.getItem('googleUser');
+            console.log('Google User:', googleUser ? JSON.parse(googleUser) : 'Not signed in');
+            
+            // Check Firebase initialization
+            console.log('Firebase Initialized:', window.firebaseService?.isInitialized);
+            
+            if (window.firebaseService && window.firebaseService.currentUser) {
+                console.log('✅ Firebase is connected and user is signed in');
+                console.log('User ID:', window.firebaseService.currentUser.uid);
+                console.log('User Email:', window.firebaseService.currentUser.email);
+            } else if (googleUser) {
+                console.log('⚠️ Google user signed in but Firebase not connected');
+                console.log('This is expected - Firebase will sync with Google OAuth');
+            } else {
+                console.log('❌ No user signed in');
+            }
+            console.log('=== END TEST ===');
+        }
+        
+        // Make test functions available globally
+        window.testFirebaseConnection = testFirebaseConnection;
+        window.testCart = testCart;
+        
+        // Test Firebase without authentication
+        async function testFirebaseDirect() {
+            console.log('=== TESTING FIREBASE DIRECT ACCESS ===');
+            try {
+                // Test if we can access Firestore
+                const testRef = doc(db, 'test', 'test');
+                await setDoc(testRef, { test: 'data', timestamp: new Date().toISOString() });
+                console.log('✅ Firebase write test successful');
+                
+                const testSnap = await getDoc(testRef);
+                if (testSnap.exists()) {
+                    console.log('✅ Firebase read test successful');
+                    console.log('Test data:', testSnap.data());
+                }
+                
+                // Clean up test data
+                await deleteDoc(testRef);
+                console.log('✅ Firebase delete test successful');
+                
+            } catch (error) {
+                console.error('❌ Firebase test failed:', error);
+                console.error('Error code:', error.code);
+                console.error('Error message:', error.message);
+            }
+            console.log('=== END DIRECT TEST ===');
+        }
+        
+        window.testFirebaseDirect = testFirebaseDirect;
+        
+        function testCart() {
+            console.log('=== TESTING CART SYSTEM ===');
+            
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                console.log('No user signed in for test');
+                return;
+            }
+            
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            
+            console.log('Test - User ID:', userData.sub);
+            console.log('Test - Cart key:', cartKey);
+            
+            // Check all localStorage keys
+            console.log('All localStorage keys:', Object.keys(localStorage));
+            
+            // Get cart
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            console.log('Test - Cart contents:', cart);
+            console.log('Test - Cart length:', cart.length);
+            
+            // Test adding an item
+            const testItem = {
+                id: Date.now(),
+                name: 'Test Item',
+                price: 1.00,
+                type: 'test'
+            };
+            
+            cart.push(testItem);
+            localStorage.setItem(cartKey, JSON.stringify(cart));
+            
+            // Verify
+            const savedCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            console.log('Test - After adding test item:', savedCart);
+            
+            // Remove test item
+            const filteredCart = savedCart.filter(item => item.type !== 'test');
+            localStorage.setItem(cartKey, JSON.stringify(filteredCart));
+            
+            console.log('Test - After removing test item:', JSON.parse(localStorage.getItem(cartKey) || '[]'));
+            console.log('=== CART TEST COMPLETE ===');
+        }
+        
+         // Debug buttons are now handled by admin mode only
+
+        function checkSignIn() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showSignInRequiredModal();
+                return;
+            }
+            loadCartItems();
+        }
+
+        function showSignInRequiredModal() {
+            showModal(
+                'Sign In Required',
+                'You need to sign in to access your cart. Please sign in to continue.',
+                function() {
+                    window.location.href = 'account.html';
+                }
+            );
+        }
+
+        function loadCartItems() {
+            console.log('loadCartItems called');
+            
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                console.log('No user signed in');
+                showSignInRequiredModal();
+                return;
+            }
+            
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            
+            // Debug: Check all localStorage keys
+            console.log('All localStorage keys:', Object.keys(localStorage));
+            console.log('Looking for cart key:', cartKey);
+            
+            // Try to load from Firebase first, fallback to localStorage
+            console.log('Firebase sync check:', {
+                firebaseService: !!window.firebaseService,
+                currentUser: !!window.firebaseService?.currentUser,
+                userData: userData
+            });
+            
+            if (window.firebaseService && window.firebaseService.isInitialized) {
+                console.log('Loading cart from Firebase for user:', userData.sub);
+                firebaseService.loadCartFromFirebase(userData.sub).then(firebaseCart => {
+                    console.log('Firebase cart loaded:', firebaseCart);
+                    if (firebaseCart.length > 0) {
+                        localStorage.setItem(cartKey, JSON.stringify(firebaseCart));
+                        renderCartItems(firebaseCart);
+                    } else {
+                        const localCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+                        renderCartItems(localCart);
+                    }
+                }).catch(error => {
+                    console.error('Error loading cart from Firebase:', error);
+                    const localCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+                    renderCartItems(localCart);
+                });
+            } else {
+                console.log('Using localStorage only - Firebase not available');
+                const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+                renderCartItems(cart);
+            }
+        }
+
+        // Auto-sync cart to Firebase
+        function autoSyncCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser || !window.firebaseService || !window.firebaseService.isInitialized) {
+                console.log('Auto-sync skipped: User not signed in or Firebase not available');
+                return;
+            }
+            
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            
+            console.log('🔄 Auto-syncing cart to Firebase...', cart);
+            
+            firebaseService.saveCartToFirebase(userData.sub, cart).then(() => {
+                console.log('✅ Cart auto-synced to Firebase successfully');
+            }).catch(error => {
+                console.error('❌ Cart auto-sync failed:', error);
+            });
+        }
+
+        // Address selector functions
+        let selectedAddressId = null;
+        let addressSelectorCallback = null;
+
+        function showAddressSelector(callback) {
+            addressSelectorCallback = callback;
+            const addresses = getAddresses();
+            
+            if (addresses.length === 0) {
+                showModal('No Addresses', 'Please add a shipping address first.', function() {
+                    window.location.href = 'account.html';
+                });
+                return;
+            }
+            
+            const addressList = document.getElementById('addressList');
+            addressList.innerHTML = addresses.map(addr => `
+                <div class="address-option" data-address-id="${addr.id}" onclick="selectAddress(${addr.id})">
+                    <h4>${addr.name}</h4>
+                    <p>${addr.streetAddress}</p>
+                    <p>${addr.city}, ${addr.state} ${addr.zipCode}</p>
+                    <p>${addr.country}</p>
+                </div>
+            `).join('');
+            
+            document.getElementById('addressSelectorModal').style.display = 'flex';
+        }
+
+        function selectAddress(addressId) {
+            selectedAddressId = addressId;
+            
+            // Update visual selection
+            document.querySelectorAll('.address-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelector(`[data-address-id="${addressId}"]`).classList.add('selected');
+            
+            // Auto-proceed after selection
+            setTimeout(() => {
+                confirmAddressSelection();
+            }, 500);
+        }
+
+        function confirmAddressSelection() {
+            if (!selectedAddressId) return;
+            
+            const addresses = getAddresses();
+            const selectedAddress = addresses.find(addr => addr.id === selectedAddressId);
+            
+            if (selectedAddress && addressSelectorCallback) {
+                addressSelectorCallback(selectedAddress);
+            }
+            
+            closeAddressSelector();
+        }
+
+        function closeAddressSelector() {
+            document.getElementById('addressSelectorModal').style.display = 'none';
+            selectedAddressId = null;
+            addressSelectorCallback = null;
+        }
+
+        // Event listeners for address selector
+        document.getElementById('addNewAddressBtn').onclick = function() {
+            window.location.href = 'account.html';
+        };
+
+        document.getElementById('cancelAddressBtn').onclick = closeAddressSelector;
+        
+        function renderCartItems(cart) {
+            console.log('Cart items:', cart);
+            
+            const cartItemsContainer = document.getElementById('cartItems');
+            const cartSummary = document.getElementById('cartSummary');
+            const emptyCart = document.getElementById('emptyCart');
+
+            if (cart.length === 0) {
+                console.log('Cart is empty');
+                cartItemsContainer.innerHTML = '';
+                cartSummary.style.display = 'none';
+                emptyCart.style.display = 'block';
+                return;
+            }
+
+            console.log('Loading cart items...');
+            emptyCart.style.display = 'none';
+            cartSummary.style.display = 'block';
+
+            let totalPrice = 0;
+            cartItemsContainer.innerHTML = '';
+
+            cart.forEach((item, index) => {
+                // Calculate discounted price for trading cards
+                let finalPrice = item.price;
+                let originalPrice = item.price;
+                
+                if (item.type === 'trading-card' && item.cardId) {
+                    // Get current discount for this card
+                    const productData = getProductData();
+                    const card = productData[item.cardId];
+                    if (card && card.discount > 0) {
+                        originalPrice = card.price;
+                        finalPrice = card.price * (1 - card.discount / 100);
+                    }
+                }
+                
+                totalPrice += finalPrice;
+                
+                const cartItem = document.createElement('div');
+                cartItem.className = 'cart-item';
+                
+                // Determine if this is a custom card that can be edited
+                const isCustomCard = item.type === 'custom' || item.editorType;
+                const editorType = item.editorType || 'standard';
+                
+                cartItem.innerHTML = `
+                    <img src="${item.image || 'placeholder.png'}" alt="${item.name}" class="item-image">
+                    <div class="item-details">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-description">${item.description || (isCustomCard ? 'Custom Card' : 'Trading Card')}</div>
+                        <div class="item-price">
+                            ${originalPrice !== finalPrice ? 
+                                `<span style="text-decoration: line-through; color: #999; font-size: 0.9rem;">$${originalPrice.toFixed(2)}</span> ` : 
+                                ''
+                            }
+                            $${finalPrice.toFixed(2)}
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        ${isCustomCard ? 
+                            `<button class="preview-btn" disabled style="opacity: 0.6; cursor: not-allowed; background: #ccc;">Coming Soon</button>` : 
+                            `<button class="preview-btn" onclick="previewItem(${index})">Preview</button>`
+                        }
+                        ${isCustomCard ? `<button class="edit-btn" onclick="editCartItem(${index}, '${editorType}')">Edit</button>` : ''}
+                        <button class="remove-btn" onclick="removeFromCart(${index})">Remove</button>
+                    </div>
+                `;
+                cartItemsContainer.appendChild(cartItem);
+            });
+
+            document.getElementById('totalItems').textContent = cart.length;
+            document.getElementById('totalPrice').textContent = totalPrice.toFixed(2);
+        }
+
+        function removeFromCart(index) {
+            showModal(
+                'Remove Item',
+                'Are you sure you want to remove this item from your cart? This action cannot be undone! 😱',
+                function() {
+                    const googleUser = localStorage.getItem('googleUser');
+                    const userData = JSON.parse(googleUser);
+                    const cartKey = `cart_${userData.sub}`;
+                    const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+                    cart.splice(index, 1);
+                    localStorage.setItem(cartKey, JSON.stringify(cart));
+                    
+                    // Auto-sync to Firebase
+                    autoSyncCart();
+                    
+                    loadCartItems();
+                }
+            );
+        }
+
+        function clearCart() {
+            showModal(
+                'Clear Cart',
+                'Are you sure you want to remove all items from your cart? This will make your cart very lonely! 😢',
+                function() {
+                    const googleUser = localStorage.getItem('googleUser');
+                    const userData = JSON.parse(googleUser);
+                    const cartKey = `cart_${userData.sub}`;
+                    localStorage.removeItem(cartKey);
+                    
+                    // Auto-sync to Firebase
+                    autoSyncCart();
+                    
+                    loadCartItems();
+                }
+            );
+        }
+
+        function editCartItem(index, editorType) {
+            const googleUser = localStorage.getItem('googleUser');
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            const item = cart[index];
+            
+            // Save the item data to be loaded in the editor
+            const editData = {
+                design: item,
+                index: index,
+                editorType: editorType,
+                fromCart: true
+            };
+            localStorage.setItem('editDesignData', JSON.stringify(editData));
+            
+            // Open the appropriate editor
+            if (editorType === 'ti') {
+                window.location.href = 'ti-editor.html';
+            } else {
+                window.location.href = 'card-editor.html';
+            }
+        }
+
+        function previewItem(index) {
+            const googleUser = localStorage.getItem('googleUser');
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            const item = cart[index];
+            
+            // Check if this is a custom card
+            const isCustomCard = item.type === 'custom' || item.editorType;
+            
+            if (isCustomCard) {
+                showModal('Preview Unavailable', 'Preview for custom cards is coming soon! You can still edit your design using the Edit button.');
+                return;
+            }
+            
+            // Create preview modal for trading cards
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.9); display: flex; align-items: center; 
+                justify-content: center; z-index: 1000;
+            `;
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 15px; padding: 2rem; max-width: 600px; width: 90%; text-align: center;">
+                    <h2 style="color: #6a4c93; margin-bottom: 1rem;">${item.name} Preview</h2>
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 10px; border: 2px solid #6a4c93;">
+                        ${item.frontImage || item.image || '<div style="height: 200px; display: flex; align-items: center; justify-content: center; color: #666;">No preview available</div>'}
+                    </div>
+                    <p style="color: #666; margin-bottom: 1rem;">${item.description || 'Trading Card'}</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <button onclick="closePreview()" style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer;">Close</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closePreview() {
+            document.querySelector('div[style*="position: fixed"]').remove();
+        }
+
+        function checkout() {
+            console.log('Checkout function called');
+            
+            
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                console.log('No user signed in');
+                showModal('Sign In Required', 'Please sign in to checkout.', function() {
+                    window.location.href = 'account.html';
+                });
+                return;
+            }
+            
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            
+            console.log('Cart items:', cart);
+            
+            if (cart.length === 0) {
+                showModal('Empty Cart', 'Your cart is empty. Add some items before checking out.');
+                return;
+            }
+
+            // Show address selector
+            console.log('Showing address selector');
+            showAddressSelector();
+        }
+        
+        function checkoutPayPal() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showModal('Sign In Required', 'Please sign in to checkout.', function() {
+                    window.location.href = 'account.html';
+                });
+                return;
+            }
+            
+            const cart = JSON.parse(localStorage.getItem(`cart_${JSON.parse(googleUser).sub}`) || '[]');
+            if (cart.length === 0) {
+                alert('Your cart is empty.');
+                return;
+            }
+            
+            let totalUSD = 0;
+            cart.forEach(item => {
+                totalUSD += (item.price || 0);
+            });
+            
+            // Show address selector
+            showAddressSelector(function(selectedAddress) {
+                // Store address for order creation after payment
+                localStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
+                localStorage.setItem('pendingCart', JSON.stringify(cart));
+                localStorage.setItem('pendingTotal', totalUSD.toString());
+                
+                // Redirect to PayPal (One Won style)
+                redirectToPayPal(totalUSD.toFixed(2));
+            });
+        }
+        
+        function checkoutVenmo() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showModal('Sign In Required', 'Please sign in to checkout.', function() {
+                    window.location.href = 'account.html';
+                });
+                return;
+            }
+            
+            const cart = JSON.parse(localStorage.getItem(`cart_${JSON.parse(googleUser).sub}`) || '[]');
+            if (cart.length === 0) {
+                alert('Your cart is empty.');
+                return;
+            }
+            
+            let totalUSD = 0;
+            cart.forEach(item => {
+                totalUSD += (item.price || 0);
+            });
+            
+            // Show address selector
+            showAddressSelector(function(selectedAddress) {
+                // Store address for order creation after payment
+                localStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
+                localStorage.setItem('pendingCart', JSON.stringify(cart));
+                localStorage.setItem('pendingTotal', totalUSD.toString());
+                
+                // Redirect to Venmo (One Won style)
+                redirectToVenmo(totalUSD);
+            });
+        }
+
+        function checkoutApplePay() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showModal('Sign In Required', 'Please sign in to checkout.', function() {
+                    window.location.href = 'account.html';
+                });
+                return;
+            }
+            
+            const cart = JSON.parse(localStorage.getItem(`cart_${JSON.parse(googleUser).sub}`) || '[]');
+            if (cart.length === 0) {
+                alert('Your cart is empty.');
+                return;
+            }
+            
+            let totalUSD = 0;
+            cart.forEach(item => {
+                totalUSD += (item.price || 0);
+            });
+            
+            // Show address selector
+            showAddressSelector(function(selectedAddress) {
+                // Store address for order creation after payment
+                localStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
+                localStorage.setItem('pendingCart', JSON.stringify(cart));
+                localStorage.setItem('pendingTotal', totalUSD.toString());
+                
+                // Process Apple Pay (One Won style - direct payment)
+                processApplePay(totalUSD);
+            });
+        }
+
+        function processApplePay(totalUSD) {
+            // Check if Apple Pay is available
+            if (!window.ApplePaySession || !ApplePaySession.canMakePayments()) {
+                showModal('Apple Pay Unavailable', 'Apple Pay is not available on this device. Please use PayPal or Venmo instead.');
+                return;
+            }
+            
+            // Create payment request
+            const paymentRequest = {
+                countryCode: 'US',
+                currencyCode: 'USD',
+                supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
+                merchantCapabilities: ['supports3DS'],
+                total: {
+                    label: 'Card Force Order',
+                    amount: totalUSD.toFixed(2)
+                }
+            };
+            
+            // Create Apple Pay session
+            const session = new ApplePaySession(3, paymentRequest);
+            
+            // Handle validation
+            session.onvalidatemerchant = function(event) {
+                // In a real implementation, you would validate with your server
+                // For now, we'll simulate validation
+                session.completeMerchantValidation({
+                    merchantSession: {
+                        epochTimestamp: Date.now(),
+                        expiresAt: Date.now() + 3600000,
+                        merchantSessionIdentifier: 'merchant.session.' + Date.now(),
+                        nonce: 'nonce.' + Math.random(),
+                        merchantIdentifier: 'merchant.cardforce',
+                        domainName: 'cardforce.com',
+                        displayName: 'Card Force'
+                    }
+                });
+            };
+            
+            // Handle payment authorization
+            session.onpaymentauthorized = function(event) {
+                // Process the payment
+                console.log('Apple Pay payment authorized:', event.payment);
+                
+                // Simulate payment processing
+                setTimeout(() => {
+                    // Complete the payment
+                    session.completePayment(ApplePaySession.STATUS_SUCCESS);
+                    
+                    // Create order after successful payment (One Won style)
+                    createOrderAfterPayment('apple_pay');
+                    
+                    showModal('Payment Successful', 'Your Apple Pay payment was processed successfully! Your order is being prepared.');
+                }, 2000);
+            };
+            
+            // Handle session completion
+            session.oncomplete = function(event) {
+                console.log('Apple Pay session completed:', event.status);
+            };
+            
+            // Start the session
+            session.begin();
+        }
+
+        // One Won style: Create order after payment is completed
+        function createOrderAfterPayment(paymentMethod) {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) return;
+            
+            const userData = JSON.parse(googleUser);
+            const selectedAddress = JSON.parse(localStorage.getItem('selectedAddress') || '{}');
+            const pendingCart = JSON.parse(localStorage.getItem('pendingCart') || '[]');
+            const pendingTotal = parseFloat(localStorage.getItem('pendingTotal') || '0');
+            
+            if (pendingCart.length === 0) return;
+            
+            // Create order
+            const order = createOrder(pendingCart, pendingTotal, selectedAddress, false);
+            order.status = 'confirmed';
+            order.paymentMethod = paymentMethod;
+            order.paymentDate = new Date().toISOString();
+            
+            // Save order using proper function that handles Firebase sync
+            if (typeof addOrder === 'function') {
+                addOrder(order, true); // Sync to Firebase
+            } else {
+                // Fallback: manual save
+                const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+                orders.push(order);
+                localStorage.setItem('orders', JSON.stringify(orders));
+                console.log('⚠️ addOrder function not available, using fallback');
+            }
+            
+            // Clear cart
+            const cartKey = `cart_${userData.sub}`;
+            localStorage.setItem(cartKey, JSON.stringify([]));
+            
+            // Clear pending data
+            localStorage.removeItem('selectedAddress');
+            localStorage.removeItem('pendingCart');
+            localStorage.removeItem('pendingTotal');
+            
+            // Auto-sync to Firebase
+            autoSyncCart();
+            
+            console.log('✅ Order created after payment:', order.id);
+        }
+
+        function showAddressSelector() {
+            console.log('showAddressSelector called');
+            
+            // Check if getAddresses function exists
+            if (typeof getAddresses !== 'function') {
+                console.error('getAddresses function not found');
+                showModal('Error', 'Address functions not loaded. Please refresh the page.');
+                return;
+            }
+            
+            const addresses = getAddresses();
+            console.log('Addresses found:', addresses);
+            
+            const totalPrice = getCartTotal();
+            console.log('Total price:', totalPrice);
+            
+            if (addresses.length === 0) {
+                showModal(
+                    'No Addresses',
+                    'You need to add an address before checking out. Please add an address in your account settings first!',
+                    function() {
+                        window.location.href = 'account.html';
+                    }
+                );
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.id = 'addressSelectorModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <h2>Select Shipping Address</h2>
+                    <div id="addressOptions">
+                        ${addresses.map(addr => `
+                            <div class="address-option" onclick="selectAddress(${addr.id})" style="border: 2px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; cursor: pointer; transition: all 0.3s ease;">
+                                <h4 style="margin-bottom: 0.5rem; color: #6a4c93;">${addr.name}</h4>
+                                <p style="margin-bottom: 0.5rem;">${addr.streetAddress}</p>
+                                <p style="margin-bottom: 0.5rem;">${addr.city}, ${addr.state} ${addr.zipCode}</p>
+                                <p style="margin-bottom: 0;">${addr.country}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="modal-btn modal-btn-secondary" onclick="closeAddressSelector()">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.style.display = 'flex';
+
+            // Add hover effects
+            document.querySelectorAll('.address-option').forEach(option => {
+                option.addEventListener('mouseenter', function() {
+                    this.style.borderColor = '#6a4c93';
+                    this.style.backgroundColor = '#f8f9fa';
+                });
+                option.addEventListener('mouseleave', function() {
+                    this.style.borderColor = '#ddd';
+                    this.style.backgroundColor = 'white';
+                });
+            });
+        }
+
+        function selectAddress(addressId) {
+            const addresses = getAddresses();
+            const selectedAddress = addresses.find(addr => addr.id === addressId);
+            
+            if (selectedAddress) {
+                closeAddressSelector();
+                proceedToPayment(selectedAddress);
+            }
+        }
+
+        function closeAddressSelector() {
+            const modal = document.getElementById('addressSelectorModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Payment system constants
+        const PAYPAL_BUSINESS_EMAIL = 'imsongbo@gmail.com';
+        const VENMO_USERNAME = 'SongboJin';
+        
+        // One Won-style payment system
+        function getPayPalReturnParams() {
+            try {
+                const origin = window.location.origin || '';
+                if (origin.startsWith('http')) {
+                    return { 
+                        returnUrl: `${origin}/success.html`, 
+                        cancelUrl: `${origin}/cart.html` 
+                    };
+                }
+            } catch {}
+            return { returnUrl: '', cancelUrl: '' };
+        }
+        
+        function redirectToPayPal(amount, currency = 'USD') {
+            if (!PAYPAL_BUSINESS_EMAIL) {
+                alert('PayPal not configured');
+                return;
+            }
+            
+            const { returnUrl, cancelUrl } = getPayPalReturnParams();
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'https://www.paypal.com/cgi-bin/webscr';
+            form.style.display = 'none';
+            
+            const params = {
+                cmd: '_xclick',
+                business: PAYPAL_BUSINESS_EMAIL,
+                item_name: 'Card Force Order',
+                amount: amount,
+                currency_code: currency,
+                no_note: '1'
+            };
+            
+            if (returnUrl) params.return = returnUrl;
+            if (cancelUrl) params.cancel_return = cancelUrl;
+            
+            Object.entries(params).forEach(([k, v]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = k;
+                input.value = v;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        function getVenmoLinks(amountUSD, note, username) {
+            const encodedNote = encodeURIComponent(note || 'Card Force Order');
+            const usd = (Math.round(amountUSD * 100) / 100).toFixed(2);
+            const uname = (username || VENMO_USERNAME || '').replace(/^@/, '').trim();
+            const app = `venmo://paycharge?txn=pay&recipients=${encodeURIComponent(uname)}&amount=${usd}&note=${encodedNote}`;
+            const web = `https://account.venmo.com/pay?recipients=${encodeURIComponent(uname)}&amount=${usd}&note=${encodedNote}`;
+            return { app, web };
+        }
+        
+        function redirectToVenmo(amountUSD) {
+            const uname = VENMO_USERNAME.replace(/^@/, '').trim();
+            const { app, web } = getVenmoLinks(amountUSD, 'Card Force Order', uname);
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                window.location.href = app;
+                setTimeout(() => {
+                    window.location.href = web;
+                }, 800);
+            } else {
+                window.location.href = web;
+            }
+        }
+        
+        function proceedToPayment(selectedAddress) {
+            const totalPrice = getCartTotal();
+            
+            // Create modal with email checkbox
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Proceed to PayPal</h2>
+                    <p>Ready to pay $${totalPrice.toFixed(2)}?</p>
+                    <br>
+                    <p><strong>Shipping to:</strong><br>
+                    ${selectedAddress.name}<br>
+                    ${selectedAddress.streetAddress}<br>
+                    ${selectedAddress.city}, ${selectedAddress.state} ${selectedAddress.zipCode}<br>
+                    ${selectedAddress.country}</p>
+                    <br>
+                    <div style="margin: 1rem 0;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="emailNotifications" style="transform: scale(1.2);">
+                            <span>I would like to receive emails regarding my order</span>
+                        </label>
+                    </div>
+                    <br>
+                    <p>Your cards are getting excited!</p>
+                    <div class="modal-buttons">
+                        <button class="modal-btn modal-btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                        <button class="modal-btn modal-btn-primary" onclick="confirmPayment()">Proceed to PayPal</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Store selected address for payment
+            window.selectedAddressForPayment = selectedAddress;
+        }
+        
+        function confirmPayment() {
+            const emailNotifications = document.getElementById('emailNotifications').checked;
+            const selectedAddress = window.selectedAddressForPayment;
+            const totalPrice = getCartTotal();
+            const paypalUrl = `https://www.paypal.com/paypalme/SongboJin/${totalPrice.toFixed(2)}`;
+            
+            // Close modal first
+            document.querySelector('.modal').remove();
+            
+            // Show payment instruction modal
+            showModal(
+                'Complete Payment',
+                `Please complete your payment on PayPal to finalize your order.<br><br>
+                <strong>Order Total: $${totalPrice.toFixed(2)}</strong><br><br>
+                After payment, your order will be automatically processed.<br><br>
+                <em>Note: Your cart will remain until payment is confirmed.</em>`,
+                function() {
+                    // Open PayPal in new tab
+                    window.open(paypalUrl, '_blank');
+                    
+                    // Show instruction to return after payment
+                    setTimeout(() => {
+                        showModal(
+                            'Payment Instructions',
+                            'After completing payment on PayPal:<br><br>' +
+                            '1. Return to this page<br>' +
+                            '2. Click "Confirm Payment Received" below<br>' +
+                            '3. Your order will be processed<br><br>' +
+                            '<strong>Do not close this page until payment is complete!</strong>',
+                            function() {
+                                // Show payment confirmation button
+                                showPaymentConfirmationButton();
+                            }
+                        );
+                    }, 1000);
+                }
+            );
+        }
+        
+        function showPaymentConfirmationButton() {
+            // Add a payment confirmation button to the page
+            const confirmationDiv = document.createElement('div');
+            confirmationDiv.id = 'paymentConfirmation';
+            confirmationDiv.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #6a4c93;
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 10px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 1000;
+                text-align: center;
+            `;
+            
+            confirmationDiv.innerHTML = `
+                <div style="margin-bottom: 0.5rem; font-weight: 600;">Payment Complete?</div>
+                <button onclick="processPaymentConfirmation()" style="
+                    background: #2ed573;
+                    color: white;
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    margin-right: 0.5rem;
+                ">Confirm Payment</button>
+                <button onclick="cancelPayment()" style="
+                    background: #ff3742;
+                    color: white;
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: 500;
+                ">Cancel Order</button>
+            `;
+            
+            document.body.appendChild(confirmationDiv);
+        }
+        
+        function processPaymentConfirmation() {
+            const emailNotifications = document.getElementById('emailNotifications')?.checked || false;
+            const selectedAddress = window.selectedAddressForPayment;
+            const totalPrice = getCartTotal();
+            
+            // Create order
+            const googleUser = localStorage.getItem('googleUser');
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            
+            createOrder(cart, totalPrice, selectedAddress, emailNotifications);
+            
+            // Clear cart
+            localStorage.setItem(cartKey, JSON.stringify([]));
+            
+            // Auto-sync to Firebase
+            autoSyncCart();
+            
+            // Reduce stock for all items
+            reduceStockForCart();
+            
+            // Remove payment confirmation button
+            const confirmationDiv = document.getElementById('paymentConfirmation');
+            if (confirmationDiv) {
+                confirmationDiv.remove();
+            }
+            
+            // Show success message
+            showModal('Order Confirmed!', 'Your order has been processed successfully! You can track it in your account.');
+            
+            // Reload cart to show empty state
+            loadCartItems();
+        }
+        
+        function cancelPayment() {
+            // Remove payment confirmation button
+            const confirmationDiv = document.getElementById('paymentConfirmation');
+            if (confirmationDiv) {
+                confirmationDiv.remove();
+            }
+            
+            showModal('Order Cancelled', 'Your order has been cancelled. Your cart remains unchanged.');
+        }
+
+        function getCartTotal() {
+            const googleUser = localStorage.getItem('googleUser');
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            
+            return cart.reduce((sum, item) => {
+                let finalPrice = item.price;
+                
+                // Apply discounts for trading cards
+                if (item.type === 'trading-card' && item.cardId) {
+                    const productData = getProductData();
+                    const card = productData[item.cardId];
+                    if (card && card.discount > 0) {
+                        finalPrice = card.price * (1 - card.discount / 100);
+                    }
+                }
+                
+                return sum + finalPrice;
+            }, 0);
+        }
+
+        function reduceStockForCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            
+            cart.forEach(item => {
+                if (item.cardId) {
+                    reduceStock(item.cardId, 1);
+                }
+            });
+        }
+
+        // Custom modal system for cart.html
+        function showModal(title, message, onConfirm = null) {
+            // Remove any existing modals
+            const existingModal = document.querySelector('.modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Create modal
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 10px;
+                    max-width: 500px;
+                    width: 90%;
+                    text-align: center;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                ">
+                    <h2 style="color: #6a4c93; margin-bottom: 1rem;">${title}</h2>
+                    <p style="margin-bottom: 2rem; line-height: 1.6;">${message}</p>
+                    <div class="modal-buttons" style="display: flex; gap: 1rem; justify-content: center;">
+                        ${onConfirm ? `
+                            <button class="modal-btn modal-btn-secondary" onclick="closeModal()" style="
+                                background: #6c757d;
+                                color: white;
+                                border: none;
+                                padding: 0.75rem 1.5rem;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                font-weight: 500;
+                            ">Cancel</button>
+                            <button class="modal-btn modal-btn-primary" onclick="confirmModal()" style="
+                                background: #6a4c93;
+                                color: white;
+                                border: none;
+                                padding: 0.75rem 1.5rem;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                font-weight: 500;
+                            ">Confirm</button>
+                        ` : `
+                            <button class="modal-btn modal-btn-primary" onclick="closeModal()" style="
+                                background: #6a4c93;
+                                color: white;
+                                border: none;
+                                padding: 0.75rem 1.5rem;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                font-weight: 500;
+                            ">OK</button>
+                        `}
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Store confirm callback
+            window.currentModalConfirm = onConfirm;
+            
+            // Close modal function
+            window.closeModal = function() {
+                modal.remove();
+                window.currentModalConfirm = null;
+            };
+            
+            // Confirm modal function
+            window.confirmModal = function() {
+                if (window.currentModalConfirm) {
+                    window.currentModalConfirm();
+                }
+                modal.remove();
+                window.currentModalConfirm = null;
+            };
+            
+            // Close on background click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    window.closeModal();
+                }
+            });
+        }
+
+        // Hamburger menu functions
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            const navbar = document.querySelector('.navbar');
+            
+            if (!navbar.contains(event.target) && navMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+    </script>
+</body>
+</html>

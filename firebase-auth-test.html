@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Auth Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .test-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; font-weight: bold; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { background: #6a4c93; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #5a3d83; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Firebase Authentication Diagnostic</h1>
+        <p>This page helps diagnose Google Sign-In issues.</p>
+        
+        <div id="status"></div>
+        
+        <div>
+            <button onclick="testGoogleSignIn()">Test Google Sign-In</button>
+            <button onclick="checkConfiguration()">Check Configuration</button>
+        </div>
+        
+        <div id="configInfo" style="margin-top: 20px;"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCJNv4DDv8Gbvtw3zRzsvNk3xW3e2sog7k",
+            authDomain: "card-force-472100.firebaseapp.com",
+            projectId: "card-force-472100",
+            storageBucket: "card-force-472100.firebasestorage.app",
+            messagingSenderId: "91438507562",
+            appId: "1:91438507562:web:85673cf7f40190f4310553",
+            measurementId: "G-J2Q14Y5FXS"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        function showStatus(message, type) {
+            document.getElementById('status').innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        window.testGoogleSignIn = async function() {
+            try {
+                showStatus('Testing Google Sign-In...', 'info');
+                
+                const result = await signInWithPopup(auth, provider);
+                showStatus(`✅ Google Sign-In successful! Welcome ${result.user.displayName}`, 'success');
+                
+            } catch (error) {
+                console.error('Google Sign-In Error:', error);
+                
+                if (error.code === 'auth/unauthorized-domain') {
+                    showStatus(`❌ Domain not authorized: ${window.location.hostname}. Please add this domain to Firebase Auth settings.`, 'error');
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    showStatus('⚠️ Sign-in popup was closed by user', 'info');
+                } else {
+                    showStatus(`❌ Google Sign-In failed: ${error.message} (Code: ${error.code})`, 'error');
+                }
+            }
+        };
+
+        window.checkConfiguration = function() {
+            const configInfo = document.getElementById('configInfo');
+            configInfo.innerHTML = `
+                <h3>Current Configuration:</h3>
+                <p><strong>Domain:</strong> ${window.location.hostname}</p>
+                <p><strong>Protocol:</strong> ${window.location.protocol}</p>
+                <p><strong>Full URL:</strong> ${window.location.href}</p>
+                <p><strong>Firebase Project:</strong> ${firebaseConfig.projectId}</p>
+                <p><strong>Auth Domain:</strong> ${firebaseConfig.authDomain}</p>
+                
+                <h3>Required OAuth Settings:</h3>
+                <p><strong>Authorized JavaScript Origins:</strong></p>
+                <ul>
+                    <li>${window.location.protocol}//${window.location.hostname}</li>
+                    <li>https://card-force-472100.firebaseapp.com</li>
+                    <li>https://card-force-472100.web.app</li>
+                </ul>
+                
+                <p><strong>Authorized Redirect URIs:</strong></p>
+                <ul>
+                    <li>${window.location.protocol}//${window.location.hostname}/__/auth/handler</li>
+                    <li>https://card-force-472100.firebaseapp.com/__/auth/handler</li>
+                    <li>https://card-force-472100.web.app/__/auth/handler</li>
+                </ul>
+            `;
+        };
+
+        // Auto-check configuration on load
+        window.addEventListener('load', () => {
+            setTimeout(checkConfiguration, 1000);
+        });
+    </script>
+</body>
+</html>

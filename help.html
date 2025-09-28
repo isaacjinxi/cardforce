@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help - Card Force</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: white;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            padding: 0.5rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            50% { box-shadow: 0 2px 20px rgba(106, 76, 147, 0.3); }
+            100% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1.25rem;
+            position: relative;
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-decoration: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: bounce 1s infinite alternate;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-3px); }
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 48px;
+            background: #2c2c2c;
+            border: 3px solid #1a1a1a;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 15px 15px 0;
+            border-color: transparent #1a1a1a transparent transparent;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 12px 12px 0;
+            border-color: transparent #2c2c2c transparent transparent;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 0.8;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-divider {
+            width: 30px;
+            height: 2px;
+            background: #1a1a1a;
+            margin: 2px 0;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 1rem;
+        }
+
+
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.4);
+        }
+
+        .nav-menu a.active {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.4);
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .help-section {
+            margin: 2rem 0;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 2px 2px 4px rgba(0,0,0,0.1), 0 0 10px rgba(106, 76, 147, 0.5); }
+            to { text-shadow: 2px 2px 4px rgba(0,0,0,0.1), 0 0 20px rgba(106, 76, 147, 0.8); }
+        }
+
+        .help-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .help-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.1);
+            padding: 2rem;
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .help-card:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .help-card:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        .help-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(106, 76, 147, 0.2);
+            animation: none;
+        }
+
+        .help-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 2rem;
+        }
+
+
+        .help-title {
+            color: #6a4c93;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .help-description {
+            color: #666;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+
+        /* Chatbot Styles */
+        .chatbot {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.3);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+            border: 2px solid #6a4c93;
+        }
+
+        .chatbot-header {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            padding: 1rem;
+            border-radius: 13px 13px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chatbot-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .chatbot-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chatbot-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .chatbot-messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: 350px;
+        }
+
+        .chat-message {
+            margin-bottom: 1rem;
+            display: flex;
+        }
+
+        .user-message {
+            justify-content: flex-end;
+        }
+
+        .bot-message {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 0.8rem 1rem;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .user-message .message-content {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            border-radius: 15px 15px 5px 15px;
+        }
+
+        .bot-message .message-content {
+            background: #f8f9fa;
+            color: #333;
+            border-radius: 15px 15px 15px 5px;
+            border: 1px solid #e9ecef;
+        }
+
+        .chatbot-input {
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chatbot-input input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .chatbot-input input:focus {
+            border-color: #6a4c93;
+            box-shadow: 0 0 0 2px rgba(106, 76, 147, 0.2);
+        }
+
+        .chatbot-input button {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .chatbot-input button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.3);
+        }
+
+        .chatbot-open-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            box-shadow: 0 5px 15px rgba(106, 76, 147, 0.4);
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+
+        .chatbot-open-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(106, 76, 147, 0.5);
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0.8rem 1rem;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #6a4c93;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes typing {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Footer */
+        .footer {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            animation: wave 2s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: skewY(0deg); }
+            50% { transform: skewY(1deg); }
+        }
+
+        /* Custom Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h2 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .modal p {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: #6a4c93;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #5a3d83;
+            transform: translateY(-2px);
+        }
+
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .help-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+                <span>Card Force</span>
+            </a>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
+                <li><a href="marketplace.html" onclick="closeMenu()">Marketplace</a></li>
+                <li><a href="help.html" class="active" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
+            </ul>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <section class="help-section">
+            <h1 class="section-title">Help & Support</h1>
+            
+            <div class="help-grid">
+                <div class="help-card">
+                    <div class="help-icon">❓</div>
+                    <h3 class="help-title">Getting Started</h3>
+                    <p class="help-description">Learn how to create your first custom card and navigate the Card Force platform.</p>
+                </div>
+                
+                <div class="help-card">
+                    <div class="help-icon">🎨</div>
+                    <h3 class="help-title">Card Editor Guide</h3>
+                    <p class="help-description">Master the TI Editor and learn advanced card creation techniques.</p>
+                </div>
+                
+                <div class="help-card">
+                    <div class="help-icon">💳</div>
+                    <h3 class="help-title">Payment & Billing</h3>
+                    <p class="help-description">Information about pricing, PayPal payments, and billing questions.</p>
+                </div>
+                
+                <div class="help-card">
+                    <div class="help-icon">🛒</div>
+                    <h3 class="help-title">Shopping & Cart</h3>
+                    <p class="help-description">How to use the shopping cart, save designs, and manage your purchases.</p>
+                </div>
+                
+                <div class="help-card">
+                    <div class="help-icon">🔐</div>
+                    <h3 class="help-title">Account & Security</h3>
+                    <p class="help-description">Account management, Google Sign-In, and security best practices.</p>
+                </div>
+                
+                <div class="help-card">
+                    <div class="help-icon">📞</div>
+                    <h3 class="help-title">Contact Support</h3>
+                    <p class="help-description">Get in touch with our support team for technical assistance.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- AI Chatbot -->
+    <div id="chatbot" class="chatbot">
+        <div class="chatbot-header">
+            <h3>🤖 Card Force Assistant</h3>
+            <button class="chatbot-toggle" onclick="toggleChatbot()">×</button>
+        </div>
+        <div class="chatbot-messages" id="chatbotMessages">
+            <div class="chat-message bot-message">
+                <div class="message-content">
+                    👋 Hi! I'm your Card Force assistant. How can I help you today?
+                </div>
+            </div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" id="chatInput" placeholder="Ask me anything about Card Force..." onkeypress="handleChatInput(event)">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+    
+    <!-- Chatbot Toggle Button -->
+    <button class="chatbot-open-btn" onclick="openChatbot()" id="chatbotOpenBtn">
+        💬 Need Help?
+    </button>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Card Force. All rights reserved. | The Ultimate Card Game Experience</p>
+    </footer>
+
+    <script>
+        // AI Chatbot with OpenAI Integration
+        const OPENAI_API_KEY = 'sk-proj-your-api-key-here'; // Replace with your actual API key
+        const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+        
+        let conversationHistory = [
+            {
+                role: "system",
+                content: "You are Card Force Assistant, a helpful AI chatbot for the Card Force website. You help users with:\n\n- Creating custom cards using the TI Editor\n- Payment and billing (PayPal: imsongbo@gmail.com)\n- Account management and Google Sign-In\n- Shopping cart and saved designs\n- Trading cards (Pig-princess: $7.99)\n- Technical support\n\nBe friendly, helpful, and concise. Always provide specific, actionable advice. If you don't know something specific about Card Force, say so and offer to help with what you do know."
+            }
+        ];
+
+        function toggleChatbot() {
+            const chatbot = document.getElementById('chatbot');
+            const openBtn = document.getElementById('chatbotOpenBtn');
+            
+            if (chatbot.style.display === 'none' || chatbot.style.display === '') {
+                chatbot.style.display = 'block';
+                openBtn.style.display = 'none';
+            } else {
+                chatbot.style.display = 'none';
+                openBtn.style.display = 'block';
+            }
+        }
+
+        function openChatbot() {
+            document.getElementById('chatbot').style.display = 'block';
+            document.getElementById('chatbotOpenBtn').style.display = 'none';
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                addUserMessage(message);
+                input.value = '';
+                
+                // Add user message to conversation history
+                conversationHistory.push({
+                    role: "user",
+                    content: message
+                });
+                
+                // Show typing indicator
+                addTypingIndicator();
+                
+                try {
+                    const response = await getAIResponse(message);
+                    removeTypingIndicator();
+                    addBotMessage(response);
+                    
+                    // Add AI response to conversation history
+                    conversationHistory.push({
+                        role: "assistant",
+                        content: response
+                    });
+                } catch (error) {
+                    removeTypingIndicator();
+                    addBotMessage("Sorry, I'm having trouble connecting to the AI service right now. Please try again later or contact support at imsongbo@gmail.com");
+                    console.error('AI API Error:', error);
+                }
+            }
+        }
+
+        function handleChatInput(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function getAIResponse(message) {
+            // For demo purposes, we'll use a fallback if no API key is provided
+            if (OPENAI_API_KEY === 'sk-proj-your-api-key-here') {
+                return getFallbackResponse(message);
+            }
+            
+            const response = await fetch(OPENAI_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-3.5-turbo",
+                    messages: conversationHistory,
+                    max_tokens: 300,
+                    temperature: 0.7
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API request failed: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+
+        function getFallbackResponse(message) {
+            const lowerMessage = message.toLowerCase();
+            const messageCount = conversationHistory.filter(msg => msg.role === 'user').length;
+            
+            // Prevent repetitive responses by checking conversation context
+            const recentMessages = conversationHistory.slice(-4); // Last 4 messages
+            const hasRecentSimilar = recentMessages.some(msg => 
+                msg.role === 'assistant' && 
+                msg.content.toLowerCase().includes(lowerMessage.split(' ')[0])
+            );
+            
+            // Smart fallback responses with variation
+            if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+                const greetings = [
+                    "Hello! Welcome to Card Force! I'm your AI assistant. How can I help you today?",
+                    "Hi there! I'm here to help with any Card Force questions you have. What would you like to know?",
+                    "Hey! Welcome to Card Force! I can help you with card creation, payments, and more. What do you need help with?"
+                ];
+                return greetings[messageCount % greetings.length];
+            }
+            
+            if (lowerMessage.includes('card editor') || lowerMessage.includes('ti editor')) {
+                if (hasRecentSimilar) {
+                    return "Is there a specific part of the card editor you're having trouble with? I can help with image uploads, text editing, or the preview feature.";
+                }
+                return "The TI Editor is our custom card creation tool! Here's how to use it:\n\n1. Sign in to your account\n2. Go to Shop → Custom Cards\n3. Click 'Create Design'\n4. Import images, add text, and customize your card\n5. Each additional card costs $0.50\n6. Click 'Done' when finished\n\nNeed more specific help?";
+            }
+            
+            if (lowerMessage.includes('payment') || lowerMessage.includes('paypal') || lowerMessage.includes('buy')) {
+                if (hasRecentSimilar) {
+                    return "Having trouble with a specific payment? You can also contact us directly at imsongbo@gmail.com for payment support.";
+                }
+                return "We accept payments through PayPal! Here's how:\n\n• Click 'Pay with PayPal' on any purchase\n• You'll be redirected to PayPal\n• Complete your payment securely\n• All payments go to: imsongbo@gmail.com\n\nNeed help with a specific payment?";
+            }
+            
+            if (lowerMessage.includes('price') || lowerMessage.includes('cost')) {
+                if (hasRecentSimilar) {
+                    return "Would you like to know about bulk pricing or have questions about a specific card type?";
+                }
+                return "Our pricing:\n\n• Custom cards: $0.50 each\n• Trading cards: $7.99 (Pig-princess)\n• Additional cards in custom sets: $0.50 each\n\nAll payments processed through PayPal.";
+            }
+            
+            if (lowerMessage.includes('account') || lowerMessage.includes('sign in') || lowerMessage.includes('google')) {
+                if (hasRecentSimilar) {
+                    return "Are you having trouble with the sign-in process? Make sure you're allowing pop-ups and have a Google account ready.";
+                }
+                return "To manage your account:\n\n1. Click 'Account' in the menu\n2. Click 'Sign in with Google'\n3. Authorize the connection\n4. Access your cart and saved designs\n\nSign-in is required for custom card creation.";
+            }
+            
+            if (lowerMessage.includes('custom card') || lowerMessage.includes('create card')) {
+                if (hasRecentSimilar) {
+                    return "What specific aspect of card creation would you like help with? Image uploads, text formatting, or saving your design?";
+                }
+                return "Creating custom cards:\n\n1. Sign in to your account\n2. Go to Shop → Custom Cards\n3. Use the TI Editor to design\n4. Import images and add text\n5. Preview front and back\n6. Add more cards ($0.50 each)\n7. Save or purchase when done\n\nWhat specific part would you like help with?";
+            }
+            
+            if (lowerMessage.includes('pig princess') || lowerMessage.includes('trading card')) {
+                if (hasRecentSimilar) {
+                    return "The Pig-princess card has unique gameplay mechanics. Would you like to know more about its special abilities or how to use it in games?";
+                }
+                return "The Pig-princess card:\n\n• Price: $7.99\n• High defense, low damage\n• Special ability: 'I'm so pretty' - reduces opponent's attack by 50% for one turn\n• Unique artwork\n\nAvailable in Trading Cards section. Want to know more about its abilities?";
+            }
+            
+            if (lowerMessage.includes('help') || lowerMessage.includes('support')) {
+                if (hasRecentSimilar) {
+                    return "I'm here to help! Try asking about something specific like 'How do I upload an image?' or 'What's the card editor?'";
+                }
+                return "I can help you with:\n\n• Creating custom cards\n• Using the card editor\n• Payment and billing\n• Account management\n• Shopping and cart\n• Technical support\n\nWhat would you like to know more about?";
+            }
+            
+            // More varied responses for unknown questions
+            const unknownResponses = [
+                "I'm here to help with Card Force! I can assist with:\n\n• Card creation and editing\n• Payment and billing\n• Account management\n• Shopping and cart\n• Technical support\n\nWhat specific question do you have?",
+                "That's an interesting question! I can help you with Card Force features like:\n\n• Creating custom cards with the TI Editor\n• Understanding our pricing ($0.50 per custom card)\n• Setting up your account\n• Making payments through PayPal\n\nWhat would you like to explore?",
+                "I'd be happy to help! I know a lot about:\n\n• The TI Editor for custom cards\n• Trading cards (like Pig-princess for $7.99)\n• Account management and Google Sign-In\n• PayPal payments\n\nWhat can I help you with today?"
+            ];
+            
+            return unknownResponses[messageCount % unknownResponses.length];
+        }
+
+        function addUserMessage(message) {
+            const messagesContainer = document.getElementById('chatbotMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message user-message';
+            messageDiv.innerHTML = `<div class="message-content">${message}</div>`;
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function addBotMessage(message) {
+            const messagesContainer = document.getElementById('chatbotMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message bot-message';
+            messageDiv.innerHTML = `<div class="message-content">${message.replace(/\n/g, '<br>')}</div>`;
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function addTypingIndicator() {
+            const messagesContainer = document.getElementById('chatbotMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message bot-message';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="message-content typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+            messagesContainer.appendChild(typingDiv);
+            scrollToBottom();
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('chatbotMessages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Hamburger menu functions
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+
+        function goToCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                showSignInModal();
+                return;
+            }
+            window.location.href = 'cart.html';
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            const navbar = document.querySelector('.navbar');
+            
+            if (!navbar.contains(event.target) && navMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+
+        function showSignInModal() {
+            showModal(
+                'Sign In Required',
+                'You need to sign in to access your cart. Please sign in to continue.',
+                function() {
+                    window.location.href = 'account.html';
+                }
+            );
+        }
+
+        function showModal(title, message, onConfirm = null) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('customModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'customModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h2 id="modalTitle">Modal Title</h2>
+                        <p id="modalMessage">Modal message goes here.</p>
+                        <div class="modal-buttons">
+                            <button class="modal-btn modal-btn-primary" id="modalConfirm">Confirm</button>
+                            <button class="modal-btn modal-btn-secondary" id="modalCancel">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalConfirm = document.getElementById('modalConfirm');
+            const modalCancel = document.getElementById('modalCancel');
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+
+            if (onConfirm) {
+                modalConfirm.style.display = 'inline-block';
+                modalConfirm.onclick = function() {
+                    onConfirm();
+                    modal.style.display = 'none';
+                };
+            } else {
+                modalConfirm.style.display = 'none';
+            }
+
+            modalCancel.onclick = function() {
+                modal.style.display = 'none';
+            };
+
+            modal.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

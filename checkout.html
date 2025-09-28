@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Card Force</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .checkout-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .checkout-header {
+            background: #6a4c93;
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .checkout-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .checkout-subtitle {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .cancel-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .checkout-content {
+            padding: 2rem;
+        }
+
+        .order-summary {
+            background: #f8f9ff;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+
+        .order-summary h3 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .item-details {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .item-price {
+            font-weight: 600;
+            color: #6a4c93;
+            font-size: 1.1rem;
+        }
+
+        .order-total {
+            background: #6a4c93;
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-top: 1rem;
+        }
+
+        .address-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #6a4c93;
+            margin-bottom: 1rem;
+        }
+
+        .address-dropdown {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .address-dropdown:focus {
+            outline: none;
+            border-color: #6a4c93;
+        }
+
+        .address-dropdown:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .add-address-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .add-address-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .selected-address {
+            background: #f0f0ff;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            border: 2px solid #6a4c93;
+        }
+
+        .selected-address h4 {
+            color: #6a4c93;
+            margin-bottom: 0.5rem;
+        }
+
+        .selected-address p {
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+
+        .payment-section {
+            margin-bottom: 2rem;
+        }
+
+        .paypal-btn {
+            width: 100%;
+            background: #0070ba;
+            color: white;
+            border: none;
+            padding: 1.2rem 2rem;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .paypal-btn:hover:not(:disabled) {
+            background: #005ea6;
+            transform: translateY(-2px);
+        }
+
+        .paypal-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .paypal-icon {
+            font-size: 1.5rem;
+        }
+
+        .empty-cart-message {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .empty-cart-message h3 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .checkout-container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .checkout-header {
+                padding: 1.5rem;
+            }
+
+            .checkout-title {
+                font-size: 1.5rem;
+            }
+
+            .checkout-content {
+                padding: 1.5rem;
+            }
+
+            .order-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .item-price {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="checkout-container">
+        <div class="checkout-header">
+            <button class="cancel-btn" onclick="cancelCheckout()">Cancel</button>
+            <h1 class="checkout-title">Checkout</h1>
+            <p class="checkout-subtitle">Complete your order</p>
+        </div>
+
+        <div class="checkout-content">
+            <div id="checkoutContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Checkout page functionality
+        let selectedAddress = null;
+        let cartItems = [];
+        let totalAmount = 0;
+
+        // PayPal configuration (One Won style)
+        const PAYPAL_BUSINESS_EMAIL = 'imsongbo@gmail.com';
+
+        window.addEventListener('DOMContentLoaded', function() {
+            loadCheckoutData();
+            renderCheckoutPage();
+        });
+
+        function loadCheckoutData() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                alert('Please sign in to checkout');
+                window.location.href = 'account.html';
+                return;
+            }
+
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            cartItems = JSON.parse(localStorage.getItem(cartKey) || '[]');
+            
+            if (cartItems.length === 0) {
+                showEmptyCartMessage();
+                return;
+            }
+
+            // Calculate total
+            totalAmount = cartItems.reduce((sum, item) => sum + (item.price || 0), 0);
+        }
+
+        function renderCheckoutPage() {
+            if (cartItems.length === 0) return;
+
+            const content = document.getElementById('checkoutContent');
+            content.innerHTML = `
+                <div class="order-summary">
+                    <h3>Order Summary</h3>
+                    <div id="orderItems">
+                        ${cartItems.map(item => `
+                            <div class="order-item">
+                                <div class="item-info">
+                                    <div class="item-name">${item.name || item.cardName || 'Custom Card'}</div>
+                                    <div class="item-details">
+                                        ${item.type === 'custom' ? 'Custom Design' : 'Trading Card'}
+                                        ${item.quantity ? ` • Qty: ${item.quantity}` : ''}
+                                    </div>
+                                </div>
+                                <div class="item-price">$${(item.price || 0).toFixed(2)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="order-total">
+                        Total: $${totalAmount.toFixed(2)}
+                    </div>
+                </div>
+
+                <div class="address-section">
+                    <h3 class="section-title">Shipping Address</h3>
+                    <select class="address-dropdown" id="addressDropdown" onchange="selectAddress()">
+                        <option value="">Select a shipping address</option>
+                    </select>
+                    <button class="add-address-btn" onclick="addNewAddress()">Add New Address</button>
+                    <div id="selectedAddressDisplay"></div>
+                </div>
+
+                <div class="payment-section">
+                    <h3 class="section-title">Payment</h3>
+                    <button class="paypal-btn" id="paypalBtn" disabled onclick="processPayment()">
+                        <span class="paypal-icon">💳</span>
+                        Pay with PayPal
+                    </button>
+                </div>
+            `;
+
+            loadAddresses();
+        }
+
+        function showEmptyCartMessage() {
+            const content = document.getElementById('checkoutContent');
+            content.innerHTML = `
+                <div class="empty-cart-message">
+                    <h3>Your cart is empty</h3>
+                    <p>Add some items to your cart before checking out.</p>
+                    <button class="add-address-btn" onclick="window.location.href='trading-cards.html'" style="margin-top: 1rem;">
+                        Continue Shopping
+                    </button>
+                </div>
+            `;
+        }
+
+        function loadAddresses() {
+            const addresses = getAddresses();
+            const dropdown = document.getElementById('addressDropdown');
+            
+            if (!dropdown) return;
+
+            dropdown.innerHTML = '<option value="">Select a shipping address</option>';
+            
+            addresses.forEach(address => {
+                const option = document.createElement('option');
+                option.value = address.id;
+                option.textContent = `${address.name} - ${address.city}, ${address.state}`;
+                dropdown.appendChild(option);
+            });
+
+            if (addresses.length === 0) {
+                dropdown.innerHTML = '<option value="">No addresses found</option>';
+                dropdown.disabled = true;
+            }
+        }
+
+        function selectAddress() {
+            const dropdown = document.getElementById('addressDropdown');
+            const addressId = dropdown.value;
+            
+            if (!addressId) {
+                selectedAddress = null;
+                updateAddressDisplay();
+                updatePayPalButton();
+                return;
+            }
+
+            const addresses = getAddresses();
+            selectedAddress = addresses.find(addr => addr.id == addressId);
+            
+            updateAddressDisplay();
+            updatePayPalButton();
+        }
+
+        function updateAddressDisplay() {
+            const display = document.getElementById('selectedAddressDisplay');
+            
+            if (!selectedAddress) {
+                display.innerHTML = '';
+                return;
+            }
+
+            display.innerHTML = `
+                <div class="selected-address">
+                    <h4>${selectedAddress.name}</h4>
+                    <p>${selectedAddress.streetAddress}</p>
+                    <p>${selectedAddress.city}, ${selectedAddress.state} ${selectedAddress.zipCode}</p>
+                    <p>${selectedAddress.country}</p>
+                </div>
+            `;
+        }
+
+        function updatePayPalButton() {
+            const paypalBtn = document.getElementById('paypalBtn');
+            
+            if (!paypalBtn) return;
+
+            if (selectedAddress) {
+                paypalBtn.disabled = false;
+                paypalBtn.style.background = '#0070ba';
+            } else {
+                paypalBtn.disabled = true;
+                paypalBtn.style.background = '#ccc';
+            }
+        }
+
+        function addNewAddress() {
+            window.location.href = 'account.html';
+        }
+
+        function processPayment() {
+            if (!selectedAddress) {
+                alert('Please select a shipping address');
+                return;
+            }
+
+            // Store checkout data for after payment
+            localStorage.setItem('checkoutAddress', JSON.stringify(selectedAddress));
+            localStorage.setItem('checkoutCart', JSON.stringify(cartItems));
+            localStorage.setItem('checkoutTotal', totalAmount.toString());
+
+            // Redirect to PayPal (One Won style)
+            redirectToPayPal(totalAmount.toFixed(2));
+        }
+
+        function redirectToPayPal(amount) {
+            if (!PAYPAL_BUSINESS_EMAIL) {
+                alert('PayPal not configured');
+                return;
+            }
+
+            const { returnUrl, cancelUrl } = getPayPalReturnParams();
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'https://www.paypal.com/cgi-bin/webscr';
+            form.style.display = 'none';
+
+            const params = {
+                cmd: '_xclick',
+                business: PAYPAL_BUSINESS_EMAIL,
+                item_name: 'Card Force Order',
+                amount: amount,
+                currency_code: 'USD',
+                no_note: '1'
+            };
+
+            if (returnUrl) params.return = returnUrl;
+            if (cancelUrl) params.cancel_return = cancelUrl;
+
+            Object.entries(params).forEach(([k, v]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = k;
+                input.value = v;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function getPayPalReturnParams() {
+            try {
+                const origin = window.location.origin || '';
+                if (origin.startsWith('http')) {
+                    return { 
+                        returnUrl: `${origin}/success.html`, 
+                        cancelUrl: `${origin}/cart.html` 
+                    };
+                }
+            } catch {}
+            return { returnUrl: '', cancelUrl: '' };
+        }
+
+        function cancelCheckout() {
+            if (confirm('Are you sure you want to cancel checkout? Your cart will be preserved.')) {
+                window.location.href = 'cart.html';
+            }
+        }
+    </script>
+</body>
+</html>

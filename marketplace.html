@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace - Card Force</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="admin-utils.js"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+      import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+      
+      // Firebase Configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCJNv4DDv8Gbvtw3zRzsvNk3xW3e2sog7k",
+        authDomain: "card-force-472100.firebaseapp.com",
+        projectId: "card-force-472100",
+        storageBucket: "card-force-472100.firebasestorage.app",
+        messagingSenderId: "91438507562",
+        appId: "1:91438507562:web:85673cf7f40190f4310553",
+        measurementId: "G-J2Q14Y5FXS"
+      };
+      
+      // Initialize Firebase
+      let app, db, auth;
+      try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        try {
+          app = getApp();
+          db = getFirestore(app);
+          auth = getAuth(app);
+        } catch (retryError) {
+          console.error('Failed to get existing Firebase instances:', retryError);
+        }
+      }
+      
+      // Make Firebase functions globally available
+      window.firebaseApp = app;
+      window.db = db;
+      window.auth = auth;
+      window.GoogleAuthProvider = GoogleAuthProvider;
+      window.doc = doc;
+      window.setDoc = setDoc;
+      window.getDoc = getDoc;
+      window.getDocs = getDocs;
+      window.addDoc = addDoc;
+      window.updateDoc = updateDoc;
+      window.deleteDoc = deleteDoc;
+      window.onSnapshot = onSnapshot;
+      window.query = query;
+      window.where = where;
+      window.orderBy = orderBy;
+      window.collection = collection;
+      window.serverTimestamp = serverTimestamp;
+      
+      // Firebase Collections
+      const COLLECTIONS = {
+        AUCTIONS: 'auctions',
+        BIDS: 'bids',
+        USERS: 'users'
+      };
+      
+      // Firebase Service Class for Marketplace
+      class MarketplaceFirebaseService {
+        constructor() {
+          this.isInitialized = false;
+          this.currentUser = null;
+          this.init();
+        }
+
+        async init() {
+          try {
+            // Check if user is already signed in via Google OAuth
+            const googleUser = localStorage.getItem('googleUser');
+            if (googleUser) {
+              const userData = JSON.parse(googleUser);
+              console.log('Found Google user, syncing with Firebase:', userData.email);
+              
+              // Create a mock Firebase user object
+              this.currentUser = {
+                uid: userData.sub,
+                email: userData.email,
+                displayName: userData.name,
+                photoURL: userData.picture
+              };
+              this.isInitialized = true;
+              
+              // Sync user data to Firebase
+              await this.syncUserData(this.currentUser);
+            }
+            
+            // Listen for auth state changes
+            onAuthStateChanged(auth, (user) => {
+              this.currentUser = user;
+              this.isInitialized = true;
+              
+              if (user) {
+                console.log('Firebase user signed in:', user.uid);
+                this.syncUserData(user);
+              } else {
+                console.log('Firebase user signed out');
+              }
+            });
+          } catch (error) {
+            console.error('Firebase initialization error:', error);
+          }
+        }
+
+        // User Data Management
+        async syncUserData(user) {
+          try {
+            const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+            const userSnap = await getDoc(userRef);
+            
+            if (!userSnap.exists()) {
+              // Create new user document
+              await setDoc(userRef, {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                createdAt: serverTimestamp(),
+                lastLogin: serverTimestamp()
+              });
+            } else {
+              // Update last login
+              await updateDoc(userRef, {
+                lastLogin: serverTimestamp()
+              });
+            }
+          } catch (error) {
+            console.error('Error syncing user data:', error);
+          }
+        }
+
+        // Auction Management
+        async createAuction(auctionData) {
+          try {
+            if (!this.currentUser) {
+              throw new Error('User must be signed in to create auctions');
+            }
+
+            const auctionRef = await addDoc(collection(db, COLLECTIONS.AUCTIONS), {
+              ...auctionData,
+              sellerId: this.currentUser.uid,
+              sellerName: this.currentUser.displayName || this.currentUser.email,
+              sellerAvatar: this.currentUser.photoURL,
+              createdAt: serverTimestamp(),
+              status: 'active',
+              bids: 0
+            });
+
+            console.log('Auction created with ID:', auctionRef.id);
+            return auctionRef.id;
+          } catch (error) {
+            console.error('Error creating auction:', error);
+            throw error;
+          }
+        }
+
+        async loadAuctions() {
+          try {
+            const q = query(
+              collection(db, COLLECTIONS.AUCTIONS),
+              where('status', '==', 'active'),
+              orderBy('createdAt', 'desc')
+            );
+            
+            const querySnapshot = await getDocs(q);
+            const auctions = [];
+            querySnapshot.forEach((doc) => {
+              auctions.push({ id: doc.id, ...doc.data() });
+            });
+            
+            return auctions;
+          } catch (error) {
+            console.error('Error loading auctions:', error);
+            return [];
+          }
+        }
+
+        async placeBid(auctionId, bidAmount) {
+          try {
+            if (!this.currentUser) {
+              throw new Error('User must be signed in to place bids');
+            }
+
+            // Check if auction exists and is active
+            const auctionRef = doc(db, COLLECTIONS.AUCTIONS, auctionId);
+            const auctionSnap = await getDoc(auctionRef);
+            
+            if (!auctionSnap.exists()) {
+              throw new Error('Auction not found');
+            }
+
+            const auction = auctionSnap.data();
+            
+            if (bidAmount <= auction.currentBid) {
+              throw new Error('Bid must be higher than current bid');
+            }
+
+            // Add bid to bids collection
+            await addDoc(collection(db, COLLECTIONS.BIDS), {
+              auctionId: auctionId,
+              bidderId: this.currentUser.uid,
+              bidderName: this.currentUser.displayName || this.currentUser.email,
+              bidAmount: bidAmount,
+              timestamp: serverTimestamp()
+            });
+
+            // Update auction with new current bid
+            await updateDoc(auctionRef, {
+              currentBid: bidAmount,
+              bids: auction.bids + 1,
+              lastBidTime: serverTimestamp()
+            });
+
+            console.log('Bid placed successfully');
+            return true;
+          } catch (error) {
+            console.error('Error placing bid:', error);
+            throw error;
+          }
+        }
+
+        // Real-time auction updates
+        subscribeToAuctions(callback) {
+          try {
+            const q = query(
+              collection(db, COLLECTIONS.AUCTIONS),
+              where('status', '==', 'active'),
+              orderBy('createdAt', 'desc')
+            );
+            
+            return onSnapshot(q, (snapshot) => {
+              const auctions = [];
+              snapshot.forEach((doc) => {
+                auctions.push({ id: doc.id, ...doc.data() });
+              });
+              callback(auctions);
+            });
+          } catch (error) {
+            console.error('Error subscribing to auctions:', error);
+          }
+        }
+      }
+      
+      // Initialize Firebase Service
+      window.marketplaceFirebaseService = new MarketplaceFirebaseService();
+      window.COLLECTIONS = COLLECTIONS;
+      
+      console.log('Firebase Marketplace Service initialized');
+    </script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Raleway', sans-serif; background:#f8f7fb; color:#333; }
+        
+        .navbar { background: linear-gradient(135deg, #6a4c93, #8e44ad); padding: 0.5rem 0; position: sticky; top:0; z-index:1000; }
+        .nav-container { max-width:1200px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; padding:0 1.25rem; position:relative; }
+        .logo { color:#fff; text-decoration:none; font-weight:700; font-size:1.4rem; display:flex; align-items:center; gap:10px; }
+        .logo-icon { width:40px; height:48px; background:#2c2c2c; border:3px solid #1a1a1a; border-radius:8px; position:relative; display:flex; flex-direction:column; justify-content:center; align-items:center; overflow:hidden; }
+        .logo-text { color:#fff; font-size:0.6rem; font-weight:800; line-height:0.8; text-align:center; }
+        .logo-divider { width:24px; height:2px; background:#1a1a1a; margin:2px 0; }
+        .nav-menu { display:flex; list-style:none; gap:1rem; }
+        .nav-menu a { color:#fff; text-decoration:none; padding:0.35rem 0.75rem; border-radius:25px; transition:all 0.3s ease; font-weight:500; }
+        .nav-menu a:hover { background-color:rgba(255,255,255,0.2); transform:translateY(-2px) scale(1.05); box-shadow:0 4px 8px rgba(106,76,147,0.4); }
+        
+        .main { max-width:1200px; margin:0 auto; padding:2rem 1.25rem; }
+        .header { text-align:center; margin-bottom:3rem; }
+        .title { font-size:3rem; font-weight:800; color:#6a4c93; margin-bottom:1rem; }
+        .subtitle { font-size:1.2rem; color:#666; margin-bottom:2rem; }
+        
+        .filters { display:flex; gap:1rem; margin-bottom:2rem; flex-wrap:wrap; justify-content:center; }
+        .filter-btn { padding:0.5rem 1rem; border:2px solid #6a4c93; background:#fff; color:#6a4c93; border-radius:25px; cursor:pointer; transition:all 0.3s ease; }
+        .filter-btn.active { background:#6a4c93; color:#fff; }
+        .filter-btn:hover { transform:translateY(-2px); box-shadow:0 4px 8px rgba(106,76,147,0.3); }
+        
+        .auctions-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:2rem; }
+        .auction-card { background:#fff; border-radius:15px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.1); transition:all 0.3s ease; }
+        .auction-card:hover { transform:translateY(-5px); box-shadow:0 15px 30px rgba(0,0,0,0.15); }
+        
+        .auction-image { width:100%; height:200px; object-fit:cover; }
+        .auction-content { padding:1.5rem; }
+        .auction-title { font-size:1.3rem; font-weight:700; color:#6a4c93; margin-bottom:0.5rem; }
+        .auction-description { color:#666; margin-bottom:1rem; line-height:1.5; }
+        
+        .auction-meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+        .current-bid { font-size:1.1rem; font-weight:600; color:#28a745; }
+        .time-left { font-size:0.9rem; color:#dc3545; font-weight:600; }
+        
+        .bid-section { display:flex; gap:0.5rem; margin-bottom:1rem; }
+        .bid-input { flex:1; padding:0.5rem; border:2px solid #ddd; border-radius:8px; }
+        .bid-btn { padding:0.5rem 1rem; background:#6a4c93; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; }
+        .bid-btn:hover { background:#5a3d83; }
+        
+        .seller-info { display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem; }
+        .seller-avatar { width:30px; height:30px; border-radius:50%; background:#6a4c93; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; }
+        .seller-name { font-size:0.9rem; color:#666; }
+        
+        .create-auction-btn { position:fixed; bottom:2rem; right:2rem; width:60px; height:60px; border-radius:50%; background:#6a4c93; color:#fff; border:none; font-size:1.5rem; cursor:pointer; box-shadow:0 4px 15px rgba(106,76,147,0.3); transition:all 0.3s ease; }
+        .create-auction-btn:hover { transform:scale(1.1); box-shadow:0 6px 20px rgba(106,76,147,0.4); }
+        
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; }
+        .modal-content { background:#fff; border-radius:15px; padding:2rem; max-width:500px; width:90%; }
+        .modal h2 { color:#6a4c93; margin-bottom:1rem; }
+        .form-group { margin-bottom:1rem; }
+        .form-group label { display:block; margin-bottom:0.5rem; font-weight:600; color:#333; }
+        .form-group input, .form-group textarea, .form-group select { width:100%; padding:0.75rem; border:2px solid #ddd; border-radius:8px; font-family:inherit; }
+        .form-group textarea { height:100px; resize:vertical; }
+        .modal-buttons { display:flex; gap:1rem; justify-content:flex-end; margin-top:2rem; }
+        .btn { padding:0.75rem 1.5rem; border:none; border-radius:8px; font-weight:600; cursor:pointer; transition:all 0.3s ease; }
+        .btn-primary { background:#6a4c93; color:#fff; }
+        .btn-primary:hover { background:#5a3d83; }
+        .btn-secondary { background:#6c757d; color:#fff; }
+        .btn-secondary:hover { background:#5a6268; }
+        
+        .footer { background: linear-gradient(135deg, #6a4c93, #8e44ad); color:#fff; text-align:center; padding:2rem 0; margin-top:3rem; }
+        
+        @media (max-width: 768px) {
+            .title { font-size:2rem; }
+            .auctions-grid { grid-template-columns:1fr; }
+            .filters { flex-direction:column; align-items:center; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
+                <span>Card Force</span>
+            </a>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
+                <li><a href="marketplace.html" class="active" onclick="closeMenu()">Marketplace</a></li>
+                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="header">
+            <h1 class="title">Card Marketplace</h1>
+            <p class="subtitle">Buy, sell, and auction your favorite cards with other collectors!</p>
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterAuctions('all')">All</button>
+            <button class="filter-btn" onclick="filterAuctions('ending-soon')">Ending Soon</button>
+            <button class="filter-btn" onclick="filterAuctions('new')">New</button>
+            <button class="filter-btn" onclick="filterAuctions('high-bid')">Highest Bid</button>
+        </div>
+
+        <div class="auctions-grid" id="auctionsGrid">
+            <!-- Auctions will be loaded here -->
+        </div>
+
+        <button class="create-auction-btn" onclick="openCreateModal()" title="Create New Auction">+</button>
+    </main>
+
+    <!-- Create Auction Modal -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <h2>Create New Auction</h2>
+            <form id="auctionForm">
+                <div class="form-group">
+                    <label for="auctionTitle">Card Title</label>
+                    <input type="text" id="auctionTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="auctionDescription">Description</label>
+                    <textarea id="auctionDescription" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="auctionImage">Image URL</label>
+                    <input type="url" id="auctionImage" required>
+                </div>
+                <div class="form-group">
+                    <label for="startingBid">Starting Bid ($)</label>
+                    <input type="number" id="startingBid" min="1" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="duration">Auction Duration (days)</label>
+                    <select id="duration" required>
+                        <option value="1">1 Day</option>
+                        <option value="3">3 Days</option>
+                        <option value="7" selected>7 Days</option>
+                        <option value="14">14 Days</option>
+                    </select>
+                </div>
+            </form>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="createAuction()">Create Auction</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 Card Force. All rights reserved. | The Ultimate Card Game Experience</p>
+    </footer>
+
+    <script>
+        // Global variables
+        let auctions = [];
+        let unsubscribeAuctions = null;
+
+        // Load auctions from Firebase
+        async function loadAuctionsFromFirebase() {
+            try {
+                if (!window.marketplaceFirebaseService || !window.marketplaceFirebaseService.isInitialized) {
+                    console.log('Firebase service not ready, using fallback');
+                    loadAuctionsFromStorage();
+                    return;
+                }
+
+                auctions = await window.marketplaceFirebaseService.loadAuctions();
+                console.log('Loaded auctions from Firebase:', auctions.length);
+                loadAuctions();
+            } catch (error) {
+                console.error('Error loading auctions from Firebase:', error);
+                loadAuctionsFromStorage();
+            }
+        }
+
+        // Fallback: Load auctions from localStorage
+        function loadAuctionsFromStorage() {
+            const saved = localStorage.getItem('marketplaceAuctions');
+            if (saved) {
+                auctions = JSON.parse(saved);
+            }
+            loadAuctions();
+        }
+
+        // Save auctions to localStorage (fallback)
+        function saveAuctionsToStorage() {
+            localStorage.setItem('marketplaceAuctions', JSON.stringify(auctions));
+        }
+
+        // Set up real-time updates
+        function setupRealtimeUpdates() {
+            if (!window.marketplaceFirebaseService || !window.marketplaceFirebaseService.isInitialized) {
+                console.log('Firebase service not ready for real-time updates');
+                return;
+            }
+
+            unsubscribeAuctions = window.marketplaceFirebaseService.subscribeToAuctions((updatedAuctions) => {
+                console.log('Real-time auction update:', updatedAuctions.length);
+                auctions = updatedAuctions;
+                loadAuctions();
+            });
+        }
+
+        function loadAuctions() {
+            const grid = document.getElementById('auctionsGrid');
+            if (auctions.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column:1/-1;text-align:center;padding:3rem;color:#666;">
+                        <div style="font-size:2rem;margin-bottom:1rem;">🃏 No auctions yet</div>
+                        <div style="font-size:1.1rem;margin-bottom:2rem;">Be the first to create an auction!</div>
+                        <button onclick="openCreateModal()" style="background:#6a4c93;color:#fff;border:none;padding:1rem 2rem;border-radius:25px;font-weight:600;cursor:pointer;font-size:1.1rem;">Create First Auction</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = auctions.map(auction => {
+                const timeLeft = calculateTimeLeft(auction.endTime);
+                const sellerAvatar = auction.sellerAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(auction.sellerName)}&background=6a4c93&color=fff`;
+                
+                return `
+                    <div class="auction-card">
+                        <img src="${auction.image}" alt="${auction.title}" class="auction-image" onerror="this.src='https://via.placeholder.com/300x200/6a4c93/ffffff?text=Card+Image'">
+                        <div class="auction-content">
+                            <h3 class="auction-title">${auction.title}</h3>
+                            <p class="auction-description">${auction.description}</p>
+                            <div class="auction-meta">
+                                <span class="current-bid">$${auction.currentBid.toFixed(2)}</span>
+                                <span class="time-left">${timeLeft}</span>
+                            </div>
+                            <div class="bid-section">
+                                <input type="number" class="bid-input" placeholder="Enter bid" min="${auction.currentBid + 0.01}" step="0.01" id="bid-${auction.id}">
+                                <button class="bid-btn" onclick="placeBid('${auction.id}')">Bid</button>
+                            </div>
+                            <div class="seller-info">
+                                <img src="${sellerAvatar}" alt="${auction.sellerName}" class="seller-avatar" style="width:30px;height:30px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="seller-avatar" style="display:none;width:30px;height:30px;border-radius:50%;background:#6a4c93;align-items:center;justify-content:center;color:#fff;font-weight:700;">${auction.sellerName.charAt(0).toUpperCase()}</div>
+                                <span class="seller-name">${auction.sellerName}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function calculateTimeLeft(endTime) {
+            if (!endTime) return 'Unknown';
+            
+            const now = new Date();
+            const end = endTime.toDate ? endTime.toDate() : new Date(endTime);
+            const diff = end - now;
+            
+            if (diff <= 0) return 'Ended';
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            return `${days}d ${hours}h ${minutes}m`;
+        }
+
+        async function placeBid(auctionId) {
+            const bidInput = document.getElementById(`bid-${auctionId}`);
+            const bidAmount = parseFloat(bidInput.value);
+            
+            if (!bidAmount) {
+                alert('Please enter a bid amount!');
+                return;
+            }
+
+            try {
+                // Check if user is signed in
+                const googleUser = localStorage.getItem('googleUser');
+                if (!googleUser) {
+                    alert('Please sign in to place bids!');
+                    window.location.href = 'account.html';
+                    return;
+                }
+
+                if (window.marketplaceFirebaseService && window.marketplaceFirebaseService.isInitialized) {
+                    // Use Firebase
+                    await window.marketplaceFirebaseService.placeBid(auctionId, bidAmount);
+                    alert(`Bid placed successfully! New bid: $${bidAmount.toFixed(2)}`);
+                } else {
+                    // Fallback to localStorage
+                    const auction = auctions.find(a => a.id === auctionId);
+                    if (!auction || bidAmount <= auction.currentBid) {
+                        alert('Please enter a bid higher than the current bid!');
+                        return;
+                    }
+                    
+                    auction.currentBid = bidAmount;
+                    auction.bids++;
+                    saveAuctionsToStorage();
+                    loadAuctions();
+                    alert(`Bid placed successfully! New bid: $${bidAmount.toFixed(2)}`);
+                }
+                
+                bidInput.value = '';
+            } catch (error) {
+                console.error('Error placing bid:', error);
+                alert(`Error placing bid: ${error.message}`);
+            }
+        }
+
+        function filterAuctions(filter) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Filter logic would go here
+            loadAuctions();
+        }
+
+        function openCreateModal() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                alert('Please sign in to create auctions!');
+                window.location.href = 'account.html';
+                return;
+            }
+            document.getElementById('createModal').style.display = 'flex';
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').style.display = 'none';
+            document.getElementById('auctionForm').reset();
+        }
+
+        async function createAuction() {
+            const title = document.getElementById('auctionTitle').value;
+            const description = document.getElementById('auctionDescription').value;
+            const image = document.getElementById('auctionImage').value;
+            const startingBid = parseFloat(document.getElementById('startingBid').value);
+            const duration = parseInt(document.getElementById('duration').value);
+            
+            if (!title || !description || !image || !startingBid) {
+                alert('Please fill in all fields!');
+                return;
+            }
+            
+            try {
+                const endTime = new Date(Date.now() + duration * 24 * 60 * 60 * 1000);
+                
+                const auctionData = {
+                    title,
+                    description,
+                    image,
+                    currentBid: startingBid,
+                    startingBid,
+                    endTime: endTime,
+                    duration: duration
+                };
+
+                if (window.marketplaceFirebaseService && window.marketplaceFirebaseService.isInitialized) {
+                    // Use Firebase
+                    const auctionId = await window.marketplaceFirebaseService.createAuction(auctionData);
+                    console.log('Auction created with ID:', auctionId);
+                    alert('Auction created successfully!');
+                } else {
+                    // Fallback to localStorage
+                    const newAuction = {
+                        id: auctions.length + 1,
+                        ...auctionData,
+                        timeLeft: `${duration}d 0h 0m`,
+                        seller: "You",
+                        bids: 0
+                    };
+                    
+                    auctions.unshift(newAuction);
+                    saveAuctionsToStorage();
+                    loadAuctions();
+                    alert('Auction created successfully!');
+                }
+                
+                closeCreateModal();
+            } catch (error) {
+                console.error('Error creating auction:', error);
+                alert(`Error creating auction: ${error.message}`);
+            }
+        }
+
+        // Hamburger menu functions
+        function toggleMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+
+        function goToCart() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                alert('Please sign in to access your cart! 🛒');
+                window.location.href = 'account.html';
+                return;
+            }
+            window.location.href = 'cart.html';
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.querySelector('.hamburger');
+            const navbar = document.querySelector('.navbar');
+            
+            if (!navbar.contains(event.target) && navMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+
+        // Initialize marketplace
+        window.addEventListener('load', async () => {
+            console.log('Initializing marketplace...');
+            
+            // Wait a bit for Firebase to initialize
+            setTimeout(async () => {
+                await loadAuctionsFromFirebase();
+                setupRealtimeUpdates();
+            }, 2000);
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribeAuctions) {
+                unsubscribeAuctions();
+            }
+        });
+    </script>
+</body>
+</html>
