@@ -1009,16 +1009,79 @@ window.loadOrdersFromFirebase = loadOrdersFromFirebase;
 window.addOrder = addOrder;
 window.updateOrder = updateOrder;
 
+// Test function to debug Firebase orders
+function testFirebaseOrders() {
+    console.log('=== TESTING FIREBASE ORDERS ===');
+    
+    if (!window.firebaseService || !window.firebaseService.isInitialized) {
+        console.log('❌ Firebase service not initialized');
+        return;
+    }
+    
+    const googleUser = localStorage.getItem('googleUser');
+    if (!googleUser) {
+        console.log('❌ No Google user found');
+        return;
+    }
+    
+    const userData = JSON.parse(googleUser);
+    console.log('User data:', userData);
+    
+    // Test creating a test order
+    const testOrder = {
+        id: Date.now(),
+        userId: userData.sub,
+        userEmail: userData.email,
+        orderNumber: 'TEST' + Date.now(),
+        items: [{
+            name: 'Test Item',
+            price: 1.00,
+            type: 'test'
+        }],
+        totalPrice: 1.00,
+        status: 'test',
+        createdAt: new Date().toISOString()
+    };
+    
+    console.log('🧪 Creating test order:', testOrder);
+    
+    // Save test order to Firebase
+    window.firebaseService.saveOrderToFirebase(testOrder).then(() => {
+        console.log('✅ Test order saved to Firebase');
+        
+        // Try to load it back
+        return window.firebaseService.loadOrdersFromFirebase();
+    }).then(orders => {
+        console.log('📋 Orders loaded from Firebase:', orders.length);
+        orders.forEach(order => {
+            console.log('Order:', {
+                id: order.id,
+                userId: order.userId,
+                userEmail: order.userEmail,
+                status: order.status,
+                createdAt: order.createdAt
+            });
+        });
+    }).catch(error => {
+        console.error('❌ Test failed:', error);
+    });
+    
+    console.log('=== END TEST ===');
+}
+
+// Make test function globally available
+window.testFirebaseOrders = testFirebaseOrders;
+
 function createOrder(cartItems, totalPrice, shippingAddress, emailNotifications = false) {
     const orders = getOrders();
     const orderNumber = 'CF' + Date.now().toString().slice(-6);
     // Capture current user (for My Orders)
-    let userSub = null;
+    let userId = null;
     let userEmail = null;
     try {
         const googleUser = JSON.parse(localStorage.getItem('googleUser') || 'null');
         if (googleUser) {
-            userSub = googleUser.sub || null;
+            userId = googleUser.sub || null;
             userEmail = googleUser.email || null;
         }
     } catch (_) {}
@@ -1055,6 +1118,8 @@ function createOrder(cartItems, totalPrice, shippingAddress, emailNotifications 
     const order = {
         id: Date.now(),
         orderNumber: orderNumber,
+        userId: userId,  // Use userId instead of userSub for Firebase compatibility
+        userEmail: userEmail,
         items: processedItems,
         totalPrice: totalPrice,
         shippingAddress: shippingAddress,
@@ -1062,8 +1127,6 @@ function createOrder(cartItems, totalPrice, shippingAddress, emailNotifications 
         createdAt: new Date().toISOString(),
         shippingCompany: null,
         trackingNumber: null,
-        userSub: userSub,
-        userEmail: userEmail,
         emailNotifications: emailNotifications,
         cancellationReason: null
     };
@@ -1073,12 +1136,19 @@ function createOrder(cartItems, totalPrice, shippingAddress, emailNotifications 
     // Save to Firebase using proper wrapper function
     if (window.firebaseService && window.firebaseService.isInitialized) {
         saveOrderToFirebase(order);
+    } else {
+        // Retry Firebase sync after a short delay
+        setTimeout(() => {
+            if (window.firebaseService && window.firebaseService.isInitialized) {
+                saveOrderToFirebase(order);
+            }
+        }, 2000);
     }
     
     console.log('✅ Order created:', {
         id: order.id,
         orderNumber: order.orderNumber,
-        userSub: order.userSub,
+        userId: order.userId,
         userEmail: order.userEmail,
         status: order.status,
         totalPrice: order.totalPrice

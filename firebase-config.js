@@ -186,13 +186,33 @@ class FirebaseService {
     // Order Management
     async saveOrderToFirebase(order) {
         try {
-            const orderRef = doc(db, COLLECTIONS.ORDERS, order.id);
-            await setDoc(orderRef, {
+            const orderRef = doc(db, COLLECTIONS.ORDERS, order.id.toString());
+            const orderData = {
                 ...order,
-                firebaseCreated: new Date().toISOString()
+                firebaseCreated: new Date().toISOString(),
+                firebaseLastUpdated: new Date().toISOString()
+            };
+            
+            console.log('💾 Saving order to Firebase:', {
+                orderId: order.id,
+                userId: order.userId,
+                orderNumber: order.orderNumber,
+                totalPrice: order.totalPrice
             });
+            
+            await setDoc(orderRef, orderData);
+            console.log('✅ Order saved to Firebase successfully');
+            
+            return true;
         } catch (error) {
-            console.error('Error saving order to Firebase:', error);
+            console.error('❌ Error saving order to Firebase:', error);
+            console.error('Order details:', {
+                id: order.id,
+                userId: order.userId,
+                error: error.message,
+                code: error.code
+            });
+            return false;
         }
     }
 
@@ -200,9 +220,15 @@ class FirebaseService {
         try {
             let q;
             if (userId) {
-                q = query(collection(db, COLLECTIONS.ORDERS), where('userId', '==', userId));
+                q = query(
+                    collection(db, COLLECTIONS.ORDERS), 
+                    where('userId', '==', userId)
+                );
             } else {
-                q = query(collection(db, COLLECTIONS.ORDERS), orderBy('createdAt', 'desc'));
+                q = query(
+                    collection(db, COLLECTIONS.ORDERS), 
+                    orderBy('createdAt', 'desc')
+                );
             }
             
             const querySnapshot = await getDocs(q);
@@ -210,9 +236,16 @@ class FirebaseService {
             querySnapshot.forEach((doc) => {
                 orders.push({ id: doc.id, ...doc.data() });
             });
+            
+            console.log(`📋 Loaded ${orders.length} orders from Firebase for user:`, userId || 'all');
             return orders;
         } catch (error) {
-            console.error('Error loading orders from Firebase:', error);
+            console.error('❌ Error loading orders from Firebase:', error);
+            console.error('Error details:', {
+                code: error.code,
+                message: error.message,
+                userId: userId
+            });
             return [];
         }
     }

@@ -649,26 +649,43 @@
         };
 
         // Load and display orders
-        function loadOrders() {
-            // Try to load from Firebase first, fallback to localStorage
-            if (window.firebaseService && window.firebaseService.currentUser) {
-                firebaseService.loadOrdersFromFirebase().then(firebaseOrders => {
-                    if (firebaseOrders.length > 0) {
-                        // Update localStorage with Firebase data
-                        saveOrders(firebaseOrders);
-                        renderOrders(firebaseOrders);
-                    } else {
-                        const localOrders = getOrders();
-                        renderOrders(localOrders);
+        async function loadOrders() {
+            console.log('🔄 Loading orders...');
+            
+            try {
+                let orders = [];
+                
+                // Try to load from Firebase first if available
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    console.log('📡 Loading orders from Firebase...');
+                    try {
+                        orders = await window.firebaseService.loadOrdersFromFirebase();
+                        console.log(`📋 Firebase loaded ${orders.length} orders`);
+                        
+                        if (orders.length > 0) {
+                            // Update localStorage with Firebase data
+                            saveOrders(orders, false); // Don't sync back to Firebase
+                            console.log('💾 Updated localStorage with Firebase orders');
+                        }
+                    } catch (firebaseError) {
+                        console.error('❌ Firebase loading failed:', firebaseError);
+                        orders = [];
                     }
-                }).catch(error => {
-                    console.error('Error loading orders from Firebase:', error);
-                    const localOrders = getOrders();
-                    renderOrders(localOrders);
-                });
-            } else {
-                const orders = getOrders();
+                }
+                
+                // If no Firebase orders or Firebase failed, use localStorage
+                if (orders.length === 0) {
+                    console.log('📋 Loading orders from localStorage...');
+                    orders = getOrders();
+                    console.log(`📋 LocalStorage loaded ${orders.length} orders`);
+                }
+                
                 renderOrders(orders);
+                
+            } catch (error) {
+                console.error('❌ Error in loadOrders:', error);
+                const fallbackOrders = getOrders();
+                renderOrders(fallbackOrders);
             }
         }
         

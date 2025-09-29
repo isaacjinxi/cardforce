@@ -206,34 +206,39 @@
             
             if (pendingCart.length === 0) return;
             
-            // Create order
-            const order = {
-                id: 'order_' + Date.now(),
-                userId: userData.sub,
-                userEmail: userData.email,
-                items: pendingCart,
-                total: pendingTotal,
-                address: selectedAddress,
-                status: 'confirmed',
-                paymentMethod: paymentMethod,
-                paymentDate: new Date().toISOString(),
-                orderDate: new Date().toISOString()
-            };
+            // Create order using the centralized function
+            const order = createOrder(pendingCart, pendingTotal, selectedAddress, false);
+            order.status = 'confirmed';
+            order.paymentMethod = paymentMethod;
+            order.paymentDate = new Date().toISOString();
+            
+            console.log('💾 Saving order from success page:', {
+                id: order.id,
+                userId: order.userId,
+                total: order.totalPrice,
+                method: paymentMethod
+            });
             
             // Save order using Firebase sync
             if (typeof addOrder === 'function') {
                 addOrder(order, true); // Sync to Firebase
             } else {
-                // Fallback to localStorage only
-                const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+                // Fallback: manual save with Firebase sync
+                const orders = getOrders();
                 orders.push(order);
                 localStorage.setItem('orders', JSON.stringify(orders));
+                
+                // Try Firebase sync if available
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    window.firebaseService.saveOrderToFirebase(order);
+                }
+                console.log('⚠️ Used fallback order saving with Firebase sync');
             }
             
             // Reduce stock for all items in the order
             pendingCart.forEach(item => {
-                if (item.id && typeof reduceStock === 'function') {
-                    reduceStock(item.id, item.quantity || 1);
+                if (item.cardId && typeof reduceStock === 'function') {
+                    reduceStock(item.cardId, item.quantity || 1);
                     console.log(`📉 Stock reduced for ${item.name || item.cardName}: ${item.quantity || 1}`);
                 }
             });

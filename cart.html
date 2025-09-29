@@ -1968,7 +1968,7 @@
             
             if (pendingCart.length === 0) return;
             
-            // Create order
+            // Create order using the centralized function
             const order = createOrder(pendingCart, pendingTotal, selectedAddress, false);
             order.status = 'confirmed';
             order.paymentMethod = paymentMethod;
@@ -1978,11 +1978,16 @@
             if (typeof addOrder === 'function') {
                 addOrder(order, true); // Sync to Firebase
             } else {
-                // Fallback: manual save
-                const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+                // Fallback: manual save with Firebase sync
+                const orders = getOrders();
                 orders.push(order);
                 localStorage.setItem('orders', JSON.stringify(orders));
-                console.log('⚠️ addOrder function not available, using fallback');
+                
+                // Try Firebase sync if available
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    window.firebaseService.saveOrderToFirebase(order);
+                }
+                console.log('⚠️ Used fallback order saving with Firebase sync');
             }
             
             // Clear cart
@@ -1994,10 +1999,15 @@
             localStorage.removeItem('pendingCart');
             localStorage.removeItem('pendingTotal');
             
-            // Auto-sync to Firebase
+            // Auto-sync cart to Firebase
             autoSyncCart();
             
-            console.log('✅ Order created after payment:', order.id);
+            console.log('✅ Order created after payment:', {
+                id: order.id,
+                userId: order.userId,
+                total: order.totalPrice,
+                method: paymentMethod
+            });
         }
 
         function showAddressSelector() {
