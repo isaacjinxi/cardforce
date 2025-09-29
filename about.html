@@ -17,18 +17,24 @@
             font-family: 'Raleway', sans-serif;
             line-height: 1.6;
             color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: white;
             min-height: 100vh;
         }
 
         .navbar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 0;
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            padding: 0.5rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             position: sticky;
             top: 0;
             z-index: 1000;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            50% { box-shadow: 0 2px 20px rgba(106, 76, 147, 0.3); }
+            100% { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         }
 
         .nav-container {
@@ -44,22 +50,73 @@
             display: flex;
             align-items: center;
             text-decoration: none;
-            color: #6a4c93;
+            color: white;
             font-weight: 700;
             font-size: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: bounce 1s infinite alternate;
+            gap: 1rem;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-3px); }
         }
 
         .logo-icon {
             width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #6a4c93, #4a3c6a);
+            height: 48px;
+            background: #2c2c2c;
+            border: 3px solid #1a1a1a;
             border-radius: 8px;
+            position: relative;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
-            margin-right: 0.75rem;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 15px 15px 0;
+            border-color: transparent #1a1a1a transparent transparent;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 12px 12px 0;
+            border-color: transparent #2c2c2c transparent transparent;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             color: white;
-            font-size: 1.2rem;
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 0.8;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-divider {
+            width: 30px;
+            height: 2px;
+            background: #1a1a1a;
+            margin: 2px 0;
         }
 
         .nav-menu {
@@ -70,18 +127,24 @@
 
         .nav-menu a {
             text-decoration: none;
-            color: #333;
+            color: white;
             font-weight: 500;
-            transition: color 0.3s ease;
+            transition: all 0.3s ease;
             position: relative;
+            padding: 0.35rem 0.75rem;
+            border-radius: 25px;
         }
 
         .nav-menu a:hover {
-            color: #6a4c93;
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.4);
         }
 
         .nav-menu a.active {
-            color: #6a4c93;
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 8px rgba(106, 76, 147, 0.4);
             font-weight: 600;
         }
 
@@ -95,12 +158,14 @@
         .hamburger span {
             width: 25px;
             height: 3px;
-            background: #6a4c93;
+            background-color: white;
+            margin: 3px 0;
             transition: 0.3s;
+            border-radius: 2px;
         }
 
         .hamburger.active span:nth-child(1) {
-            transform: translateY(6px);
+            transform: rotate(-45deg) translate(-5px, 6px);
         }
 
         .hamburger.active span:nth-child(2) {
@@ -108,7 +173,7 @@
         }
 
         .hamburger.active span:nth-child(3) {
-            transform: translateY(-6px);
+            transform: rotate(45deg) translate(-5px, -6px);
         }
 
         .main-content {
@@ -302,21 +367,29 @@
         @media (max-width: 768px) {
             .nav-menu {
                 position: fixed;
-                left: -100%;
-                top: 70px;
-                flex-direction: column;
-                background-color: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(10px);
+                top: 0;
+                right: -100%;
                 width: 100%;
-                text-align: center;
-                transition: 0.3s;
-                box-shadow: 0 10px 27px rgba(0, 0, 0, 0.05);
-                padding: 2rem 0;
-                gap: 1rem;
+                height: 100vh;
+                background: linear-gradient(135deg, #6a4c93, #8e44ad);
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                gap: 2rem;
+                transition: right 0.3s ease;
+                z-index: 1000;
             }
 
             .nav-menu.active {
-                left: 0;
+                right: 0;
+            }
+
+            .nav-menu a {
+                font-size: 1.5rem;
+                padding: 1rem 2rem;
+                border-radius: 10px;
+                width: 200px;
+                text-align: center;
             }
 
             .hamburger {
@@ -352,7 +425,13 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo">
-                <div class="logo-icon">🃏</div>
+                <div class="logo-icon">
+                    <div class="logo-text">
+                        <div>CARD</div>
+                        <div class="logo-divider"></div>
+                        <div>FORCE</div>
+                    </div>
+                </div>
                 <span>Card Force</span>
             </a>
             <ul class="nav-menu" id="navMenu">
@@ -384,10 +463,10 @@
             <div class="leadership-grid">
                 <div class="leader-card">
                     <img src="ceo.jpg" alt="CEO" class="leader-photo">
-                    <h3 class="leader-name">Alex Chen</h3>
+                    <h3 class="leader-name">Ting C</h3>
                     <p class="leader-title">Chief Executive Officer</p>
                     <p class="leader-bio">
-                        With over a decade of experience in the gaming industry, Alex founded Card Force with a vision to revolutionize how people discover, collect, and trade cards. His passion for innovation and community building drives our mission to create the ultimate card game platform.
+                        With over a decade of experience in the gaming industry, Ting C founded Card Force with a vision to revolutionize how people discover, collect, and trade cards. His passion for innovation and community building drives our mission to create the ultimate card game platform.
                     </p>
                 </div>
             </div>
