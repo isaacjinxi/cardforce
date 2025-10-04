@@ -590,9 +590,9 @@ async function loadProductDataFromFirebase() {
         
         // Merge Firebase data with local data, but respect local deletions
         firebaseProducts.forEach(product => {
-            // Only merge if the product exists locally or if it's new
+            // Only merge if the product exists locally (not deleted)
             // This prevents deleted products from being restored
-            if (localProductData[product.id] !== undefined || !localProductData.hasOwnProperty(product.id)) {
+            if (localProductData.hasOwnProperty(product.id) && localProductData[product.id] !== undefined) {
                 localProductData[product.id] = {
                     ...localProductData[product.id], // Keep local data
                     ...product // Override with Firebase data
@@ -606,7 +606,7 @@ async function loadProductDataFromFirebase() {
         const catalog = getProductCatalog();
         firebaseProducts.forEach(product => {
             // Only add/update if the product wasn't locally deleted
-            if (localProductData[product.id] !== undefined || !localProductData.hasOwnProperty(product.id)) {
+            if (localProductData.hasOwnProperty(product.id) && localProductData[product.id] !== undefined) {
                 const existingIndex = catalog.findIndex(p => p.id === product.id);
                 if (existingIndex >= 0) {
                     catalog[existingIndex] = { ...catalog[existingIndex], ...product };

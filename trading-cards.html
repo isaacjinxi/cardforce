@@ -1131,6 +1131,7 @@
             // Add products from Firebase that aren't already in catalog
             Object.keys(productData).forEach(productId => {
                 const product = productData[productId];
+                // Only add if product exists and has required fields, and isn't already in catalog
                 if (product && product.name && !catalog.find(p => p.id === productId)) {
                     allProducts.push({
                         id: productId,
@@ -1388,6 +1389,14 @@
                     console.log('✅ Product removed from product data');
                 } else {
                     console.log('⚠️ Product not found in product data');
+                }
+                
+                // Also remove from stock data to prevent reappearance
+                const stockData = getStockData();
+                if (stockData[cardId]) {
+                    delete stockData[cardId];
+                    localStorage.setItem('stockData', JSON.stringify(stockData));
+                    console.log('✅ Product removed from stock data');
                 }
                 
                 // Remove from product catalog
