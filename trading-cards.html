@@ -445,6 +445,20 @@
             border-radius: 25px;
             transition: all 0.3s ease;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-icon {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            transition: all 0.3s ease;
+        }
+
+        .nav-menu a:hover .nav-icon {
+            opacity: 1;
+            transform: scale(1.1);
         }
 
         .nav-menu a:hover {
@@ -702,6 +716,60 @@
             transform: none !important;
         }
 
+        /* Dropdown Container Styles */
+        .dropdown-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .dropdown-icon {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1rem;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .dropdown-container:hover .dropdown-icon {
+            opacity: 1;
+        }
+
+        .dropdown-container select:focus + .dropdown-icon {
+            opacity: 1;
+        }
+
+        /* Search Input Container Styles */
+        .search-input-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1rem;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .search-input-container:hover .search-icon {
+            opacity: 1;
+        }
+
+        .search-input-container input:focus + .search-icon {
+            opacity: 1;
+        }
+
         /* Buy Now Modal */
         .modal {
             display: none;
@@ -907,13 +975,13 @@
                 <span></span>
             </div>
             <ul class="nav-menu" id="navMenu">
-                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
-                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
-                <li><a href="marketplace.html" onclick="closeMenu()">Marketplace</a></li>
-                <li><a href="about.html" onclick="closeMenu()">About</a></li>
-                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
-                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
-                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
+                <li><a href="index.html" onclick="closeMenu()"><span class="nav-icon">🏠</span>Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()"><span class="nav-icon">🛒</span>Shop</a></li>
+                <li><a href="marketplace.html" onclick="closeMenu()"><span class="nav-icon">🏪</span>Marketplace</a></li>
+                <li><a href="about.html" onclick="closeMenu()"><span class="nav-icon">ℹ️</span>About</a></li>
+                <li><a href="help.html" onclick="closeMenu()"><span class="nav-icon">❓</span>Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()"><span class="nav-icon">👤</span>Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()"><span class="nav-icon">🛍️</span>Cart</a></li>
             </ul>
         </div>
     </nav>
@@ -924,25 +992,34 @@
             <!-- Filters and Search Bar -->
             <div class="filters-container" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
                 <div class="search-container" style="flex: 1; min-width: 200px;">
-                    <input id="cardSearch" type="text" placeholder="Search cards..." style="width: 100%; padding: 0.8rem 1rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem;">
+                    <div class="search-input-container">
+                        <span class="search-icon">🔍</span>
+                        <input id="cardSearch" type="text" placeholder="Search cards..." style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem;">
+                    </div>
                 </div>
                 <div class="price-filter" style="min-width: 150px;">
-                    <select id="priceFilter" style="width: 100%; padding: 0.8rem 1rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem; background: white;">
-                        <option value="">All Prices</option>
-                        <option value="0-10">$0 - $10</option>
-                        <option value="10-25">$10 - $25</option>
-                        <option value="25-50">$25 - $50</option>
-                        <option value="50+">$50+</option>
-                    </select>
+                    <div class="dropdown-container">
+                        <span class="dropdown-icon">💰</span>
+                        <select id="priceFilter" style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem; background: white;">
+                            <option value="">All Prices</option>
+                            <option value="0-10">$0 - $10</option>
+                            <option value="10-25">$10 - $25</option>
+                            <option value="25-50">$25 - $50</option>
+                            <option value="50+">$50+</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="sort-filter" style="min-width: 150px;">
-                    <select id="sortBy" style="width: 100%; padding: 0.8rem 1rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem; background: white;">
-                        <option value="name">Sort by Name</option>
-                        <option value="price-low">Price: Low to High</option>
-                        <option value="price-high">Price: High to Low</option>
-                        <option value="newest">Newest First</option>
-                        <option value="oldest">Oldest First</option>
-                    </select>
+                    <div class="dropdown-container">
+                        <span class="dropdown-icon">🔀</span>
+                        <select id="sortBy" style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem; background: white;">
+                            <option value="name">Sort by Name</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             
