@@ -2234,43 +2234,31 @@
             window.selectedAddressForPayment = selectedAddress;
         }
         
+        function getCartItems() {
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) return [];
+            
+            const userData = JSON.parse(googleUser);
+            const cartKey = `cart_${userData.sub}`;
+            return JSON.parse(localStorage.getItem(cartKey) || '[]');
+        }
+
         function confirmPayment() {
             const emailNotifications = document.getElementById('emailNotifications').checked;
             const selectedAddress = window.selectedAddressForPayment;
             const totalPrice = getCartTotal();
-            const paypalUrl = `https://www.paypal.com/paypalme/SongboJin/${totalPrice.toFixed(2)}`;
+            
+            // Store checkout data for the checkout page
+            localStorage.setItem('checkoutAddress', JSON.stringify(selectedAddress));
+            localStorage.setItem('checkoutCart', JSON.stringify(getCartItems()));
+            localStorage.setItem('checkoutTotal', totalPrice.toString());
+            localStorage.setItem('checkoutEmailNotifications', emailNotifications.toString());
             
             // Close modal first
             document.querySelector('.modal').remove();
             
-            // Show payment instruction modal
-            showModal(
-                'Complete Payment',
-                `Please complete your payment on PayPal to finalize your order.<br><br>
-                <strong>Order Total: $${totalPrice.toFixed(2)}</strong><br><br>
-                After payment, your order will be automatically processed.<br><br>
-                <em>Note: Your cart will remain until payment is confirmed.</em>`,
-                function() {
-                    // Open PayPal in new tab
-                    window.open(paypalUrl, '_blank');
-                    
-                    // Show instruction to return after payment
-                    setTimeout(() => {
-                        showModal(
-                            'Payment Instructions',
-                            'After completing payment on PayPal:<br><br>' +
-                            '1. Return to this page<br>' +
-                            '2. Click "Confirm Payment Received" below<br>' +
-                            '3. Your order will be processed<br><br>' +
-                            '<strong>Do not close this page until payment is complete!</strong>',
-                            function() {
-                                // Show payment confirmation button
-                                showPaymentConfirmationButton();
-                            }
-                        );
-                    }, 1000);
-                }
-            );
+            // Redirect to checkout page for proper PayPal integration
+            window.location.href = 'checkout.html';
         }
         
         function showPaymentConfirmationButton() {

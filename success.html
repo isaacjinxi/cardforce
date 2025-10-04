@@ -203,11 +203,12 @@
             const selectedAddress = JSON.parse(localStorage.getItem('checkoutAddress') || '{}');
             const pendingCart = JSON.parse(localStorage.getItem('checkoutCart') || '[]');
             const pendingTotal = parseFloat(localStorage.getItem('checkoutTotal') || '0');
+            const emailNotifications = localStorage.getItem('checkoutEmailNotifications') === 'true';
             
             if (pendingCart.length === 0) return;
             
             // Create order using the centralized function
-            const order = createOrder(pendingCart, pendingTotal, selectedAddress, false);
+            const order = createOrder(pendingCart, pendingTotal, selectedAddress, emailNotifications);
             order.status = 'confirmed';
             order.paymentMethod = paymentMethod;
             order.paymentDate = new Date().toISOString();

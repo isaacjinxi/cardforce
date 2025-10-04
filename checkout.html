@@ -468,6 +468,12 @@
             localStorage.setItem('checkoutAddress', JSON.stringify(selectedAddress));
             localStorage.setItem('checkoutCart', JSON.stringify(cartItems));
             localStorage.setItem('checkoutTotal', totalAmount.toString());
+            
+            // Store email notifications preference if available
+            const emailNotifications = localStorage.getItem('checkoutEmailNotifications');
+            if (emailNotifications) {
+                localStorage.setItem('checkoutEmailNotifications', emailNotifications);
+            }
 
             // Redirect to PayPal (One Won style)
             redirectToPayPal(totalAmount.toFixed(2));
