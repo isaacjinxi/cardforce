@@ -472,6 +472,84 @@ class FirebaseService {
             console.error('Error loading Firebase data to local:', error);
         }
     }
+
+    // Security Questions Functions
+    
+    async saveSecurityQuestions(userId, securityQuestions) {
+        try {
+            const userRef = doc(db, COLLECTIONS.USERS, userId);
+            await setDoc(userRef, {
+                securityQuestions: securityQuestions,
+                lastUpdated: new Date().toISOString()
+            }, { merge: true });
+            console.log('✅ Security questions saved to Firebase:', userId);
+        } catch (error) {
+            console.error('❌ Error saving security questions to Firebase:', error);
+            throw error;
+        }
+    }
+
+    async getSecurityQuestions(email) {
+        try {
+            const usersRef = collection(db, COLLECTIONS.USERS);
+            const q = query(usersRef, where('email', '==', email));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                const userDoc = querySnapshot.docs[0];
+                const userData = userDoc.data();
+                if (userData.securityQuestions) {
+                    return userData.securityQuestions;
+                }
+            }
+            return null;
+        } catch (error) {
+            console.error('❌ Error getting security questions from Firebase:', error);
+            throw error;
+        }
+    }
+
+    async updateSecurityQuestions(userId, securityQuestions) {
+        try {
+            const userRef = doc(db, COLLECTIONS.USERS, userId);
+            await setDoc(userRef, {
+                securityQuestions: securityQuestions,
+                lastUpdated: new Date().toISOString()
+            }, { merge: true });
+            console.log('✅ Security questions updated in Firebase:', userId);
+        } catch (error) {
+            console.error('❌ Error updating security questions in Firebase:', error);
+            throw error;
+        }
+    }
+
+    async verifyPassword(email, password) {
+        try {
+            // This is a simplified verification - in a real app, you'd use Firebase Auth
+            // For now, we'll just check if the user exists
+            const usersRef = collection(db, COLLECTIONS.USERS);
+            const q = query(usersRef, where('email', '==', email));
+            const querySnapshot = await getDocs(q);
+            
+            return !querySnapshot.empty;
+        } catch (error) {
+            console.error('❌ Error verifying password:', error);
+            return false;
+        }
+    }
+
+    async updatePassword(email, newPassword) {
+        try {
+            // In a real implementation, you'd use Firebase Auth's updatePassword
+            // For now, we'll just log the update
+            console.log('✅ Password update requested for:', email);
+            console.log('⚠️ Note: This is a demo implementation. In production, use Firebase Auth.');
+            return true;
+        } catch (error) {
+            console.error('❌ Error updating password:', error);
+            throw error;
+        }
+    }
 }
 
 // Initialize Firebase Service

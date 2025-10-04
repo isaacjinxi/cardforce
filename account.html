@@ -768,6 +768,7 @@
                             <div class="auth-buttons">
                                 <button class="auth-btn auth-btn-primary" onclick="signInWithEmail()">Sign In</button>
                                 <button class="auth-toggle" onclick="showSignUpForm()">Don't have an account? Sign up</button>
+                                <button class="auth-toggle" onclick="showForgotPasswordModal()" style="color: #6a4c93; font-size: 0.9rem; margin-top: 0.5rem;">Forgot Password?</button>
                             </div>
                         </div>
 
@@ -790,6 +791,67 @@
                                 <label for="confirmPassword">Confirm Password</label>
                                 <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
                             </div>
+                            
+                            <!-- Security Questions Section -->
+                            <div class="security-questions-section" style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <h4 style="margin: 0 0 1rem 0; color: #6a4c93; font-size: 1.1rem;">Security Questions</h4>
+                                <p style="margin: 0 0 1rem 0; color: #666; font-size: 0.9rem;">These will be used for password recovery</p>
+                                
+                                <div class="form-group">
+                                    <label for="securityQuestion1">What month were you born?</label>
+                                    <select id="securityQuestion1" required>
+                                        <option value="">Select month</option>
+                                        <option value="January">January</option>
+                                        <option value="February">February</option>
+                                        <option value="March">March</option>
+                                        <option value="April">April</option>
+                                        <option value="May">May</option>
+                                        <option value="June">June</option>
+                                        <option value="July">July</option>
+                                        <option value="August">August</option>
+                                        <option value="September">September</option>
+                                        <option value="October">October</option>
+                                        <option value="November">November</option>
+                                        <option value="December">December</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="securityQuestion2">What is your favorite color?</label>
+                                    <select id="securityQuestion2" required>
+                                        <option value="">Select color</option>
+                                        <option value="Red">Red</option>
+                                        <option value="Blue">Blue</option>
+                                        <option value="Green">Green</option>
+                                        <option value="Yellow">Yellow</option>
+                                        <option value="Purple">Purple</option>
+                                        <option value="Orange">Orange</option>
+                                        <option value="Pink">Pink</option>
+                                        <option value="Black">Black</option>
+                                        <option value="White">White</option>
+                                        <option value="Gray">Gray</option>
+                                        <option value="Brown">Brown</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="securityQuestion3">What best describes your personality?</label>
+                                    <select id="securityQuestion3" required>
+                                        <option value="">Select option</option>
+                                        <option value="Adventurous">Adventurous</option>
+                                        <option value="Creative">Creative</option>
+                                        <option value="Analytical">Analytical</option>
+                                        <option value="Compassionate">Compassionate</option>
+                                        <option value="Independent">Independent</option>
+                                        <option value="Organized">Organized</option>
+                                        <option value="Spontaneous">Spontaneous</option>
+                                        <option value="Optimistic">Optimistic</option>
+                                        <option value="Practical">Practical</option>
+                                        <option value="Introverted">Introverted</option>
+                                        <option value="Extroverted">Extroverted</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div class="auth-buttons">
                                 <button class="auth-btn auth-btn-primary" onclick="createAccountWithEmail()">Create Account</button>
                                 <button class="auth-toggle" onclick="showSignInForm()">Already have an account? Sign in</button>
@@ -801,6 +863,144 @@
                     </div>
                 </div>
 
+                <!-- Forgot Password Modal -->
+                <div id="forgotPasswordModal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 500px;">
+                        <button class="modal-close" onclick="closeForgotPasswordModal()">&times;</button>
+                        <h2 style="text-align: center; margin-bottom: 1.5rem; color: #6a4c93;">Forgot Password</h2>
+                        
+                        <div id="forgotPasswordStep1">
+                            <div class="form-group">
+                                <label for="forgotEmail">Enter your email address</label>
+                                <input type="email" id="forgotEmail" placeholder="Enter your email" required>
+                            </div>
+                            <div class="auth-buttons">
+                                <button class="auth-btn auth-btn-primary" onclick="checkSecurityQuestions()">Continue</button>
+                                <button class="auth-toggle" onclick="closeForgotPasswordModal()">Cancel</button>
+                            </div>
+                        </div>
+                        
+                        <div id="forgotPasswordStep2" style="display: none;">
+                            <h3 style="text-align: center; margin-bottom: 1rem; color: #6a4c93;">Answer Security Questions</h3>
+                            <div class="form-group">
+                                <label id="securityQuestionLabel1">Question 1</label>
+                                <select id="forgotSecurityAnswer1" required>
+                                    <option value="">Select answer</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label id="securityQuestionLabel2">Question 2</label>
+                                <select id="forgotSecurityAnswer2" required>
+                                    <option value="">Select answer</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label id="securityQuestionLabel3">Question 3</label>
+                                <select id="forgotSecurityAnswer3" required>
+                                    <option value="">Select answer</option>
+                                </select>
+                            </div>
+                            <div class="auth-buttons">
+                                <button class="auth-btn auth-btn-primary" onclick="verifySecurityAnswers()">Verify</button>
+                                <button class="auth-toggle" onclick="closeForgotPasswordModal()">Cancel</button>
+                            </div>
+                        </div>
+                        
+                        <div id="forgotPasswordStep3" style="display: none;">
+                            <h3 style="text-align: center; margin-bottom: 1rem; color: #6a4c93;">Reset Password</h3>
+                            <div class="form-group">
+                                <label for="newPassword">New Password</label>
+                                <input type="password" id="newPassword" placeholder="Enter new password" required minlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmNewPassword">Confirm New Password</label>
+                                <input type="password" id="confirmNewPassword" placeholder="Confirm new password" required>
+                            </div>
+                            <div class="auth-buttons">
+                                <button class="auth-btn auth-btn-primary" onclick="resetPassword()">Reset Password</button>
+                                <button class="auth-toggle" onclick="closeForgotPasswordModal()">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Change Security Questions Modal -->
+                <div id="changeSecurityQuestionsModal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <button class="modal-close" onclick="closeChangeSecurityQuestionsModal()">&times;</button>
+                        <h2 style="text-align: center; margin-bottom: 1.5rem; color: #6a4c93;">Change Security Questions</h2>
+                        
+                        <div class="form-group">
+                            <label for="currentPasswordForSecurity">Current Password</label>
+                            <input type="password" id="currentPasswordForSecurity" placeholder="Enter current password" required>
+                        </div>
+                        
+                        <div class="security-questions-section" style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                            <h4 style="margin: 0 0 1rem 0; color: #6a4c93; font-size: 1.1rem;">New Security Questions</h4>
+                            
+                            <div class="form-group">
+                                <label for="newSecurityQuestion1">What month were you born?</label>
+                                <select id="newSecurityQuestion1" required>
+                                    <option value="">Select month</option>
+                                    <option value="January">January</option>
+                                    <option value="February">February</option>
+                                    <option value="March">March</option>
+                                    <option value="April">April</option>
+                                    <option value="May">May</option>
+                                    <option value="June">June</option>
+                                    <option value="July">July</option>
+                                    <option value="August">August</option>
+                                    <option value="September">September</option>
+                                    <option value="October">October</option>
+                                    <option value="November">November</option>
+                                    <option value="December">December</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="newSecurityQuestion2">What is your favorite color?</label>
+                                <select id="newSecurityQuestion2" required>
+                                    <option value="">Select color</option>
+                                    <option value="Red">Red</option>
+                                    <option value="Blue">Blue</option>
+                                    <option value="Green">Green</option>
+                                    <option value="Yellow">Yellow</option>
+                                    <option value="Purple">Purple</option>
+                                    <option value="Orange">Orange</option>
+                                    <option value="Pink">Pink</option>
+                                    <option value="Black">Black</option>
+                                    <option value="White">White</option>
+                                    <option value="Gray">Gray</option>
+                                    <option value="Brown">Brown</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="newSecurityQuestion3">What best describes your personality?</label>
+                                <select id="newSecurityQuestion3" required>
+                                    <option value="">Select option</option>
+                                    <option value="Adventurous">Adventurous</option>
+                                    <option value="Creative">Creative</option>
+                                    <option value="Analytical">Analytical</option>
+                                    <option value="Compassionate">Compassionate</option>
+                                    <option value="Independent">Independent</option>
+                                    <option value="Organized">Organized</option>
+                                    <option value="Spontaneous">Spontaneous</option>
+                                    <option value="Optimistic">Optimistic</option>
+                                    <option value="Practical">Practical</option>
+                                    <option value="Introverted">Introverted</option>
+                                    <option value="Extroverted">Extroverted</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="auth-buttons">
+                            <button class="auth-btn auth-btn-primary" onclick="updateSecurityQuestions()">Update Security Questions</button>
+                            <button class="auth-toggle" onclick="closeChangeSecurityQuestionsModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="user-info" id="userInfo">
                     <img class="user-avatar" id="userAvatar" src="" alt="User Avatar">
                     <div class="user-name" id="userName"></div>
@@ -809,6 +1009,7 @@
                         <button class="account-btn" onclick="goToSavedDesigns()">Saved Designs</button>
                         <button class="account-btn" onclick="showOrdersModal()">My Orders</button>
                         <button class="account-btn" onclick="showAddressManager()">Manage Addresses</button>
+                        <button class="account-btn" id="changeSecurityQuestionsBtn" onclick="showChangeSecurityQuestionsModal()" style="display: none;">Change Security Questions</button>
                     </div>
                     <button class="signout-btn" onclick="signOut()">Sign Out</button>
                 </div>
@@ -925,11 +1126,21 @@
             const email = document.getElementById('signUpEmail').value;
             const password = document.getElementById('signUpPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Get security question answers
+            const securityQuestion1 = document.getElementById('securityQuestion1').value;
+            const securityQuestion2 = document.getElementById('securityQuestion2').value;
+            const securityQuestion3 = document.getElementById('securityQuestion3').value;
 
             console.log('🔍 Form values:', { name, email, password: password ? '***' : 'empty', confirmPassword: confirmPassword ? '***' : 'empty' });
 
             if (!name || !email || !password || !confirmPassword) {
                 showAuthMessage('Please fill in all fields');
+                return;
+            }
+            
+            if (!securityQuestion1 || !securityQuestion2 || !securityQuestion3) {
+                showAuthMessage('Please answer all security questions');
                 return;
             }
 
@@ -963,10 +1174,29 @@
                     sub: user.uid,
                     email: user.email,
                     name: name,
-                    picture: 'https://via.placeholder.com/150/6a4c93/ffffff?text=' + name.charAt(0).toUpperCase()
+                    picture: 'https://via.placeholder.com/150/6a4c93/ffffff?text=' + name.charAt(0).toUpperCase(),
+                    authType: 'email', // Mark as email account
+                    securityQuestions: {
+                        question1: 'What month were you born?',
+                        answer1: securityQuestion1,
+                        question2: 'What is your favorite color?',
+                        answer2: securityQuestion2,
+                        question3: 'What best describes your personality?',
+                        answer3: securityQuestion3
+                    }
                 };
                 
                 localStorage.setItem('googleUser', JSON.stringify(userData));
+                
+                // Also store security questions in Firebase for password recovery
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    try {
+                        await window.firebaseService.saveSecurityQuestions(user.uid, userData.securityQuestions);
+                        console.log('✅ Security questions saved to Firebase');
+                    } catch (error) {
+                        console.error('❌ Failed to save security questions to Firebase:', error);
+                    }
+                }
                 displayUserInfo(userData);
                 showAuthMessage('Account created successfully!', 'success');
                 
@@ -978,6 +1208,9 @@
                     document.getElementById('signUpEmail').value = '';
                     document.getElementById('signUpPassword').value = '';
                     document.getElementById('confirmPassword').value = '';
+                    document.getElementById('securityQuestion1').value = '';
+                    document.getElementById('securityQuestion2').value = '';
+                    document.getElementById('securityQuestion3').value = '';
                 }, 2000);
                 
                 console.log('Account creation successful:', user);
@@ -1032,6 +1265,14 @@
             document.getElementById('userEmail').textContent = userData.email;
             document.getElementById('userAvatar').src = userData.picture;
             document.getElementById('userInfo').classList.add('show');
+            
+            // Show/hide security questions button based on account type
+            const securityBtn = document.getElementById('changeSecurityQuestionsBtn');
+            if (userData.authType === 'email') {
+                securityBtn.style.display = 'block';
+            } else {
+                securityBtn.style.display = 'none';
+            }
             
             // Hide the sign-in forms and subtitle
             document.querySelector('.g_id_signin').style.display = 'none';
@@ -1439,6 +1680,238 @@
             };
 
             modal.style.display = 'flex';
+        }
+
+        // Security Questions and Forgot Password Functions
+        
+        function showForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'block';
+            document.getElementById('forgotPasswordStep1').style.display = 'block';
+            document.getElementById('forgotPasswordStep2').style.display = 'none';
+            document.getElementById('forgotPasswordStep3').style.display = 'none';
+        }
+        
+        function closeForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'none';
+            // Clear form
+            document.getElementById('forgotEmail').value = '';
+            document.getElementById('forgotSecurityAnswer1').value = '';
+            document.getElementById('forgotSecurityAnswer2').value = '';
+            document.getElementById('forgotSecurityAnswer3').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+        }
+        
+        async function checkSecurityQuestions() {
+            const email = document.getElementById('forgotEmail').value;
+            if (!email) {
+                showAuthMessage('Please enter your email address');
+                return;
+            }
+            
+            try {
+                // Check if user exists and get security questions
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    const securityQuestions = await window.firebaseService.getSecurityQuestions(email);
+                    if (securityQuestions) {
+                        // Populate the security questions
+                        document.getElementById('securityQuestionLabel1').textContent = securityQuestions.question1;
+                        document.getElementById('securityQuestionLabel2').textContent = securityQuestions.question2;
+                        document.getElementById('securityQuestionLabel3').textContent = securityQuestions.question3;
+                        
+                        // Store the correct answers for verification
+                        window.currentSecurityAnswers = {
+                            answer1: securityQuestions.answer1,
+                            answer2: securityQuestions.answer2,
+                            answer3: securityQuestions.answer3
+                        };
+                        
+                        // Show step 2
+                        document.getElementById('forgotPasswordStep1').style.display = 'none';
+                        document.getElementById('forgotPasswordStep2').style.display = 'block';
+                        
+                        // Populate answer options based on question type
+                        populateAnswerOptions();
+                    } else {
+                        showAuthMessage('No security questions found for this email address');
+                    }
+                } else {
+                    showAuthMessage('Service not available. Please try again later.');
+                }
+            } catch (error) {
+                console.error('Error checking security questions:', error);
+                showAuthMessage('Error retrieving security questions');
+            }
+        }
+        
+        function populateAnswerOptions() {
+            // Get the question labels to determine what options to show
+            const question1 = document.getElementById('securityQuestionLabel1').textContent;
+            const question2 = document.getElementById('securityQuestionLabel2').textContent;
+            const question3 = document.getElementById('securityQuestionLabel3').textContent;
+            
+            // Populate options for each question
+            populateQuestionOptions('forgotSecurityAnswer1', question1);
+            populateQuestionOptions('forgotSecurityAnswer2', question2);
+            populateQuestionOptions('forgotSecurityAnswer3', question3);
+        }
+        
+        function populateQuestionOptions(selectId, question) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Select answer</option>';
+            
+            if (question.includes('month')) {
+                const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+                months.forEach(month => {
+                    const option = document.createElement('option');
+                    option.value = month;
+                    option.textContent = month;
+                    select.appendChild(option);
+                });
+            } else if (question.includes('color')) {
+                const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 
+                              'Pink', 'Black', 'White', 'Gray', 'Brown'];
+                colors.forEach(color => {
+                    const option = document.createElement('option');
+                    option.value = color;
+                    option.textContent = color;
+                    select.appendChild(option);
+                });
+            } else if (question.includes('personality')) {
+                const personalities = ['Adventurous', 'Creative', 'Analytical', 'Compassionate', 
+                                     'Independent', 'Organized', 'Spontaneous', 'Optimistic', 
+                                     'Practical', 'Introverted', 'Extroverted'];
+                personalities.forEach(personality => {
+                    const option = document.createElement('option');
+                    option.value = personality;
+                    option.textContent = personality;
+                    select.appendChild(option);
+                });
+            }
+        }
+        
+        function verifySecurityAnswers() {
+            const answer1 = document.getElementById('forgotSecurityAnswer1').value;
+            const answer2 = document.getElementById('forgotSecurityAnswer2').value;
+            const answer3 = document.getElementById('forgotSecurityAnswer3').value;
+            
+            if (!answer1 || !answer2 || !answer3) {
+                showAuthMessage('Please answer all security questions');
+                return;
+            }
+            
+            if (window.currentSecurityAnswers) {
+                if (answer1 === window.currentSecurityAnswers.answer1 &&
+                    answer2 === window.currentSecurityAnswers.answer2 &&
+                    answer3 === window.currentSecurityAnswers.answer3) {
+                    // Correct answers - show password reset form
+                    document.getElementById('forgotPasswordStep2').style.display = 'none';
+                    document.getElementById('forgotPasswordStep3').style.display = 'block';
+                } else {
+                    showAuthMessage('Incorrect answers. Please try again.');
+                }
+            } else {
+                showAuthMessage('Session expired. Please start over.');
+            }
+        }
+        
+        async function resetPassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            
+            if (!newPassword || !confirmNewPassword) {
+                showAuthMessage('Please fill in all fields');
+                return;
+            }
+            
+            if (newPassword !== confirmNewPassword) {
+                showAuthMessage('Passwords do not match');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showAuthMessage('Password must be at least 6 characters long');
+                return;
+            }
+            
+            try {
+                const email = document.getElementById('forgotEmail').value;
+                
+                // Update password in Firebase
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    await window.firebaseService.updatePassword(email, newPassword);
+                    showAuthMessage('Password updated successfully! You can now sign in with your new password.', 'success');
+                    closeForgotPasswordModal();
+                } else {
+                    showAuthMessage('Service not available. Please try again later.');
+                }
+            } catch (error) {
+                console.error('Error resetting password:', error);
+                showAuthMessage('Error updating password. Please try again.');
+            }
+        }
+        
+        function showChangeSecurityQuestionsModal() {
+            document.getElementById('changeSecurityQuestionsModal').style.display = 'block';
+        }
+        
+        function closeChangeSecurityQuestionsModal() {
+            document.getElementById('changeSecurityQuestionsModal').style.display = 'none';
+            // Clear form
+            document.getElementById('currentPasswordForSecurity').value = '';
+            document.getElementById('newSecurityQuestion1').value = '';
+            document.getElementById('newSecurityQuestion2').value = '';
+            document.getElementById('newSecurityQuestion3').value = '';
+        }
+        
+        async function updateSecurityQuestions() {
+            const currentPassword = document.getElementById('currentPasswordForSecurity').value;
+            const newAnswer1 = document.getElementById('newSecurityQuestion1').value;
+            const newAnswer2 = document.getElementById('newSecurityQuestion2').value;
+            const newAnswer3 = document.getElementById('newSecurityQuestion3').value;
+            
+            if (!currentPassword || !newAnswer1 || !newAnswer2 || !newAnswer3) {
+                showAuthMessage('Please fill in all fields');
+                return;
+            }
+            
+            try {
+                const userData = JSON.parse(localStorage.getItem('googleUser'));
+                const email = userData.email;
+                
+                // Verify current password
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    const isValidPassword = await window.firebaseService.verifyPassword(email, currentPassword);
+                    if (isValidPassword) {
+                        // Update security questions
+                        const newSecurityQuestions = {
+                            question1: 'What month were you born?',
+                            answer1: newAnswer1,
+                            question2: 'What is your favorite color?',
+                            answer2: newAnswer2,
+                            question3: 'What best describes your personality?',
+                            answer3: newAnswer3
+                        };
+                        
+                        await window.firebaseService.updateSecurityQuestions(userData.sub, newSecurityQuestions);
+                        
+                        // Update local storage
+                        userData.securityQuestions = newSecurityQuestions;
+                        localStorage.setItem('googleUser', JSON.stringify(userData));
+                        
+                        showAuthMessage('Security questions updated successfully!', 'success');
+                        closeChangeSecurityQuestionsModal();
+                    } else {
+                        showAuthMessage('Incorrect current password');
+                    }
+                } else {
+                    showAuthMessage('Service not available. Please try again later.');
+                }
+            } catch (error) {
+                console.error('Error updating security questions:', error);
+                showAuthMessage('Error updating security questions. Please try again.');
+            }
         }
     </script>
 </body>
