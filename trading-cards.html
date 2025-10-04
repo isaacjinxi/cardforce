@@ -1131,6 +1131,100 @@
             });
         }
 
+        function validateImageUrl(url) {
+            if (!url || url.trim() === '') {
+                return false;
+            }
+            
+            // Basic URL validation
+            try {
+                new URL(url);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function previewImage(imageUrl) {
+            const preview = document.getElementById('imagePreview');
+            const validation = document.getElementById('imageValidation');
+            
+            if (!preview || !validation) return;
+            
+            // Clear previous content
+            preview.innerHTML = '';
+            validation.innerHTML = '';
+            
+            if (!imageUrl || imageUrl.trim() === '') {
+                validation.innerHTML = '<span style="color: #6c757d;">Enter an image URL to see preview</span>';
+                return;
+            }
+            
+            // Validate URL format
+            if (!validateImageUrl(imageUrl)) {
+                validation.innerHTML = '<span style="color: #dc3545;">❌ Invalid URL format</span>';
+                return;
+            }
+            
+            // Show loading state
+            validation.innerHTML = '<span style="color: #ffc107;">⏳ Loading preview...</span>';
+            
+            // Create image element for preview
+            const img = document.createElement('img');
+            img.style.cssText = 'max-width: 200px; max-height: 150px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
+            img.alt = 'Image Preview';
+            
+            img.onload = function() {
+                preview.innerHTML = '';
+                preview.appendChild(img);
+                validation.innerHTML = '<span style="color: #28a745;">✅ Image loaded successfully</span>';
+            };
+            
+            img.onerror = function() {
+                preview.innerHTML = '<div style="width: 200px; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">🃏 Preview</div>';
+                validation.innerHTML = '<span style="color: #dc3545;">❌ Failed to load image</span>';
+            };
+            
+            img.src = imageUrl;
+        }
+
+        function createImageElement(imageUrl, altText, cardId) {
+            const container = document.createElement('div');
+            container.className = 'card-image-container';
+            
+            const img = document.createElement('img');
+            img.className = 'card-image';
+            img.alt = altText;
+            
+            const placeholder = document.createElement('div');
+            placeholder.className = 'image-placeholder';
+            placeholder.style.cssText = 'display: none; width: 100%; height: 200px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 10px; align-items: center; justify-content: center; color: #6c757d; font-size: 1.2rem; flex-direction: column;';
+            placeholder.innerHTML = `
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">🃏</div>
+                <div>Image Preview</div>
+            `;
+            
+            if (validateImageUrl(imageUrl)) {
+                img.src = imageUrl;
+                img.onload = function() {
+                    console.log(`✅ Image loaded successfully for ${cardId}:`, imageUrl);
+                };
+                img.onerror = function() {
+                    console.log(`❌ Image failed to load for ${cardId}:`, imageUrl);
+                    img.style.display = 'none';
+                    placeholder.style.display = 'flex';
+                };
+            } else {
+                console.log(`⚠️ Invalid image URL for ${cardId}:`, imageUrl);
+                img.style.display = 'none';
+                placeholder.style.display = 'flex';
+            }
+            
+            container.appendChild(img);
+            container.appendChild(placeholder);
+            return container;
+        }
+
         function renderCatalogProducts() {
             const grid = document.getElementById('cardsGrid');
             
@@ -1171,10 +1265,11 @@
                 const card = document.createElement('div');
                 card.className = 'card-placeholder';
                 card.setAttribute('data-card-id', p.id);
+                
+                // Create image container with proper validation
+                const imageContainer = createImageElement(p.imageUrl || '', `${p.name} Card`, p.id);
+                
                 card.innerHTML = `
-                    <div class="card-image-container">
-                        <img src="${p.imageUrl || ''}" alt="${p.name} Card" class="card-image">
-                    </div>
                     <h3 class="card-title">${p.name}</h3>
                     <p class="card-description">${p.description || ''}</p>
                     <div class="card-price" data-price="${p.price}">$${(+p.price).toFixed(2)}</div>
@@ -1189,6 +1284,9 @@
                         </div>
                     </div>
                 `;
+                
+                // Insert image container at the beginning
+                card.insertBefore(imageContainer, card.firstChild);
                 grid.appendChild(card);
                 // initialize product data records
                 setProductPrice(p.id, p.price);
@@ -1542,7 +1640,9 @@
                         </div>
                         <div class="form-group">
                             <label for="newProductImage">Image URL:</label>
-                            <input type="url" id="newProductImage" placeholder="https://example.com/image.png" required>
+                            <input type="url" id="newProductImage" placeholder="https://example.com/image.png" required oninput="previewImage(this.value)">
+                            <div id="imagePreview" style="margin-top: 10px; text-align: center;"></div>
+                            <div id="imageValidation" style="margin-top: 5px; font-size: 0.9rem;"></div>
                         </div>
                     </form>
                     <div class="modal-buttons">
