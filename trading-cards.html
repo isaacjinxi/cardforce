@@ -6,6 +6,8 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Last-Modified" content="0">
+    <meta http-equiv="Cache-Control" content="max-age=0, must-revalidate">
     <!-- Safari-specific meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13,7 +15,7 @@
     <title>Trading Cards - Card Force</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="admin-utils.js?v=2.3"></script>
+    <script src="admin-utils.js?v=2.4"></script>
     <!-- Firebase CDN -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -1384,7 +1386,7 @@
             });
         }
 
-        function deleteItem(cardId) {
+        async function deleteItem(cardId) {
             console.log('🗑️ Delete item called for:', cardId);
             console.log('Admin status:', isAdmin());
             
@@ -1428,24 +1430,44 @@
                     console.log('Firebase service methods:', Object.getOwnPropertyNames(window.firebaseService));
                     console.log('deleteProductFromFirebase exists:', typeof window.firebaseService.deleteProductFromFirebase);
                     
+                    // Double-check that the function exists and is callable
                     if (typeof window.firebaseService.deleteProductFromFirebase === 'function') {
-                        window.firebaseService.deleteProductFromFirebase(cardId).then(() => {
+                        try {
+                            await window.firebaseService.deleteProductFromFirebase(cardId);
                             console.log('✅ Product deleted from Firebase');
                             // Trigger a product data refresh to ensure consistency
                             if (typeof triggerProductDataRefresh === 'function') {
                                 triggerProductDataRefresh();
                             }
-                        }).catch(error => {
+                        } catch (error) {
                             console.error('❌ Failed to delete from Firebase:', error);
                             // Still show success message even if Firebase fails
                             alert('Product deleted locally. Firebase sync failed, but deletion was successful.');
-                        });
+                        }
                     } else {
                         console.error('❌ deleteProductFromFirebase function not available');
+                        console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.firebaseService)));
                         alert('Product deleted locally. Firebase deletion function not available.');
                     }
                 } else {
-                    console.log('⚠️ Firebase service not available');
+                    console.log('⚠️ Firebase service not available or not initialized');
+                    console.log('Firebase service exists:', !!window.firebaseService);
+                    console.log('Firebase service initialized:', window.firebaseService?.isInitialized);
+                    
+                    // Try to wait a bit and retry
+                    console.log('⏳ Waiting for Firebase service to initialize...');
+                    setTimeout(async () => {
+                        if (window.firebaseService && window.firebaseService.isInitialized && typeof window.firebaseService.deleteProductFromFirebase === 'function') {
+                            try {
+                                await window.firebaseService.deleteProductFromFirebase(cardId);
+                                console.log('✅ Product deleted from Firebase (retry)');
+                            } catch (error) {
+                                console.error('❌ Failed to delete from Firebase (retry):', error);
+                            }
+                        } else {
+                            console.log('⚠️ Firebase service still not ready after retry');
+                        }
+                    }, 2000);
                 }
                 
                 // Remove DOM element
