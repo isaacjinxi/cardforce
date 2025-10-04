@@ -518,6 +518,25 @@
           console.log('⚠️ loadProductDataFromFirebase function not available');
         }
         
+        // Load stock from Firebase
+        if (window.firebaseService && window.firebaseService.isInitialized) {
+          try {
+            const firebaseStock = await window.firebaseService.loadStockFromFirebase();
+            console.log('📦 Firebase stock loaded for cart:', firebaseStock);
+            
+            // Merge Firebase stock with local stock
+            const localStock = getStockData();
+            Object.keys(firebaseStock).forEach(itemId => {
+              localStock[itemId] = firebaseStock[itemId];
+            });
+            localStorage.setItem('stockData', JSON.stringify(localStock));
+            
+            console.log('✅ Stock synced from Firebase for cart');
+          } catch (error) {
+            console.error('❌ Failed to load stock from Firebase for cart:', error);
+          }
+        }
+        
         // Set up real-time listener for product changes
         if (window.setupProductDataListener) {
           window.setupProductDataListener();
@@ -1279,10 +1298,14 @@
         // Load cart items on page load
         window.onload = function() {
             checkSignIn();
-            loadCartItems(); // Load cart items when page loads
             
             // Check Apple Pay availability
             checkApplePayAvailability();
+            
+            // Load cart items after a short delay to ensure Firebase is initialized
+            setTimeout(() => {
+                loadCartItems();
+            }, 1000);
         };
 
         function checkApplePayAvailability() {
@@ -1485,16 +1508,19 @@
                         renderCartItems(firebaseCart);
                     } else {
                         const localCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+                        console.log('Firebase cart empty, using local cart:', localCart);
                         renderCartItems(localCart);
                     }
                 }).catch(error => {
                     console.error('Error loading cart from Firebase:', error);
                     const localCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+                    console.log('Firebase failed, using local cart:', localCart);
                     renderCartItems(localCart);
                 });
             } else {
                 console.log('Using localStorage only - Firebase not available');
                 const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+                console.log('Local cart loaded:', cart);
                 renderCartItems(cart);
             }
         }

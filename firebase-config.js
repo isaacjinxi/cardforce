@@ -333,6 +333,37 @@ class FirebaseService {
         }
     }
 
+    // Stock Management
+    async saveStockToFirebase(itemId, stock) {
+        try {
+            const stockRef = doc(db, COLLECTIONS.STOCK, itemId);
+            await setDoc(stockRef, {
+                itemId: itemId,
+                stock: stock,
+                lastUpdated: new Date().toISOString()
+            });
+            console.log('✅ Stock saved to Firebase:', itemId, stock);
+        } catch (error) {
+            console.error('❌ Error saving stock to Firebase:', error);
+            throw error;
+        }
+    }
+
+    async loadStockFromFirebase() {
+        try {
+            const querySnapshot = await getDocs(collection(db, COLLECTIONS.STOCK));
+            const stockData = {};
+            querySnapshot.forEach((doc) => {
+                stockData[doc.id] = doc.data().stock;
+            });
+            console.log('✅ Stock loaded from Firebase:', Object.keys(stockData).length, 'items');
+            return stockData;
+        } catch (error) {
+            console.error('❌ Error loading stock from Firebase:', error);
+            return {};
+        }
+    }
+
     // Chat Messages
     async saveChatMessage(message) {
         try {

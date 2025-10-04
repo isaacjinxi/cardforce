@@ -264,6 +264,27 @@
           }
         }
         
+        // Load stock from Firebase
+        if (window.firebaseService && window.firebaseService.isInitialized) {
+          try {
+            const firebaseStock = await window.firebaseService.loadStockFromFirebase();
+            console.log('📦 Firebase stock loaded:', firebaseStock);
+            
+            // Merge Firebase stock with local stock
+            const localStock = getStockData();
+            Object.keys(firebaseStock).forEach(itemId => {
+              localStock[itemId] = firebaseStock[itemId];
+            });
+            localStorage.setItem('stockData', JSON.stringify(localStock));
+            
+            // Update stock displays
+            updateStockDisplays();
+            console.log('✅ Stock synced from Firebase');
+          } catch (error) {
+            console.error('❌ Failed to load stock from Firebase:', error);
+          }
+        }
+        
         // Set up real-time listener for product changes
         if (window.setupProductDataListener) {
           window.setupProductDataListener();
@@ -1367,8 +1388,14 @@
                 if (window.firebaseService && window.firebaseService.isInitialized) {
                     window.firebaseService.deleteProductFromFirebase(cardId).then(() => {
                         console.log('✅ Product deleted from Firebase');
+                        // Trigger a product data refresh to ensure consistency
+                        if (typeof triggerProductDataRefresh === 'function') {
+                            triggerProductDataRefresh();
+                        }
                     }).catch(error => {
                         console.error('❌ Failed to delete from Firebase:', error);
+                        // Still show success message even if Firebase fails
+                        alert('Product deleted locally. Firebase sync failed, but deletion was successful.');
                     });
                 }
                 

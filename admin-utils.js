@@ -588,22 +588,31 @@ async function loadProductDataFromFirebase() {
         const firebaseProducts = await window.firebaseService.loadProductsFromFirebase();
         const localProductData = getProductData();
         
-        // Merge Firebase data with local data (Firebase takes precedence)
+        // Merge Firebase data with local data, but respect local deletions
         firebaseProducts.forEach(product => {
-            localProductData[product.id] = {
-                ...localProductData[product.id], // Keep local data
-                ...product // Override with Firebase data
-            };
+            // Only merge if the product exists locally or if it's new
+            // This prevents deleted products from being restored
+            if (localProductData[product.id] !== undefined || !localProductData.hasOwnProperty(product.id)) {
+                localProductData[product.id] = {
+                    ...localProductData[product.id], // Keep local data
+                    ...product // Override with Firebase data
+                };
+            } else {
+                console.log(`⚠️ Skipping deleted product ${product.id} from Firebase restore`);
+            }
         });
         
-        // Also update the product catalog to include Firebase products
+        // Also update the product catalog to include Firebase products (respecting deletions)
         const catalog = getProductCatalog();
         firebaseProducts.forEach(product => {
-            const existingIndex = catalog.findIndex(p => p.id === product.id);
-            if (existingIndex >= 0) {
-                catalog[existingIndex] = { ...catalog[existingIndex], ...product };
-            } else {
-                catalog.push(product);
+            // Only add/update if the product wasn't locally deleted
+            if (localProductData[product.id] !== undefined || !localProductData.hasOwnProperty(product.id)) {
+                const existingIndex = catalog.findIndex(p => p.id === product.id);
+                if (existingIndex >= 0) {
+                    catalog[existingIndex] = { ...catalog[existingIndex], ...product };
+                } else {
+                    catalog.push(product);
+                }
             }
         });
         
@@ -612,7 +621,7 @@ async function loadProductDataFromFirebase() {
         
         // Update local storage with merged data (skip Firebase sync to avoid circular calls)
         updateProductData(localProductData, true);
-        console.log('✅ Product data synced from Firebase');
+        console.log('✅ Product data synced from Firebase (respecting local deletions)');
         console.log('✅ Product catalog updated with Firebase products:', catalog.length);
         
         // Trigger page refresh if needed
