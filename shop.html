@@ -948,9 +948,39 @@
                 font-size: 1.1rem;
             }
         }
+
+        .database-down-banner {
+            background: #ffc107;
+            color: #212529;
+            padding: 12px 20px;
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+            border-bottom: 1px solid #e0a800;
+            position: relative;
+            z-index: 100;
+        }
+        .database-down-text {
+            text-align: center;
+            line-height: 1.4;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
+    <!-- Database Down Banner -->
+    <div id="databaseDownBanner" class="database-down-banner" style="display: none;">
+        <div class="database-down-text">
+            Database is down, many services are unavailable
+        </div>
+    </div>
+
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
@@ -1208,6 +1238,119 @@
 
             modal.style.display = 'flex';
         }
+
+        // Firebase Availability Check
+        async function checkFirebaseAvailability() {
+            try {
+                let isAvailable = true;
+                
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    isAvailable = await window.firebaseService.checkFirebaseAvailability();
+                    
+                    if (!isAvailable) {
+                        showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                    }
+                } else {
+                    // If Firebase service is not initialized, assume offline
+                    isAvailable = false;
+                }
+                
+                // Update database down banner
+                const databaseDownBanner = document.getElementById('databaseDownBanner');
+                if (databaseDownBanner) {
+                    if (!isAvailable) {
+                        databaseDownBanner.style.display = 'flex';
+                    } else {
+                        databaseDownBanner.style.display = 'none';
+                    }
+                }
+                
+                // Update global offline state
+                window.isFirebaseOffline = !isAvailable;
+                
+            } catch (error) {
+                console.error('Error checking Firebase availability:', error);
+                
+                // Show database down banner on error
+                const databaseDownBanner = document.getElementById('databaseDownBanner');
+                if (databaseDownBanner) {
+                    databaseDownBanner.style.display = 'flex';
+                }
+                window.isFirebaseOffline = true;
+                showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+            }
+        }
+
+        // Check if Firebase is offline
+        function isFirebaseOffline() {
+            return window.isFirebaseOffline === true;
+        }
+
+        // Custom Error Popup
+        function showCustomErrorPopup(message) {
+            // Create popup overlay
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+
+            // Create popup content
+            const popup = document.createElement('div');
+            popup.style.cssText = `
+                background: white;
+                padding: 2rem;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                max-width: 400px;
+                text-align: center;
+                position: relative;
+            `;
+
+            popup.innerHTML = `
+                <div style="color: #dc3545; font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                <h3 style="color: #dc3545; margin-bottom: 1rem; font-size: 1.3rem;">Service Unavailable</h3>
+                <p style="color: #666; margin-bottom: 1.5rem; line-height: 1.5;">${message}</p>
+                <button onclick="this.closest('.error-popup-overlay').remove()" style="
+                    background: #dc3545;
+                    color: white;
+                    border: none;
+                    padding: 0.8rem 2rem;
+                    border-radius: 25px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background 0.3s ease;
+                " onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
+                    OK
+                </button>
+            `;
+
+            overlay.className = 'error-popup-overlay';
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+
+            // Close on overlay click
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) {
+                    overlay.remove();
+                }
+            });
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                checkFirebaseAvailability();
+            }, 2000);
+        });
     </script>
 </body>
 </html>
