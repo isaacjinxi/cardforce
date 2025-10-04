@@ -1136,9 +1136,21 @@
                 return false;
             }
             
-            // Basic URL validation
+            const trimmedUrl = url.trim();
+            
+            // Check if it's a local file (no protocol, just filename or relative path)
+            if (!trimmedUrl.includes('://') && !trimmedUrl.startsWith('//')) {
+                // It's a local file - check if it has a valid image extension
+                const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp'];
+                const hasValidExtension = imageExtensions.some(ext => 
+                    trimmedUrl.toLowerCase().endsWith(ext)
+                );
+                return hasValidExtension;
+            }
+            
+            // For full URLs, validate using URL constructor
             try {
-                new URL(url);
+                new URL(trimmedUrl);
                 return true;
             } catch (e) {
                 return false;
@@ -1156,18 +1168,26 @@
             validation.innerHTML = '';
             
             if (!imageUrl || imageUrl.trim() === '') {
-                validation.innerHTML = '<span style="color: #6c757d;">Enter an image URL to see preview</span>';
+                validation.innerHTML = '<span style="color: #6c757d;">Enter an image URL or filename to see preview</span>';
                 return;
             }
+            
+            const trimmedUrl = imageUrl.trim();
             
             // Validate URL format
-            if (!validateImageUrl(imageUrl)) {
-                validation.innerHTML = '<span style="color: #dc3545;">❌ Invalid URL format</span>';
+            if (!validateImageUrl(trimmedUrl)) {
+                validation.innerHTML = '<span style="color: #dc3545;">❌ Invalid URL format or unsupported image type</span>';
                 return;
             }
             
-            // Show loading state
-            validation.innerHTML = '<span style="color: #ffc107;">⏳ Loading preview...</span>';
+            // Check if it's a local file
+            const isLocalFile = !trimmedUrl.includes('://') && !trimmedUrl.startsWith('//');
+            
+            if (isLocalFile) {
+                validation.innerHTML = '<span style="color: #17a2b8;">📁 Local file detected</span>';
+            } else {
+                validation.innerHTML = '<span style="color: #ffc107;">⏳ Loading preview...</span>';
+            }
             
             // Create image element for preview
             const img = document.createElement('img');
@@ -1177,15 +1197,24 @@
             img.onload = function() {
                 preview.innerHTML = '';
                 preview.appendChild(img);
-                validation.innerHTML = '<span style="color: #28a745;">✅ Image loaded successfully</span>';
+                if (isLocalFile) {
+                    validation.innerHTML = '<span style="color: #28a745;">✅ Local image loaded successfully</span>';
+                } else {
+                    validation.innerHTML = '<span style="color: #28a745;">✅ Image loaded successfully</span>';
+                }
             };
             
             img.onerror = function() {
-                preview.innerHTML = '<div style="width: 200px; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">🃏 Preview</div>';
-                validation.innerHTML = '<span style="color: #dc3545;">❌ Failed to load image</span>';
+                if (isLocalFile) {
+                    preview.innerHTML = '<div style="width: 200px; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">📁 File Not Found</div>';
+                    validation.innerHTML = '<span style="color: #dc3545;">❌ Local file not found. Make sure the file exists in the project.</span>';
+                } else {
+                    preview.innerHTML = '<div style="width: 200px; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">🃏 Preview</div>';
+                    validation.innerHTML = '<span style="color: #dc3545;">❌ Failed to load image</span>';
+                }
             };
             
-            img.src = imageUrl;
+            img.src = trimmedUrl;
         }
 
         function createImageElement(imageUrl, altText, cardId) {
@@ -1199,18 +1228,37 @@
             const placeholder = document.createElement('div');
             placeholder.className = 'image-placeholder';
             placeholder.style.cssText = 'display: none; width: 100%; height: 200px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 10px; align-items: center; justify-content: center; color: #6c757d; font-size: 1.2rem; flex-direction: column;';
-            placeholder.innerHTML = `
-                <div style="font-size: 3rem; margin-bottom: 0.5rem;">🃏</div>
-                <div>Image Preview</div>
-            `;
+            
+            // Check if it's a local file
+            const isLocalFile = imageUrl && !imageUrl.includes('://') && !imageUrl.startsWith('//');
+            
+            if (isLocalFile) {
+                placeholder.innerHTML = `
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">📁</div>
+                    <div>Local File</div>
+                `;
+            } else {
+                placeholder.innerHTML = `
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🃏</div>
+                    <div>Image Preview</div>
+                `;
+            }
             
             if (validateImageUrl(imageUrl)) {
                 img.src = imageUrl;
                 img.onload = function() {
-                    console.log(`✅ Image loaded successfully for ${cardId}:`, imageUrl);
+                    if (isLocalFile) {
+                        console.log(`✅ Local image loaded successfully for ${cardId}:`, imageUrl);
+                    } else {
+                        console.log(`✅ Image loaded successfully for ${cardId}:`, imageUrl);
+                    }
                 };
                 img.onerror = function() {
-                    console.log(`❌ Image failed to load for ${cardId}:`, imageUrl);
+                    if (isLocalFile) {
+                        console.log(`❌ Local file not found for ${cardId}:`, imageUrl);
+                    } else {
+                        console.log(`❌ Image failed to load for ${cardId}:`, imageUrl);
+                    }
                     img.style.display = 'none';
                     placeholder.style.display = 'flex';
                 };
@@ -1639,8 +1687,8 @@
                             <textarea id="newProductDescription" rows="3" placeholder="Enter product description" required></textarea>
                         </div>
                         <div class="form-group">
-                            <label for="newProductImage">Image URL:</label>
-                            <input type="url" id="newProductImage" placeholder="https://example.com/image.png" required oninput="previewImage(this.value)">
+                            <label for="newProductImage">Image URL or Filename:</label>
+                            <input type="text" id="newProductImage" placeholder="https://example.com/image.png or filename.png" required oninput="previewImage(this.value)">
                             <div id="imagePreview" style="margin-top: 10px; text-align: center;"></div>
                             <div id="imageValidation" style="margin-top: 5px; font-size: 0.9rem;"></div>
                         </div>
