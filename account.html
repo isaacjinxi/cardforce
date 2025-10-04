@@ -1081,8 +1081,21 @@
                     sub: user.uid,
                     email: user.email,
                     name: user.displayName || user.email.split('@')[0],
-                    picture: user.photoURL || 'https://via.placeholder.com/150/6a4c93/ffffff?text=' + (user.displayName || user.email).charAt(0).toUpperCase()
+                    picture: user.photoURL || 'https://via.placeholder.com/150/6a4c93/ffffff?text=' + (user.displayName || user.email).charAt(0).toUpperCase(),
+                    authType: 'email' // Mark as email account
                 };
+                
+                // Try to load security questions from Firebase/localStorage
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    try {
+                        const securityQuestions = await window.firebaseService.getSecurityQuestions(user.email);
+                        if (securityQuestions) {
+                            userData.securityQuestions = securityQuestions;
+                        }
+                    } catch (error) {
+                        console.error('Error loading security questions during sign-in:', error);
+                    }
+                }
                 
                 localStorage.setItem('googleUser', JSON.stringify(userData));
                 displayUserInfo(userData);
@@ -1191,7 +1204,11 @@
                 // Also store security questions in Firebase for password recovery
                 if (window.firebaseService && window.firebaseService.isInitialized) {
                     try {
-                        await window.firebaseService.saveSecurityQuestions(user.uid, userData.securityQuestions);
+                        const securityQuestionsWithEmail = {
+                            ...userData.securityQuestions,
+                            email: user.email
+                        };
+                        await window.firebaseService.saveSecurityQuestions(user.uid, securityQuestionsWithEmail);
                         console.log('✅ Security questions saved to Firebase');
                     } catch (error) {
                         console.error('❌ Failed to save security questions to Firebase:', error);
@@ -1709,10 +1726,17 @@
                 return;
             }
             
+            console.log('🔍 Checking security questions for email:', email);
+            console.log('🔍 Firebase service available:', !!window.firebaseService);
+            console.log('🔍 Firebase service initialized:', window.firebaseService?.isInitialized);
+            
             try {
                 // Check if user exists and get security questions
                 if (window.firebaseService && window.firebaseService.isInitialized) {
+                    console.log('🔍 Calling getSecurityQuestions...');
                     const securityQuestions = await window.firebaseService.getSecurityQuestions(email);
+                    console.log('🔍 Security questions result:', securityQuestions);
+                    
                     if (securityQuestions) {
                         // Populate the security questions
                         document.getElementById('securityQuestionLabel1').textContent = securityQuestions.question1;
@@ -1732,6 +1756,7 @@
                         
                         // Populate answer options based on question type
                         populateAnswerOptions();
+                        console.log('✅ Security questions loaded successfully');
                     } else {
                         showAuthMessage('No security questions found for this email address');
                     }
@@ -1740,7 +1765,7 @@
                 }
             } catch (error) {
                 console.error('Error checking security questions:', error);
-                showAuthMessage('Error retrieving security questions');
+                showAuthMessage('Error retrieving security questions: ' + error.message);
             }
         }
         

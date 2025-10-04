@@ -479,6 +479,8 @@ class FirebaseService {
         try {
             const userRef = doc(db, COLLECTIONS.USERS, userId);
             await setDoc(userRef, {
+                userId: userId,
+                email: securityQuestions.email || '', // Store email for lookup
                 securityQuestions: securityQuestions,
                 lastUpdated: new Date().toISOString()
             }, { merge: true });
@@ -491,6 +493,7 @@ class FirebaseService {
 
     async getSecurityQuestions(email) {
         try {
+            // First try to find by email in Firebase
             const usersRef = collection(db, COLLECTIONS.USERS);
             const q = query(usersRef, where('email', '==', email));
             const querySnapshot = await getDocs(q);
@@ -502,6 +505,21 @@ class FirebaseService {
                     return userData.securityQuestions;
                 }
             }
+            
+            // If not found in Firebase, check localStorage for demo purposes
+            console.log('⚠️ User not found in Firebase, checking localStorage for demo');
+            const allUsers = Object.keys(localStorage).filter(key => key.startsWith('googleUser'));
+            for (let key of allUsers) {
+                try {
+                    const userData = JSON.parse(localStorage.getItem(key));
+                    if (userData.email === email && userData.securityQuestions) {
+                        return userData.securityQuestions;
+                    }
+                } catch (e) {
+                    // Skip invalid entries
+                }
+            }
+            
             return null;
         } catch (error) {
             console.error('❌ Error getting security questions from Firebase:', error);
