@@ -67,6 +67,7 @@ const COLLECTIONS = {
 class FirebaseService {
     constructor() {
         this.isInitialized = false;
+        this.firebaseAvailable = false;
         this.currentUser = null;
         this.init();
     }
@@ -102,8 +103,15 @@ class FirebaseService {
                     console.log('Firebase user signed out');
                 }
             });
+
+            // Check Firebase availability
+            this.checkFirebaseAvailability().then(available => {
+                this.firebaseAvailable = available;
+                console.log('Firebase availability:', available ? 'Available' : 'Unavailable');
+            });
         } catch (error) {
             console.error('Firebase initialization error:', error);
+            this.firebaseAvailable = false;
         }
     }
 
@@ -602,6 +610,25 @@ class FirebaseService {
             console.error('❌ Error loading site freeze state from Firebase:', error);
             return null;
         }
+    }
+
+    // Firebase Availability Detection
+    async checkFirebaseAvailability() {
+        try {
+            // Try a simple read operation to test Firebase connectivity
+            const testRef = doc(db, COLLECTIONS.SYSTEM_SETTINGS, 'availabilityTest');
+            await getDoc(testRef);
+            console.log('✅ Firebase is available');
+            return true;
+        } catch (error) {
+            console.error('❌ Firebase is unavailable:', error);
+            return false;
+        }
+    }
+
+    // Global Firebase availability state
+    isFirebaseAvailable() {
+        return this.isInitialized && this.firebaseAvailable;
     }
 }
 

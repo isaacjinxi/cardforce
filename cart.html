@@ -655,6 +655,7 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+            position: relative;
         }
 
         .logo-icon {
@@ -711,6 +712,30 @@
             height: 2px;
             background: #1a1a1a;
             margin: 2px 0;
+        }
+
+        .offline-indicator {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 12px;
+            height: 12px;
+            background: #dc3545;
+            border-radius: 50%;
+            border: 2px solid white;
+            display: none;
+            z-index: 10;
+        }
+
+        .offline-indicator::after {
+            content: "⚠";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8px;
+            color: white;
+            font-weight: bold;
         }
 
         @keyframes bounce {
@@ -1218,6 +1243,7 @@
                     </div>
                 </div>
                 <span>Card Force</span>
+                <div class="offline-indicator" id="offlineIndicator"></div>
             </a>
             <div class="hamburger" onclick="toggleMenu()">
                 <span></span>
@@ -1306,6 +1332,11 @@
             setTimeout(() => {
                 loadCartItems();
             }, 1000);
+            
+            // Check Firebase availability
+            setTimeout(() => {
+                checkFirebaseAvailability();
+            }, 2000);
         };
 
         function checkApplePayAvailability() {
@@ -1794,6 +1825,12 @@
         }
 
         function checkout() {
+            // Check if Firebase is offline
+            if (isFirebaseOffline()) {
+                showFirebaseErrorMessage();
+                return;
+            }
+            
             console.log('Checkout function called');
             
             
@@ -1823,6 +1860,12 @@
         }
         
         function checkoutPayPal() {
+            // Check if Firebase is offline
+            if (isFirebaseOffline()) {
+                showFirebaseErrorMessage();
+                return;
+            }
+            
             const googleUser = localStorage.getItem('googleUser');
             if (!googleUser) {
                 showModal('Sign In Required', 'Please sign in to checkout.', function() {
@@ -1855,6 +1898,12 @@
         }
         
         function checkoutVenmo() {
+            // Check if Firebase is offline
+            if (isFirebaseOffline()) {
+                showFirebaseErrorMessage();
+                return;
+            }
+            
             const googleUser = localStorage.getItem('googleUser');
             if (!googleUser) {
                 showModal('Sign In Required', 'Please sign in to checkout.', function() {
@@ -1887,6 +1936,12 @@
         }
 
         function checkoutApplePay() {
+            // Check if Firebase is offline
+            if (isFirebaseOffline()) {
+                showFirebaseErrorMessage();
+                return;
+            }
+            
             const googleUser = localStorage.getItem('googleUser');
             if (!googleUser) {
                 showModal('Sign In Required', 'Please sign in to checkout.', function() {
@@ -2555,7 +2610,7 @@
         }
 
         function showFirebaseErrorMessage() {
-            alert("We ran into a problem. Our database may be down. Please try again later.");
+            alert("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
         }
 
         // Enhanced Firebase error detection
@@ -2571,6 +2626,42 @@
                    errorCode.includes('unavailable') ||
                    errorCode.includes('deadline') ||
                    errorCode.includes('aborted');
+        }
+
+        // Firebase Availability Check
+        async function checkFirebaseAvailability() {
+            try {
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    const isAvailable = await window.firebaseService.checkFirebaseAvailability();
+                    updateOfflineIndicator(!isAvailable);
+                    
+                    if (!isAvailable) {
+                        showFirebaseErrorMessage();
+                    }
+                } else {
+                    // If Firebase service is not initialized, assume offline
+                    updateOfflineIndicator(true);
+                }
+            } catch (error) {
+                console.error('Error checking Firebase availability:', error);
+                updateOfflineIndicator(true);
+                showFirebaseErrorMessage();
+            }
+        }
+
+        function updateOfflineIndicator(isOffline) {
+            const offlineIndicator = document.getElementById('offlineIndicator');
+            if (offlineIndicator) {
+                offlineIndicator.style.display = isOffline ? 'block' : 'none';
+            }
+            
+            // Store offline state globally
+            window.isFirebaseOffline = isOffline;
+        }
+
+        // Check if Firebase is offline
+        function isFirebaseOffline() {
+            return window.isFirebaseOffline === true;
         }
     </script>
 </body>
