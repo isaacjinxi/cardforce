@@ -1434,6 +1434,13 @@
             });
             
             console.log('🔍 Filtered My Orders:', myOrders.length);
+            console.log('🔍 My Orders Details:', myOrders.map(o => ({
+                id: o.id,
+                orderNumber: o.orderNumber,
+                totalPrice: o.totalPrice,
+                status: o.status,
+                createdAt: o.createdAt
+            })));
 
             const modal = document.createElement('div');
             modal.className = 'modal';

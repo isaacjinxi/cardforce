@@ -445,21 +445,8 @@
             border-radius: 25px;
             transition: all 0.3s ease;
             font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
-        .nav-icon {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            transition: all 0.3s ease;
-        }
-
-        .nav-menu a:hover .nav-icon {
-            opacity: 1;
-            transform: scale(1.1);
-        }
 
         .nav-menu a:hover {
             background-color: rgba(255, 255, 255, 0.2);
@@ -743,6 +730,31 @@
             opacity: 1;
         }
 
+        /* Safari-specific fixes for select elements */
+        .dropdown-container select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: none;
+            background-color: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 0.8rem 1rem 0.8rem 2.5rem;
+            font-size: 1rem;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .dropdown-container select::-ms-expand {
+            display: none;
+        }
+
+        .dropdown-container select:focus {
+            outline: none;
+            border-color: #6a4c93;
+            box-shadow: 0 0 0 2px rgba(106, 76, 147, 0.2);
+        }
+
         /* Search Input Container Styles */
         .search-input-container {
             position: relative;
@@ -768,6 +780,26 @@
 
         .search-input-container input:focus + .search-icon {
             opacity: 1;
+        }
+
+        /* Safari-specific fixes for search input */
+        .search-input-container input {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 0.8rem 1rem 0.8rem 2.5rem;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .search-input-container input:focus {
+            outline: none;
+            border-color: #6a4c93;
+            box-shadow: 0 0 0 2px rgba(106, 76, 147, 0.2);
         }
 
         /* Buy Now Modal */
@@ -975,13 +1007,13 @@
                 <span></span>
             </div>
             <ul class="nav-menu" id="navMenu">
-                <li><a href="index.html" onclick="closeMenu()"><span class="nav-icon">🏠</span>Home</a></li>
-                <li><a href="shop.html" onclick="closeMenu()"><span class="nav-icon">🛒</span>Shop</a></li>
-                <li><a href="marketplace.html" onclick="closeMenu()"><span class="nav-icon">🏪</span>Marketplace</a></li>
-                <li><a href="about.html" onclick="closeMenu()"><span class="nav-icon">ℹ️</span>About</a></li>
-                <li><a href="help.html" onclick="closeMenu()"><span class="nav-icon">❓</span>Help</a></li>
-                <li><a href="account.html" onclick="closeMenu()"><span class="nav-icon">👤</span>Account</a></li>
-                <li><a href="#" onclick="goToCart(); closeMenu()"><span class="nav-icon">🛍️</span>Cart</a></li>
+                <li><a href="index.html" onclick="closeMenu()">Home</a></li>
+                <li><a href="shop.html" onclick="closeMenu()">Shop</a></li>
+                <li><a href="marketplace.html" onclick="closeMenu()">Marketplace</a></li>
+                <li><a href="about.html" onclick="closeMenu()">About</a></li>
+                <li><a href="help.html" onclick="closeMenu()">Help</a></li>
+                <li><a href="account.html" onclick="closeMenu()">Account</a></li>
+                <li><a href="#" onclick="goToCart(); closeMenu()">Cart</a></li>
             </ul>
         </div>
     </nav>
@@ -994,13 +1026,13 @@
                 <div class="search-container" style="flex: 1; min-width: 200px;">
                     <div class="search-input-container">
                         <span class="search-icon">🔍</span>
-                        <input id="cardSearch" type="text" placeholder="Search cards..." style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem;">
+                        <input id="cardSearch" type="text" placeholder="Search cards...">
                     </div>
                 </div>
                 <div class="price-filter" style="min-width: 150px;">
                     <div class="dropdown-container">
                         <span class="dropdown-icon">💰</span>
-                        <select id="priceFilter" style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem; background: white;">
+                        <select id="priceFilter">
                             <option value="">All Prices</option>
                             <option value="0-10">$0 - $10</option>
                             <option value="10-25">$10 - $25</option>
@@ -1012,7 +1044,7 @@
                 <div class="sort-filter" style="min-width: 150px;">
                     <div class="dropdown-container">
                         <span class="dropdown-icon">🔀</span>
-                        <select id="sortBy" style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem; background: white;">
+                        <select id="sortBy">
                             <option value="name">Sort by Name</option>
                             <option value="price-low">Price: Low to High</option>
                             <option value="price-high">Price: High to Low</option>

@@ -380,26 +380,27 @@
         .main-content {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 0 2rem 2rem 2rem;
         }
         .discount-banner { 
             background: #dc3545; 
             color: white; 
-            padding: 16px 20px; 
-            border-radius: 12px; 
+            padding: 12px 20px; 
             margin: 0 0 1rem 0; 
-            font-weight: 700; 
+            font-weight: 600; 
             display: none;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 1rem;
+            font-size: 0.9rem;
         }
         
         .discount-text {
             flex: 1;
             min-width: 200px;
+            line-height: 1.4;
         }
         
         .go-to-shop-btn {
@@ -415,6 +416,45 @@
             display: inline-block;
         }
         
+        .discount-banner { 
+            background: #dc3545; 
+            color: white; 
+            padding: 12px 20px; 
+            margin: 0;
+            font-weight: 600; 
+            display: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .discount-text {
+            flex: 1;
+            min-width: 200px;
+            line-height: 1.4;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .go-to-shop-btn {
+            background: white;
+            color: #dc3545;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 0.85rem;
+        }
+
         .go-to-shop-btn:hover {
             background: #f8f9fa;
             transform: translateY(-2px);
@@ -424,34 +464,35 @@
         .hero-section {
             display: flex;
             align-items: center;
-            margin: 3rem 0;
-            min-height: 500px;
+            margin: 2rem 0;
+            min-height: 400px;
             position: relative;
+            background: linear-gradient(135deg, #f8f9fa 0%, #f8f9fa 50%, #e9ecef 50%, #e9ecef 100%);
+            border-radius: 20px;
             overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
 
         .hero-content {
             flex: 1;
             text-align: left;
-            padding-right: 2rem;
+            padding: 3rem 2rem 3rem 3rem;
             z-index: 2;
             position: relative;
+            max-width: 50%;
         }
 
         .hero-image-container {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 50%;
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 2rem;
+            position: relative;
         }
 
         .hero-title {
-            font-size: 3.5rem;
+            font-size: clamp(2rem, 5vw, 3.5rem);
             color: #6a4c93;
             margin-bottom: 1.5rem;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
@@ -465,7 +506,7 @@
         }
 
         .hero-subtitle {
-            font-size: 1.4rem;
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
             color: #666;
             margin-bottom: 2rem;
             line-height: 1.6;
@@ -475,33 +516,37 @@
             display: inline-block;
             background: linear-gradient(135deg, #6a4c93, #8e44ad);
             color: white;
-            padding: 1rem 2.5rem;
-            border-radius: 50px;
+            padding: 0.8rem 2rem;
+            border-radius: 25px;
             text-decoration: none;
-            font-size: 1.4rem;
-            font-weight: 700;
+            font-size: 1.1rem;
+            font-weight: 600;
             margin-top: 1.5rem;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(106, 76, 147, 0.3);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
         .hero-buy-btn:hover {
             background: linear-gradient(135deg, #5a3c83, #7e349d);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(106, 76, 147, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(106, 76, 147, 0.4);
         }
 
 
         .card-image-container {
             width: 100%;
-            max-width: 500px;
-            height: 400px;
+            max-width: 400px;
+            height: 350px;
             border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.2);
-            border: 3px solid #6a4c93;
+            box-shadow: 0 8px 25px rgba(106, 76, 147, 0.15);
+            background: white;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .card-image {
@@ -699,29 +744,34 @@
             .hero-section {
                 flex-direction: column;
                 text-align: center;
-                gap: 2rem;
+                gap: 1rem;
+                margin: 1rem 0;
+                min-height: auto;
+                padding: 1rem;
             }
 
             .hero-content {
                 text-align: center;
-                padding-right: 0;
-                padding-bottom: 2rem;
+                padding: 1rem;
+                max-width: 100%;
             }
 
             .hero-title {
-                font-size: 2.5rem;
+                font-size: 2rem;
             }
 
             .hero-image-container {
-                position: relative;
-                width: 100%;
-                height: 300px;
-                margin-top: 2rem;
+                padding: 1rem;
+            }
+
+            .card-image-container {
+                max-width: 300px;
+                height: 250px;
             }
 
             .hero-buy-btn {
-                font-size: 1.2rem;
-                padding: 0.8rem 2rem;
+                font-size: 1rem;
+                padding: 0.7rem 1.5rem;
             }
 
 
@@ -776,12 +826,14 @@
         </div>
     </div>
 
+    <!-- Discount Banner -->
+    <div id="discountBanner" class="discount-banner">
+        <div class="discount-text"></div>
+        <a href="trading-cards.html" class="go-to-shop-btn">Go to Shop</a>
+    </div>
+
     <!-- Main Content -->
     <main class="main-content" id="mainContent" style="display: none;">
-        <div id="discountBanner" class="discount-banner">
-            <div class="discount-text"></div>
-            <a href="trading-cards.html" class="go-to-shop-btn">Go to Shop</a>
-        </div>
         <!-- Hero Section -->
         <section class="hero-section">
             <div class="hero-content">

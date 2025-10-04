@@ -1989,9 +1989,9 @@
             if (!googleUser) return;
             
             const userData = JSON.parse(googleUser);
-            const selectedAddress = JSON.parse(localStorage.getItem('selectedAddress') || '{}');
-            const pendingCart = JSON.parse(localStorage.getItem('pendingCart') || '[]');
-            const pendingTotal = parseFloat(localStorage.getItem('pendingTotal') || '0');
+            const selectedAddress = JSON.parse(localStorage.getItem('checkoutAddress') || localStorage.getItem('selectedAddress') || '{}');
+            const pendingCart = JSON.parse(localStorage.getItem('checkoutCart') || localStorage.getItem('pendingCart') || '[]');
+            const pendingTotal = parseFloat(localStorage.getItem('checkoutTotal') || localStorage.getItem('pendingTotal') || '0');
             
             if (pendingCart.length === 0) return;
             

@@ -1084,6 +1084,7 @@ window.testFirebaseOrders = testFirebaseOrders;
 function createOrder(cartItems, totalPrice, shippingAddress, emailNotifications = false) {
     const orders = getOrders();
     const orderNumber = 'CF' + Date.now().toString().slice(-6);
+    
     // Capture current user (for My Orders)
     let userId = null;
     let userEmail = null;
@@ -1094,6 +1095,13 @@ function createOrder(cartItems, totalPrice, shippingAddress, emailNotifications 
             userEmail = googleUser.email || null;
         }
     } catch (_) {}
+
+    console.log('🔍 Creating order with user data:', {
+        userId: userId,
+        userEmail: userEmail,
+        cartItems: cartItems.length,
+        totalPrice: totalPrice
+    });
 
     // Process cart items to include custom card data and apply discounts
     const processedItems = cartItems.map(item => {
