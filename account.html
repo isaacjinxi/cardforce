@@ -1010,6 +1010,15 @@
                         <button class="account-btn" onclick="showOrdersModal()">My Orders</button>
                         <button class="account-btn" onclick="showAddressManager()">Manage Addresses</button>
                         <button class="account-btn" id="changeSecurityQuestionsBtn" onclick="showChangeSecurityQuestionsModal()" style="display: none;">Change Security Questions</button>
+                        
+                        <!-- Admin Controls -->
+                        <div id="adminControls" style="display: none; margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e9ecef;">
+                            <h3 style="color: #6a4c93; margin-bottom: 1rem;">Admin Controls</h3>
+                            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                <button class="account-btn" id="freezeBtn" onclick="toggleSiteFreeze()" style="background: #dc3545; border-color: #dc3545;">Freeze Site</button>
+                                <button class="account-btn" id="unfreezeBtn" onclick="toggleSiteFreeze()" style="background: #28a745; border-color: #28a745; display: none;">Unfreeze Site</button>
+                            </div>
+                        </div>
                     </div>
                     <button class="signout-btn" onclick="signOut()">Sign Out</button>
                 </div>
@@ -1128,6 +1137,12 @@
         }
 
         async function createAccountWithEmail() {
+            // Check if site is frozen
+            if (await isSiteFrozen()) {
+                showSiteFrozenMessage();
+                return;
+            }
+            
             console.log('🔍 Create account button clicked');
             console.log('🔍 Firebase functions available:', {
                 auth: !!window.auth,
@@ -1289,6 +1304,15 @@
                 securityBtn.style.display = 'block';
             } else {
                 securityBtn.style.display = 'none';
+            }
+            
+            // Show/hide admin controls based on admin status
+            const adminControls = document.getElementById('adminControls');
+            if (typeof isAdmin === 'function' && isAdmin()) {
+                adminControls.style.display = 'block';
+                updateFreezeButtonStates();
+            } else {
+                adminControls.style.display = 'none';
             }
             
             // Hide the sign-in forms and subtitle
@@ -1884,7 +1908,13 @@
             }
         }
         
-        function showChangeSecurityQuestionsModal() {
+        async function showChangeSecurityQuestionsModal() {
+            // Check if site is frozen
+            if (await isSiteFrozen()) {
+                showSiteFrozenMessage();
+                return;
+            }
+            
             document.getElementById('changeSecurityQuestionsModal').style.display = 'block';
         }
         
@@ -1944,6 +1974,83 @@
                 console.error('Error updating security questions:', error);
                 showAuthMessage('Error updating security questions. Please try again.');
             }
+        }
+
+        // Site Freeze Functionality
+        async function toggleSiteFreeze() {
+            try {
+                const isCurrentlyFrozen = await isSiteFrozen();
+                const newFreezeState = !isCurrentlyFrozen;
+                
+                // Save freeze state to localStorage
+                localStorage.setItem('siteFrozen', newFreezeState.toString());
+                
+                // Sync to Firebase
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    await window.firebaseService.saveSiteFreezeState(newFreezeState);
+                }
+                
+                // Update button states
+                updateFreezeButtonStates();
+                
+                // Show confirmation message
+                const message = newFreezeState ? 
+                    'Site has been frozen. Users will see maintenance messages.' : 
+                    'Site has been unfrozen. All functionality restored.';
+                showAuthMessage(message, 'success');
+                
+                console.log(`Site ${newFreezeState ? 'frozen' : 'unfrozen'} successfully`);
+                
+            } catch (error) {
+                console.error('Error toggling site freeze:', error);
+                showAuthMessage('Error updating site status. Please try again.');
+            }
+        }
+
+        async function isSiteFrozen() {
+            try {
+                // Check Firebase first
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    const firebaseFreezeState = await window.firebaseService.getSiteFreezeState();
+                    if (firebaseFreezeState !== null) {
+                        return firebaseFreezeState;
+                    }
+                }
+                
+                // Fallback to localStorage
+                return localStorage.getItem('siteFrozen') === 'true';
+            } catch (error) {
+                console.error('Error checking site freeze state:', error);
+                return localStorage.getItem('siteFrozen') === 'true';
+            }
+        }
+
+        function updateFreezeButtonStates() {
+            const freezeBtn = document.getElementById('freezeBtn');
+            const unfreezeBtn = document.getElementById('unfreezeBtn');
+            
+            if (!freezeBtn || !unfreezeBtn) return;
+            
+            const isFrozen = localStorage.getItem('siteFrozen') === 'true';
+            
+            if (isFrozen) {
+                freezeBtn.style.display = 'none';
+                unfreezeBtn.style.display = 'block';
+            } else {
+                freezeBtn.style.display = 'block';
+                unfreezeBtn.style.display = 'none';
+            }
+        }
+
+        // Check site freeze state on page load
+        window.addEventListener('load', async () => {
+            if (typeof isAdmin === 'function' && isAdmin()) {
+                updateFreezeButtonStates();
+            }
+        });
+
+        function showSiteFrozenMessage() {
+            alert("We're sorry, but our database is down. You cannot checkout, change account settings, or create accounts at this time.");
         }
     </script>
 </body>

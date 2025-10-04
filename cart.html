@@ -1984,7 +1984,13 @@
         }
 
         // One Won style: Create order after payment is completed
-        function createOrderAfterPayment(paymentMethod) {
+        async function createOrderAfterPayment(paymentMethod) {
+            // Check if site is frozen
+            if (await isSiteFrozen()) {
+                showSiteFrozenMessage();
+                return;
+            }
+            
             const googleUser = localStorage.getItem('googleUser');
             if (!googleUser) return;
             
@@ -2517,6 +2523,29 @@
                 closeMenu();
             }
         });
+
+        // Site Freeze Functions
+        async function isSiteFrozen() {
+            try {
+                // Check Firebase first
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    const firebaseFreezeState = await window.firebaseService.getSiteFreezeState();
+                    if (firebaseFreezeState !== null) {
+                        return firebaseFreezeState;
+                    }
+                }
+                
+                // Fallback to localStorage
+                return localStorage.getItem('siteFrozen') === 'true';
+            } catch (error) {
+                console.error('Error checking site freeze state:', error);
+                return localStorage.getItem('siteFrozen') === 'true';
+            }
+        }
+
+        function showSiteFrozenMessage() {
+            alert("We're sorry, but our database is down. You cannot checkout, change account settings, or create accounts at this time.");
+        }
     </script>
 </body>
 </html>

@@ -461,6 +461,28 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
+        .maintenance-banner {
+            background: #ffc107;
+            color: #212529;
+            padding: 12px 20px;
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+            border-bottom: 1px solid #e0a800;
+        }
+        
+        .maintenance-text {
+            text-align: center;
+            line-height: 1.4;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
         .hero-section {
             display: flex;
             align-items: center;
@@ -832,6 +854,13 @@
         <a href="trading-cards.html" class="go-to-shop-btn">Go to Shop</a>
     </div>
 
+    <!-- Maintenance Banner -->
+    <div id="maintenanceBanner" class="maintenance-banner" style="display: none;">
+        <div class="maintenance-text">
+            Due to database issues, many functions of our site are currently disabled. We are sorry for any inconveniences this might bring.
+        </div>
+    </div>
+
     <!-- Main Content -->
     <main class="main-content" id="mainContent" style="display: none;">
         <!-- Hero Section -->
@@ -864,6 +893,7 @@
             setTimeout(() => {
                 hideLoadingScreen();
                 showDiscountBanner();
+                checkMaintenanceBanner();
             }, 1500);
         };
 
@@ -901,6 +931,39 @@
                 discountText.textContent = `Limited discounts live: ${top}`;
             }
             banner.style.display = 'flex';
+        }
+
+        async function checkMaintenanceBanner() {
+            try {
+                let isFrozen = false;
+                let firebaseFreezeState = null;
+                
+                // Check Firebase first
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    firebaseFreezeState = await window.firebaseService.getSiteFreezeState();
+                    if (firebaseFreezeState !== null) {
+                        isFrozen = firebaseFreezeState;
+                    }
+                }
+                
+                // Fallback to localStorage
+                if (firebaseFreezeState === null) {
+                    isFrozen = localStorage.getItem('siteFrozen') === 'true';
+                }
+                
+                const maintenanceBanner = document.getElementById('maintenanceBanner');
+                if (maintenanceBanner) {
+                    if (isFrozen) {
+                        maintenanceBanner.style.display = 'flex';
+                    } else {
+                        maintenanceBanner.style.display = 'none';
+                    }
+                }
+                
+                console.log('Maintenance banner check:', isFrozen ? 'shown' : 'hidden');
+            } catch (error) {
+                console.error('Error checking maintenance banner:', error);
+            }
         }
 
         function toggleMenu() {

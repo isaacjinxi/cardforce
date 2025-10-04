@@ -565,7 +565,42 @@ class FirebaseService {
             return true;
         } catch (error) {
             console.error('❌ Error updating password:', error);
-            throw error;
+        }
+    }
+
+    // Site Freeze State Management
+    async saveSiteFreezeState(isFrozen) {
+        try {
+            const freezeRef = doc(db, COLLECTIONS.SYSTEM_SETTINGS, 'siteFreeze');
+            await setDoc(freezeRef, {
+                isFrozen: isFrozen,
+                lastUpdated: new Date().toISOString(),
+                updatedBy: 'admin'
+            });
+            console.log('✅ Site freeze state saved to Firebase:', isFrozen);
+            return true;
+        } catch (error) {
+            console.error('❌ Error saving site freeze state to Firebase:', error);
+            return false;
+        }
+    }
+
+    async getSiteFreezeState() {
+        try {
+            const freezeRef = doc(db, COLLECTIONS.SYSTEM_SETTINGS, 'siteFreeze');
+            const freezeDoc = await getDoc(freezeRef);
+            
+            if (freezeDoc.exists()) {
+                const data = freezeDoc.data();
+                console.log('✅ Site freeze state loaded from Firebase:', data.isFrozen);
+                return data.isFrozen;
+            } else {
+                console.log('⚠️ No site freeze state found in Firebase');
+                return null;
+            }
+        } catch (error) {
+            console.error('❌ Error loading site freeze state from Firebase:', error);
+            return null;
         }
     }
 }
