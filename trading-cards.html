@@ -569,6 +569,36 @@
             border-radius: 10px;
         }
 
+        .card-chips {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .chip-new {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #8b4513;
+            border: 1px solid #ffc107;
+        }
+
+        .chip-almost-out {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #8b4513;
+            border: 1px solid #ffc107;
+        }
 
         .card-title {
             color: #6a4c93;
@@ -891,11 +921,31 @@
     <!-- Main Content -->
     <main class="main-content">
         <section class="trading-cards-section">
-            <h1 class="section-title">Trading Cards Collection</h1>
-            <p class="section-subtitle">Discover rare and powerful cards to enhance your gameplay experience</p>
-            <div style="max-width: 600px; margin: 0 auto 1.5rem;">
-                <input id="cardSearch" type="text" placeholder="Search cards..." style="width: 100%; padding: 0.8rem 1rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem;">
+            <!-- Filters and Search Bar -->
+            <div class="filters-container" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                <div class="search-container" style="flex: 1; min-width: 200px;">
+                    <input id="cardSearch" type="text" placeholder="Search cards..." style="width: 100%; padding: 0.8rem 1rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem;">
+                </div>
+                <div class="price-filter" style="min-width: 150px;">
+                    <select id="priceFilter" style="width: 100%; padding: 0.8rem 1rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem; background: white;">
+                        <option value="">All Prices</option>
+                        <option value="0-10">$0 - $10</option>
+                        <option value="10-25">$10 - $25</option>
+                        <option value="25-50">$25 - $50</option>
+                        <option value="50+">$50+</option>
+                    </select>
+                </div>
+                <div class="sort-filter" style="min-width: 150px;">
+                    <select id="sortBy" style="width: 100%; padding: 0.8rem 1rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem; background: white;">
+                        <option value="name">Sort by Name</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
             </div>
+            
             <div id="adminAddProduct" style="display: none; text-align: center; margin-bottom: 2rem;">
                 <button class="btn" onclick="addNewProduct()" style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 10px;">
                     ➕ Add New Product
@@ -907,10 +957,12 @@
                     <div class="card-image-container">
                         <img src="PigPrincess.png" alt="Pig-princess Card" class="card-image">
                     </div>
+                    <div class="card-chips">
+                        <span class="chip chip-new">New</span>
+                    </div>
                     <h3 class="card-title">Pig-princess</h3>
                     <p class="card-description">A royal pig character with high defense and low damage. Special ability: "I'm so pretty" - reduces opponent's attack by 50% for one turn.</p>
                     <div class="card-price" data-price="7.99">$7.99</div>
-                    <div class="card-stock" id="stock-pig-princess">Stock: <span id="stock-count-pig-princess">50</span></div>
                     <div class="card-actions">
                         <button class="buy-btn" onclick="buyCard('Pig-princess')">Buy Now</button>
                         <a class="add-to-cart-btn" href="product.html?id=pig-princess" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
@@ -926,10 +978,12 @@
                     <div class="card-image-container">
                         <img src="mike.png" alt="Mike Card" class="card-image">
                     </div>
+                    <div class="card-chips">
+                        <span class="chip chip-almost-out">Almost Out</span>
+                    </div>
                     <h3 class="card-title">Mike</h3>
                     <p class="card-description">A fierce stick figure warrior with balanced stats. Special ability: "Sword Master" - increases attack by 25% when health is below 50%.</p>
                     <div class="card-price" data-price="5.99">$5.99</div>
-                    <div class="card-stock" id="stock-mike">Stock: <span id="stock-count-mike">30</span></div>
                     <div class="card-actions">
                         <button class="buy-btn" onclick="buyCard('Mike')">Buy Now</button>
                         <a class="add-to-cart-btn" href="product.html?id=mike" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
@@ -1086,6 +1140,16 @@
             const search = document.getElementById('cardSearch');
             if (search) {
                 search.addEventListener('input', function() { filterCards(this.value); });
+            }
+            
+            const priceFilter = document.getElementById('priceFilter');
+            if (priceFilter) {
+                priceFilter.addEventListener('change', function() { filterCards(search?.value || ''); });
+            }
+            
+            const sortBy = document.getElementById('sortBy');
+            if (sortBy) {
+                sortBy.addEventListener('change', function() { filterCards(search?.value || ''); });
             }
             
             console.log('Page initialization complete');
@@ -1297,7 +1361,8 @@
                         description: product.description,
                         imageUrl: product.imageUrl,
                         discount: product.discount,
-                        backorderDays: product.backorderDays
+                        backorderDays: product.backorderDays,
+                        isNew: product.isNew || false
                     });
                 }
             });
@@ -1317,11 +1382,22 @@
                 // Create image container with proper validation
                 const imageContainer = createImageElement(p.imageUrl || '', `${p.name} Card`, p.id);
                 
+                // Determine chips based on product properties
+                const chips = [];
+                if (p.isNew) {
+                    chips.push('<span class="chip chip-new">New</span>');
+                }
+                if (p.stock && p.stock < 10) {
+                    chips.push('<span class="chip chip-almost-out">Almost Out</span>');
+                }
+                
                 card.innerHTML = `
+                    <div class="card-chips">
+                        ${chips.join('')}
+                    </div>
                     <h3 class="card-title">${p.name}</h3>
                     <p class="card-description">${p.description || ''}</p>
                     <div class="card-price" data-price="${p.price}">$${(+p.price).toFixed(2)}</div>
-                    <div class="card-stock" id="stock-${p.id}">Stock: <span id="stock-count-${p.id}">${p.stock ?? 0}</span></div>
                     <div class="card-actions">
                         <button class="buy-btn" onclick="buyCard('${p.name}')">Buy Now</button>
                         <a class="add-to-cart-btn" href="product.html?id=${p.id}" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
@@ -1525,10 +1601,85 @@
 
         function filterCards(query) {
             const q = (query || '').toLowerCase();
+            const priceFilter = document.getElementById('priceFilter')?.value || '';
+            const sortBy = document.getElementById('sortBy')?.value || 'name';
+            
+            let visibleCards = [];
+            
             document.querySelectorAll('.cards-grid .card-placeholder').forEach(card => {
                 const title = (card.querySelector('.card-title')?.textContent || '').toLowerCase();
                 const desc = (card.querySelector('.card-description')?.textContent || '').toLowerCase();
-                card.style.display = (title.includes(q) || desc.includes(q)) ? '' : 'none';
+                const price = parseFloat(card.querySelector('.card-price')?.dataset.price || '0');
+                
+                // Check search query
+                const matchesSearch = !q || title.includes(q) || desc.includes(q);
+                
+                // Check price filter
+                let matchesPrice = true;
+                if (priceFilter) {
+                    switch (priceFilter) {
+                        case '0-10':
+                            matchesPrice = price >= 0 && price <= 10;
+                            break;
+                        case '10-25':
+                            matchesPrice = price > 10 && price <= 25;
+                            break;
+                        case '25-50':
+                            matchesPrice = price > 25 && price <= 50;
+                            break;
+                        case '50+':
+                            matchesPrice = price > 50;
+                            break;
+                    }
+                }
+                
+                if (matchesSearch && matchesPrice) {
+                    card.style.display = '';
+                    visibleCards.push(card);
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Sort visible cards
+            sortCards(visibleCards, sortBy);
+        }
+        
+        function sortCards(cards, sortBy) {
+            const grid = document.getElementById('cardsGrid');
+            
+            cards.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name':
+                        const nameA = a.querySelector('.card-title')?.textContent || '';
+                        const nameB = b.querySelector('.card-title')?.textContent || '';
+                        return nameA.localeCompare(nameB);
+                    
+                    case 'price-low':
+                        const priceA = parseFloat(a.querySelector('.card-price')?.dataset.price || '0');
+                        const priceB = parseFloat(b.querySelector('.card-price')?.dataset.price || '0');
+                        return priceA - priceB;
+                    
+                    case 'price-high':
+                        const priceAHigh = parseFloat(a.querySelector('.card-price')?.dataset.price || '0');
+                        const priceBHigh = parseFloat(b.querySelector('.card-price')?.dataset.price || '0');
+                        return priceBHigh - priceAHigh;
+                    
+                    case 'newest':
+                        // For demo purposes, assume newer products have higher IDs or are added later
+                        return b.getAttribute('data-card-id').localeCompare(a.getAttribute('data-card-id'));
+                    
+                    case 'oldest':
+                        return a.getAttribute('data-card-id').localeCompare(b.getAttribute('data-card-id'));
+                    
+                    default:
+                        return 0;
+                }
+            });
+            
+            // Reorder cards in the grid
+            cards.forEach(card => {
+                grid.appendChild(card);
             });
         }
 
@@ -1735,7 +1886,18 @@
             }
             
             // Persist to catalog and re-render
-            upsertCatalogProduct({ id, name, price, stock, status, backorderDays: backorderDays ? parseInt(backorderDays) : null, discount, description, imageUrl });
+            upsertCatalogProduct({ 
+                id, 
+                name, 
+                price, 
+                stock, 
+                status, 
+                backorderDays: backorderDays ? parseInt(backorderDays) : null, 
+                discount, 
+                description, 
+                imageUrl,
+                isNew: true // Mark new products
+            });
             document.querySelector('.modal').remove();
             renderCatalogProducts();
             alert('New product created successfully! 🎉');
