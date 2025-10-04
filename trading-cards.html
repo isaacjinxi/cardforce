@@ -1190,17 +1190,26 @@
         }
 
         function showAdminControls() {
-            if (isAdmin()) {
+            console.log('🔧 Checking admin status...');
+            const adminStatus = isAdmin();
+            console.log('Admin status:', adminStatus);
+            
+            if (adminStatus) {
                 const adminControls = document.querySelectorAll('.admin-controls');
+                console.log('Found admin controls:', adminControls.length);
                 adminControls.forEach(control => {
                     control.style.display = 'block';
+                    console.log('Showing admin control:', control.id);
                 });
                 
                 // Show add product button
                 const addProductBtn = document.getElementById('adminAddProduct');
                 if (addProductBtn) {
                     addProductBtn.style.display = 'block';
+                    console.log('Showing add product button');
                 }
+            } else {
+                console.log('User is not admin, hiding admin controls');
             }
         }
 
@@ -1364,28 +1373,38 @@
         }
 
         function deleteItem(cardId) {
+            console.log('🗑️ Delete item called for:', cardId);
+            console.log('Admin status:', isAdmin());
+            
             if (confirm(`Are you sure you want to delete ${cardId}? This action cannot be undone!`)) {
                 console.log('🗑️ Deleting product:', cardId);
                 
                 // Remove from product data
                 const productData = getProductData();
+                console.log('Current product data:', productData);
                 if (productData[cardId]) {
                     delete productData[cardId];
                     updateProductData(productData);
                     console.log('✅ Product removed from product data');
+                } else {
+                    console.log('⚠️ Product not found in product data');
                 }
                 
                 // Remove from product catalog
                 const catalog = getProductCatalog();
+                console.log('Current catalog:', catalog);
                 const catalogIndex = catalog.findIndex(p => p.id === cardId);
                 if (catalogIndex >= 0) {
                     catalog.splice(catalogIndex, 1);
                     localStorage.setItem('productCatalog', JSON.stringify(catalog));
                     console.log('✅ Product removed from catalog');
+                } else {
+                    console.log('⚠️ Product not found in catalog');
                 }
                 
                 // Remove from Firebase if available
                 if (window.firebaseService && window.firebaseService.isInitialized) {
+                    console.log('🔥 Attempting Firebase deletion...');
                     window.firebaseService.deleteProductFromFirebase(cardId).then(() => {
                         console.log('✅ Product deleted from Firebase');
                         // Trigger a product data refresh to ensure consistency
@@ -1397,21 +1416,31 @@
                         // Still show success message even if Firebase fails
                         alert('Product deleted locally. Firebase sync failed, but deletion was successful.');
                     });
+                } else {
+                    console.log('⚠️ Firebase service not available');
                 }
                 
                 // Remove DOM element
                 const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+                console.log('Card element found:', !!cardElement);
                 if (cardElement) {
                     cardElement.remove();
                     console.log('✅ Product removed from display');
+                } else {
+                    console.log('⚠️ Card element not found in DOM');
                 }
                 
                 // Refresh the catalog display
                 if (typeof renderCatalogProducts === 'function') {
+                    console.log('🔄 Refreshing catalog display...');
                     renderCatalogProducts();
+                } else {
+                    console.log('⚠️ renderCatalogProducts function not available');
                 }
                 
                 alert('Product deleted successfully! 🗑️');
+            } else {
+                console.log('❌ Delete cancelled by user');
             }
         }
 
