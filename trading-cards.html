@@ -232,6 +232,17 @@
             return {};
           }
         }
+
+        async deleteProductFromFirebase(productId) {
+          try {
+            const productRef = doc(db, COLLECTIONS.PRODUCTS, productId);
+            await deleteDoc(productRef);
+            console.log('✅ Product deleted from Firebase:', productId);
+          } catch (error) {
+            console.error('❌ Error deleting product from Firebase:', error);
+            throw error;
+          }
+        }
       }
       
       // Initialize Firebase Service
@@ -1414,17 +1425,25 @@
                 // Remove from Firebase if available
                 if (window.firebaseService && window.firebaseService.isInitialized) {
                     console.log('🔥 Attempting Firebase deletion...');
-                    window.firebaseService.deleteProductFromFirebase(cardId).then(() => {
-                        console.log('✅ Product deleted from Firebase');
-                        // Trigger a product data refresh to ensure consistency
-                        if (typeof triggerProductDataRefresh === 'function') {
-                            triggerProductDataRefresh();
-                        }
-                    }).catch(error => {
-                        console.error('❌ Failed to delete from Firebase:', error);
-                        // Still show success message even if Firebase fails
-                        alert('Product deleted locally. Firebase sync failed, but deletion was successful.');
-                    });
+                    console.log('Firebase service methods:', Object.getOwnPropertyNames(window.firebaseService));
+                    console.log('deleteProductFromFirebase exists:', typeof window.firebaseService.deleteProductFromFirebase);
+                    
+                    if (typeof window.firebaseService.deleteProductFromFirebase === 'function') {
+                        window.firebaseService.deleteProductFromFirebase(cardId).then(() => {
+                            console.log('✅ Product deleted from Firebase');
+                            // Trigger a product data refresh to ensure consistency
+                            if (typeof triggerProductDataRefresh === 'function') {
+                                triggerProductDataRefresh();
+                            }
+                        }).catch(error => {
+                            console.error('❌ Failed to delete from Firebase:', error);
+                            // Still show success message even if Firebase fails
+                            alert('Product deleted locally. Firebase sync failed, but deletion was successful.');
+                        });
+                    } else {
+                        console.error('❌ deleteProductFromFirebase function not available');
+                        alert('Product deleted locally. Firebase deletion function not available.');
+                    }
                 } else {
                     console.log('⚠️ Firebase service not available');
                 }
