@@ -1344,8 +1344,47 @@
 
         function deleteItem(cardId) {
             if (confirm(`Are you sure you want to delete ${cardId}? This action cannot be undone!`)) {
+                console.log('🗑️ Deleting product:', cardId);
+                
+                // Remove from product data
+                const productData = getProductData();
+                if (productData[cardId]) {
+                    delete productData[cardId];
+                    updateProductData(productData);
+                    console.log('✅ Product removed from product data');
+                }
+                
+                // Remove from product catalog
+                const catalog = getProductCatalog();
+                const catalogIndex = catalog.findIndex(p => p.id === cardId);
+                if (catalogIndex >= 0) {
+                    catalog.splice(catalogIndex, 1);
+                    localStorage.setItem('productCatalog', JSON.stringify(catalog));
+                    console.log('✅ Product removed from catalog');
+                }
+                
+                // Remove from Firebase if available
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    window.firebaseService.deleteProductFromFirebase(cardId).then(() => {
+                        console.log('✅ Product deleted from Firebase');
+                    }).catch(error => {
+                        console.error('❌ Failed to delete from Firebase:', error);
+                    });
+                }
+                
+                // Remove DOM element
                 const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
-                cardElement.remove();
+                if (cardElement) {
+                    cardElement.remove();
+                    console.log('✅ Product removed from display');
+                }
+                
+                // Refresh the catalog display
+                if (typeof renderCatalogProducts === 'function') {
+                    renderCatalogProducts();
+                }
+                
+                alert('Product deleted successfully! 🗑️');
             }
         }
 

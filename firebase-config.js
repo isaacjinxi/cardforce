@@ -308,6 +308,17 @@ class FirebaseService {
         }
     }
 
+    async deleteProductFromFirebase(productId) {
+        try {
+            const productRef = doc(db, COLLECTIONS.PRODUCTS, productId);
+            await deleteDoc(productRef);
+            console.log('✅ Product deleted from Firebase:', productId);
+        } catch (error) {
+            console.error('❌ Error deleting product from Firebase:', error);
+            throw error;
+        }
+    }
+
     async loadProductsFromFirebase() {
         try {
             const querySnapshot = await getDocs(collection(db, COLLECTIONS.PRODUCTS));
