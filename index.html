@@ -382,19 +382,72 @@
             margin: 0 auto;
             padding: 2rem;
         }
-        .discount-banner { background:#fff6f6; border:2px dashed #dc3545; color:#b02a37; padding:12px 16px; border-radius:12px; margin: 0 0 1rem 0; font-weight:700; display:none; }
+        .discount-banner { 
+            background: #dc3545; 
+            color: white; 
+            padding: 16px 20px; 
+            border-radius: 12px; 
+            margin: 0 0 1rem 0; 
+            font-weight: 700; 
+            display: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .discount-text {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .go-to-shop-btn {
+            background: white;
+            color: #dc3545;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .go-to-shop-btn:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
 
         .hero-section {
             display: flex;
             align-items: center;
-            gap: 4rem;
             margin: 3rem 0;
             min-height: 500px;
+            position: relative;
+            overflow: hidden;
         }
 
         .hero-content {
             flex: 1;
             text-align: left;
+            padding-right: 2rem;
+            z-index: 2;
+            position: relative;
+        }
+
+        .hero-image-container {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
         }
 
         .hero-title {
@@ -418,20 +471,28 @@
             line-height: 1.6;
         }
 
-        .hero-cta {
-            font-size: 1.8rem;
-            color: #8e44ad;
-            font-weight: 600;
-            margin-bottom: 2rem;
-            animation: pulse-text 2s infinite;
+        .hero-buy-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(106, 76, 147, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .hero-image-container {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        .hero-buy-btn:hover {
+            background: linear-gradient(135deg, #5a3c83, #7e349d);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(106, 76, 147, 0.4);
         }
+
 
         .card-image-container {
             width: 100%;
@@ -643,14 +704,24 @@
 
             .hero-content {
                 text-align: center;
+                padding-right: 0;
+                padding-bottom: 2rem;
             }
 
             .hero-title {
                 font-size: 2.5rem;
             }
 
-            .hero-cta {
-                font-size: 1.4rem;
+            .hero-image-container {
+                position: relative;
+                width: 100%;
+                height: 300px;
+                margin-top: 2rem;
+            }
+
+            .hero-buy-btn {
+                font-size: 1.2rem;
+                padding: 0.8rem 2rem;
             }
 
 
@@ -707,13 +778,16 @@
 
     <!-- Main Content -->
     <main class="main-content" id="mainContent" style="display: none;">
-        <div id="discountBanner" class="discount-banner"></div>
+        <div id="discountBanner" class="discount-banner">
+            <div class="discount-text"></div>
+            <a href="trading-cards.html" class="go-to-shop-btn">Go to Shop</a>
+        </div>
         <!-- Hero Section -->
         <section class="hero-section">
             <div class="hero-content">
-                <h1 class="hero-title">Welcome to Card Force</h1>
-                <p class="hero-subtitle">Experience the ultimate card game adventure with stunning graphics and exciting gameplay</p>
-                <div class="hero-cta">Make Your Own Custom Cards</div>
+                <h1 class="hero-title">Shop The Latest Cards</h1>
+                <p class="hero-subtitle">Discover amazing trading cards with stunning artwork and exciting gameplay mechanics</p>
+                <a href="trading-cards.html" class="hero-buy-btn">Buy</a>
             </div>
             
             <div class="hero-image-container">
@@ -770,8 +844,11 @@
             const top = discounted.slice(0,3)
                 .map(x => `${x.p.name || x.p.id} -${x.d}%`)
                 .join(' • ');
-            banner.textContent = `Limited discounts live: ${top}`;
-            banner.style.display = 'block';
+            const discountText = banner.querySelector('.discount-text');
+            if (discountText) {
+                discountText.textContent = `Limited discounts live: ${top}`;
+            }
+            banner.style.display = 'flex';
         }
 
         function toggleMenu() {
