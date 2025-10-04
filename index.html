@@ -938,8 +938,11 @@
                 let isFrozen = false;
                 let firebaseFreezeState = null;
                 
-                // Check Firebase first
-                if (window.firebaseService && window.firebaseService.isInitialized) {
+                // Check Firebase first if service is available and has the function
+                if (window.firebaseService && 
+                    window.firebaseService.isInitialized && 
+                    typeof window.firebaseService.getSiteFreezeState === 'function') {
+                    
                     firebaseFreezeState = await window.firebaseService.getSiteFreezeState();
                     if (firebaseFreezeState !== null) {
                         isFrozen = firebaseFreezeState;
@@ -963,7 +966,37 @@
                 console.log('Maintenance banner check:', isFrozen ? 'shown' : 'hidden');
             } catch (error) {
                 console.error('Error checking maintenance banner:', error);
+                // If Firebase error, show custom popup and fallback to localStorage
+                if (isFirebaseError(error)) {
+                    alert("We ran into a problem. Our database may be down. Please try again later.");
+                }
+                
+                // Fallback to localStorage
+                const isFrozen = localStorage.getItem('siteFrozen') === 'true';
+                const maintenanceBanner = document.getElementById('maintenanceBanner');
+                if (maintenanceBanner) {
+                    if (isFrozen) {
+                        maintenanceBanner.style.display = 'flex';
+                    } else {
+                        maintenanceBanner.style.display = 'none';
+                    }
+                }
             }
+        }
+
+        // Enhanced Firebase error detection
+        function isFirebaseError(error) {
+            if (!error) return false;
+            
+            const errorMessage = error.message ? error.message.toLowerCase() : '';
+            const errorCode = error.code ? error.code.toLowerCase() : '';
+            
+            return errorMessage.includes('firebase') || 
+                   errorMessage.includes('network') || 
+                   errorMessage.includes('connection') ||
+                   errorCode.includes('unavailable') ||
+                   errorCode.includes('deadline') ||
+                   errorCode.includes('aborted');
         }
 
         function toggleMenu() {

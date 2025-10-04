@@ -2527,8 +2527,11 @@
         // Site Freeze Functions
         async function isSiteFrozen() {
             try {
-                // Check Firebase first
-                if (window.firebaseService && window.firebaseService.isInitialized) {
+                // Check Firebase first if service is available and has the function
+                if (window.firebaseService && 
+                    window.firebaseService.isInitialized && 
+                    typeof window.firebaseService.getSiteFreezeState === 'function') {
+                    
                     const firebaseFreezeState = await window.firebaseService.getSiteFreezeState();
                     if (firebaseFreezeState !== null) {
                         return firebaseFreezeState;
@@ -2539,12 +2542,35 @@
                 return localStorage.getItem('siteFrozen') === 'true';
             } catch (error) {
                 console.error('Error checking site freeze state:', error);
+                // If Firebase error, show custom popup and fallback to localStorage
+                if (isFirebaseError(error)) {
+                    showFirebaseErrorMessage();
+                }
                 return localStorage.getItem('siteFrozen') === 'true';
             }
         }
 
         function showSiteFrozenMessage() {
             alert("We're sorry, but our database is down. You cannot checkout, change account settings, or create accounts at this time.");
+        }
+
+        function showFirebaseErrorMessage() {
+            alert("We ran into a problem. Our database may be down. Please try again later.");
+        }
+
+        // Enhanced Firebase error detection
+        function isFirebaseError(error) {
+            if (!error) return false;
+            
+            const errorMessage = error.message ? error.message.toLowerCase() : '';
+            const errorCode = error.code ? error.code.toLowerCase() : '';
+            
+            return errorMessage.includes('firebase') || 
+                   errorMessage.includes('network') || 
+                   errorMessage.includes('connection') ||
+                   errorCode.includes('unavailable') ||
+                   errorCode.includes('deadline') ||
+                   errorCode.includes('aborted');
         }
     </script>
 </body>
