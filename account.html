@@ -35,6 +35,7 @@
       window.GoogleAuthProvider = GoogleAuthProvider;
       window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
       window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+      window.signInWithPopup = signInWithPopup;
       window.updateProfile = updateProfile;
       window.firebaseSignOut = firebaseSignOut;
     </script>
@@ -717,10 +718,17 @@
                 <div class="auth-container">
                     <!-- Google Sign-In -->
                     <div class="google-signin-container">
+                        <button class="auth-btn auth-btn-google" onclick="signInWithGoogleFirebase()">
+                            <span class="auth-icon">🔑</span>
+                            Sign in with Google (Firebase)
+                        </button>
+                        
+                        <!-- Fallback Google One Tap -->
                         <div id="g_id_onload"
                              data-client_id="91438507562-jue5hjq2i6lskjgd1vhbe03ql2kkjp0k.apps.googleusercontent.com"
                              data-callback="handleCredentialResponse"
-                             data-auto_prompt="false">
+                             data-auto_prompt="false"
+                             style="display: none;">
                         </div>
                         <div class="g_id_signin"
                              data-type="standard"
@@ -728,7 +736,8 @@
                              data-theme="outline"
                              data-text="sign_in_with"
                              data-shape="rectangular"
-                             data-logo_alignment="left">
+                             data-logo_alignment="left"
+                             style="display: none;">
                         </div>
                     </div>
 
@@ -986,13 +995,45 @@
             }
         }
 
+        // Firebase Google Sign-In Function
+        async function signInWithGoogleFirebase() {
+            try {
+                showAuthMessage('Signing in with Google...', 'info');
+                
+                // Use Firebase Auth for Google Sign-In
+                const provider = new window.GoogleAuthProvider();
+                const result = await window.signInWithPopup(window.auth, provider);
+                const user = result.user;
+                
+                // Store user data in localStorage for compatibility
+                const userData = {
+                    sub: user.uid,
+                    name: user.displayName,
+                    email: user.email,
+                    picture: user.photoURL,
+                    given_name: user.displayName?.split(' ')[0] || '',
+                    family_name: user.displayName?.split(' ').slice(1).join(' ') || ''
+                };
+                
+                localStorage.setItem('googleUser', JSON.stringify(userData));
+                displayUserInfo(userData);
+                
+                showAuthMessage('Successfully signed in!', 'success');
+                console.log('Firebase Google Sign-In successful:', user);
+                
+            } catch (error) {
+                console.error('Firebase Google Sign-In error:', error);
+                showAuthMessage('Sign-in failed: ' + error.message, 'error');
+            }
+        }
+
         // Google Sign-In Configuration
         window.onload = function () {
             google.accounts.id.initialize({
                 client_id: "91438507562-jue5hjq2i6lskjgd1vhbe03ql2kkjp0k.apps.googleusercontent.com",
                 callback: handleCredentialResponse
             });
-            
+
             // Check if user is already signed in
             checkExistingSignIn();
         };
