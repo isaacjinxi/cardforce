@@ -246,9 +246,37 @@
         .disabled-btn { background:#b0b0b0 !important; color:#eee !important; cursor:not-allowed !important; }
         .stock { font-size:0.9rem; color:#666; margin-top:0.5rem; font-style:italic; }
         .footer { background: linear-gradient(135deg, #6a4c93, #8e44ad); color:#fff; text-align:center; padding:2rem 0; margin-top:3rem; }
+
+        .database-down-banner {
+            background: #ffc107;
+            color: #212529;
+            padding: 12px 20px;
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+            border-bottom: 1px solid #e0a800;
+        }
+        .database-down-text {
+            text-align: center;
+            line-height: 1.4;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
     </style>
     </head>
 <body>
+    <!-- Database Down Banner -->
+    <div id="databaseDownBanner" class="database-down-banner" style="display: none;">
+        <div class="database-down-text">
+            Database is down, many services are unavailable
+        </div>
+    </div>
+
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo">
@@ -363,11 +391,25 @@
 
             buyBtn.onclick = function(){
                 if (disable) return;
+                
+                // Check if Firebase is offline
+                if (isFirebaseOffline()) {
+                    alert("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                    return;
+                }
+                
                 const paypalUrl = `https://www.paypal.com/paypalme/SongboJin/${(discount>0? discounted: basePrice).toFixed(2)}`;
                 window.open(paypalUrl, '_blank', 'noopener,noreferrer');
             };
             cartBtn.onclick = function(){
                 if (disable) return;
+                
+                // Check if Firebase is offline
+                if (isFirebaseOffline()) {
+                    alert("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                    return;
+                }
+                
                 const googleUser = localStorage.getItem('googleUser');
                 if (!googleUser) { alert('Please sign in to add to cart.'); return; }
                 const userData = JSON.parse(googleUser);
@@ -381,6 +423,53 @@
             };
         }
 
+        // Firebase Availability Check
+        async function checkFirebaseAvailability() {
+            try {
+                let isAvailable = true;
+                
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    isAvailable = await window.firebaseService.checkFirebaseAvailability();
+                    
+                    if (!isAvailable) {
+                        alert("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                    }
+                } else {
+                    // If Firebase service is not initialized, assume offline
+                    isAvailable = false;
+                }
+                
+                // Update database down banner
+                const databaseDownBanner = document.getElementById('databaseDownBanner');
+                if (databaseDownBanner) {
+                    if (!isAvailable) {
+                        databaseDownBanner.style.display = 'flex';
+                    } else {
+                        databaseDownBanner.style.display = 'none';
+                    }
+                }
+                
+                // Update global offline state
+                window.isFirebaseOffline = !isAvailable;
+                
+            } catch (error) {
+                console.error('Error checking Firebase availability:', error);
+                
+                // Show database down banner on error
+                const databaseDownBanner = document.getElementById('databaseDownBanner');
+                if (databaseDownBanner) {
+                    databaseDownBanner.style.display = 'flex';
+                }
+                window.isFirebaseOffline = true;
+                alert("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+            }
+        }
+
+        // Check if Firebase is offline
+        function isFirebaseOffline() {
+            return window.isFirebaseOffline === true;
+        }
+
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
             // Wait for admin-utils to load
@@ -389,6 +478,11 @@
                 if (typeof addGlobalNavElements === 'function') {
                     addGlobalNavElements();
                 }
+                
+                // Check Firebase availability
+                setTimeout(() => {
+                    checkFirebaseAvailability();
+                }, 2000);
             }, 100);
         });
 

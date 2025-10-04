@@ -508,6 +508,27 @@
             margin: 0 auto;
         }
 
+        .database-down-banner {
+            background: #ffc107;
+            color: #212529;
+            padding: 12px 20px;
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+            border-bottom: 1px solid #e0a800;
+        }
+        .database-down-text {
+            text-align: center;
+            line-height: 1.4;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
         .hero-section {
             display: flex;
             align-items: center;
@@ -887,6 +908,13 @@
         </div>
     </div>
 
+    <!-- Database Down Banner -->
+    <div id="databaseDownBanner" class="database-down-banner" style="display: none;">
+        <div class="database-down-text">
+            Database is down, many services are unavailable
+        </div>
+    </div>
+
     <!-- Main Content -->
     <main class="main-content" id="mainContent" style="display: none;">
         <!-- Hero Section -->
@@ -964,6 +992,7 @@
             try {
                 let isFrozen = false;
                 let firebaseFreezeState = null;
+                let isFirebaseAvailable = true;
                 
                 // Check Firebase first if service is available and has the function
                 if (window.firebaseService && 
@@ -974,6 +1003,9 @@
                     if (firebaseFreezeState !== null) {
                         isFrozen = firebaseFreezeState;
                     }
+                    
+                    // Check Firebase availability
+                    isFirebaseAvailable = await window.firebaseService.checkFirebaseAvailability();
                 }
                 
                 // Fallback to localStorage
@@ -982,6 +1014,8 @@
                 }
                 
                 const maintenanceBanner = document.getElementById('maintenanceBanner');
+                const databaseDownBanner = document.getElementById('databaseDownBanner');
+                
                 if (maintenanceBanner) {
                     if (isFrozen) {
                         maintenanceBanner.style.display = 'flex';
@@ -990,7 +1024,19 @@
                     }
                 }
                 
+                if (databaseDownBanner) {
+                    if (!isFirebaseAvailable) {
+                        databaseDownBanner.style.display = 'flex';
+                    } else {
+                        databaseDownBanner.style.display = 'none';
+                    }
+                }
+                
+                // Update global offline state
+                window.isFirebaseOffline = !isFirebaseAvailable;
+                
                 console.log('Maintenance banner check:', isFrozen ? 'shown' : 'hidden');
+                console.log('Database down banner check:', !isFirebaseAvailable ? 'shown' : 'hidden');
             } catch (error) {
                 console.error('Error checking maintenance banner:', error);
                 // If Firebase error, show custom popup and fallback to localStorage
@@ -1001,12 +1047,20 @@
                 // Fallback to localStorage
                 const isFrozen = localStorage.getItem('siteFrozen') === 'true';
                 const maintenanceBanner = document.getElementById('maintenanceBanner');
+                const databaseDownBanner = document.getElementById('databaseDownBanner');
+                
                 if (maintenanceBanner) {
                     if (isFrozen) {
                         maintenanceBanner.style.display = 'flex';
                     } else {
                         maintenanceBanner.style.display = 'none';
                     }
+                }
+                
+                // Show database down banner on Firebase errors
+                if (databaseDownBanner) {
+                    databaseDownBanner.style.display = 'flex';
+                    window.isFirebaseOffline = true;
                 }
             }
         }

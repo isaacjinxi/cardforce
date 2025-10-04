@@ -217,6 +217,27 @@
             font-weight: bold;
         }
 
+        .database-down-banner {
+            background: #ffc107;
+            color: #212529;
+            padding: 12px 20px;
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+            border-bottom: 1px solid #e0a800;
+        }
+        .database-down-text {
+            text-align: center;
+            line-height: 1.4;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
         .nav-menu {
             display: flex;
             list-style: none;
@@ -719,6 +740,13 @@
     </style>
 </head>
 <body>
+    <!-- Database Down Banner -->
+    <div id="databaseDownBanner" class="database-down-banner" style="display: none;">
+        <div class="database-down-text">
+            Database is down, many services are unavailable
+        </div>
+    </div>
+
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
@@ -1665,6 +1693,12 @@
         }
 
         function saveAddressForm(addressId = null) {
+            // Check if Firebase is offline
+            if (isFirebaseOffline()) {
+                showFirebaseErrorMessage();
+                return;
+            }
+            
             const name = document.getElementById('addressName').value.trim();
             const streetAddress = document.getElementById('streetAddress').value.trim();
             const city = document.getElementById('city').value.trim();
@@ -2138,8 +2172,10 @@
         // Firebase Availability Check
         async function checkFirebaseAvailability() {
             try {
+                let isAvailable = true;
+                
                 if (window.firebaseService && window.firebaseService.isInitialized) {
-                    const isAvailable = await window.firebaseService.checkFirebaseAvailability();
+                    isAvailable = await window.firebaseService.checkFirebaseAvailability();
                     updateOfflineIndicator(!isAvailable);
                     
                     if (!isAvailable) {
@@ -2147,12 +2183,34 @@
                     }
                 } else {
                     // If Firebase service is not initialized, assume offline
+                    isAvailable = false;
                     updateOfflineIndicator(true);
                 }
+                
+                // Update database down banner
+                const databaseDownBanner = document.getElementById('databaseDownBanner');
+                if (databaseDownBanner) {
+                    if (!isAvailable) {
+                        databaseDownBanner.style.display = 'flex';
+                    } else {
+                        databaseDownBanner.style.display = 'none';
+                    }
+                }
+                
+                // Update global offline state
+                window.isFirebaseOffline = !isAvailable;
+                
             } catch (error) {
                 console.error('Error checking Firebase availability:', error);
                 updateOfflineIndicator(true);
                 showFirebaseErrorMessage();
+                
+                // Show database down banner on error
+                const databaseDownBanner = document.getElementById('databaseDownBanner');
+                if (databaseDownBanner) {
+                    databaseDownBanner.style.display = 'flex';
+                }
+                window.isFirebaseOffline = true;
             }
         }
 
