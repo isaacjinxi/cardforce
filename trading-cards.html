@@ -2287,7 +2287,10 @@
             }
             
             // Check if site is frozen
-            if (await isSiteFrozen()) {
+            const siteFrozen = await isSiteFrozen();
+            console.log('🔒 Site frozen check:', siteFrozen);
+            if (siteFrozen) {
+                console.log('🔒 Site is frozen, showing message');
                 showSiteFrozenMessage();
                 return;
             }
@@ -2703,26 +2706,34 @@
         // Site Freeze Functions
         async function isSiteFrozen() {
             try {
+                console.log('🔒 Checking site freeze state...');
+                
                 // Check Firebase first if service is available and has the function
                 if (window.firebaseService && 
                     window.firebaseService.isInitialized && 
                     typeof window.firebaseService.getSiteFreezeState === 'function') {
                     
+                    console.log('🔒 Checking Firebase for freeze state...');
                     const firebaseFreezeState = await window.firebaseService.getSiteFreezeState();
+                    console.log('🔒 Firebase freeze state:', firebaseFreezeState);
                     if (firebaseFreezeState !== null) {
                         return firebaseFreezeState;
                     }
                 }
                 
                 // Fallback to localStorage
-                return localStorage.getItem('siteFrozen') === 'true';
+                const localFreezeState = localStorage.getItem('siteFrozen') === 'true';
+                console.log('🔒 Local freeze state:', localFreezeState);
+                return localFreezeState;
             } catch (error) {
                 console.error('Error checking site freeze state:', error);
                 // If Firebase error, show custom popup and fallback to localStorage
                 if (isFirebaseError(error)) {
                     showFirebaseErrorMessage();
                 }
-                return localStorage.getItem('siteFrozen') === 'true';
+                const localFreezeState = localStorage.getItem('siteFrozen') === 'true';
+                console.log('🔒 Fallback freeze state:', localFreezeState);
+                return localFreezeState;
             }
         }
 
@@ -2824,6 +2835,9 @@
             }
         }
 
+        // Initialize Firebase availability tracking
+        window.firebaseWasAvailable = null; // null means we don't know yet
+        
         // Firebase Availability Check with retry logic
         async function checkFirebaseAvailability(retryCount = 0) {
             const maxRetries = 2;
@@ -2842,8 +2856,13 @@
                 updateOfflineIndicator(!isAvailable);
                 
                 // Only show error message if Firebase was previously available and now isn't
-                if (!isAvailable && window.firebaseWasAvailable !== false) {
+                if (!isAvailable && window.firebaseWasAvailable === true) {
+                    console.log('🔥 Firebase became unavailable, showing error message');
                     showFirebaseErrorMessage();
+                } else if (!isAvailable) {
+                    console.log('🔥 Firebase unavailable on first check, not showing error message');
+                } else {
+                    console.log('✅ Firebase is available');
                 }
                 
                 // Update database down banner
@@ -2878,7 +2897,7 @@
                 updateOfflineIndicator(true);
                 
                 // Only show error message if Firebase was previously available
-                if (window.firebaseWasAvailable !== false) {
+                if (window.firebaseWasAvailable === true) {
                     showFirebaseErrorMessage();
                 }
                 
@@ -2904,6 +2923,23 @@
             // Store offline state globally
             window.isFirebaseOffline = isOffline;
         }
+
+        // Debug function to check and clear freeze state
+        function debugFreezeState() {
+            console.log('🔍 Debugging freeze state:');
+            console.log('🔍 localStorage siteFrozen:', localStorage.getItem('siteFrozen'));
+            console.log('🔍 window.firebaseWasAvailable:', window.firebaseWasAvailable);
+            console.log('🔍 window.isFirebaseOffline:', window.isFirebaseOffline);
+            
+            // Clear any incorrect freeze state
+            if (localStorage.getItem('siteFrozen') === 'true') {
+                console.log('🔍 Clearing incorrect freeze state from localStorage');
+                localStorage.removeItem('siteFrozen');
+            }
+        }
+        
+        // Make debug function globally accessible
+        window.debugFreezeState = debugFreezeState;
 
         // Debug function to test image loading
         function testImageLoading() {
