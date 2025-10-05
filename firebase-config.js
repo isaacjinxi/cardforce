@@ -617,11 +617,22 @@ class FirebaseService {
         try {
             // Try a simple read operation to test Firebase connectivity
             const testRef = doc(db, COLLECTIONS.SYSTEM_SETTINGS, 'availabilityTest');
-            await getDoc(testRef);
+            
+            // Add a timeout to prevent hanging
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Firebase timeout')), 10000);
+            });
+            
+            await Promise.race([getDoc(testRef), timeoutPromise]);
             console.log('✅ Firebase is available');
             return true;
         } catch (error) {
-            console.error('❌ Firebase is unavailable:', error);
+            // Only log as error if it's not a timeout or network issue
+            if (error.message.includes('timeout') || error.code === 'unavailable') {
+                console.warn('⚠️ Firebase check timed out or unavailable:', error.message);
+            } else {
+                console.error('❌ Firebase is unavailable:', error);
+            }
             return false;
         }
     }

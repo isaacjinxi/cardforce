@@ -1324,6 +1324,11 @@
         }
         
         // Disable/enable buttons based on Firebase status
+        // Check if Firebase is offline
+        function isFirebaseOffline() {
+            return window.isFirebaseOffline === true;
+        }
+
         function updateButtonStates() {
             const isOffline = isFirebaseOffline();
             const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
@@ -1410,11 +1415,12 @@
                 initializePage();
             }
             
-            // Check Firebase availability
+            // Check Firebase availability with more intelligent timing
             setTimeout(() => {
+                // Always try to check Firebase availability, using fallback if needed
                 checkFirebaseAvailability();
                 addDisabledButtonHandlers();
-            }, 2000);
+            }, 5000);
         };
 
         function loadProductData() {
@@ -2806,22 +2812,42 @@
                    errorCode.includes('aborted');
         }
 
-        // Firebase Availability Check
-        async function checkFirebaseAvailability() {
+        // Simple Firebase availability check without relying on firebaseService
+        async function simpleFirebaseCheck() {
+            try {
+                // Try to access Firebase directly
+                if (typeof db !== 'undefined') {
+                    const testRef = doc(db, 'systemSettings', 'availabilityTest');
+                    await getDoc(testRef);
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.log('Simple Firebase check failed:', error.message);
+                return false;
+            }
+        }
+
+        // Firebase Availability Check with retry logic
+        async function checkFirebaseAvailability(retryCount = 0) {
+            const maxRetries = 2;
+            
             try {
                 let isAvailable = true;
                 
-                if (window.firebaseService && window.firebaseService.isInitialized) {
+                if (window.firebaseService && window.firebaseService.isInitialized && typeof window.firebaseService.checkFirebaseAvailability === 'function') {
                     isAvailable = await window.firebaseService.checkFirebaseAvailability();
-                    updateOfflineIndicator(!isAvailable);
-                    
-                    if (!isAvailable) {
-                        showFirebaseErrorMessage();
-                    }
                 } else {
-                    // If Firebase service is not initialized, assume offline
-                    isAvailable = false;
-                    updateOfflineIndicator(true);
+                    // Fallback to simple Firebase check
+                    console.log('Using fallback Firebase check');
+                    isAvailable = await simpleFirebaseCheck();
+                }
+                
+                updateOfflineIndicator(!isAvailable);
+                
+                // Only show error message if Firebase was previously available and now isn't
+                if (!isAvailable && window.firebaseWasAvailable !== false) {
+                    showFirebaseErrorMessage();
                 }
                 
                 // Update database down banner
@@ -2836,14 +2862,29 @@
                 
                 // Update global offline state
                 window.isFirebaseOffline = !isAvailable;
+                window.firebaseWasAvailable = isAvailable;
                 
                 // Update button states
                 updateButtonStates();
                 
             } catch (error) {
                 console.error('Error checking Firebase availability:', error);
+                
+                // Retry if we haven't exceeded max retries
+                if (retryCount < maxRetries) {
+                    console.log(`Retrying Firebase availability check (${retryCount + 1}/${maxRetries})...`);
+                    setTimeout(() => {
+                        checkFirebaseAvailability(retryCount + 1);
+                    }, 2000);
+                    return;
+                }
+                
                 updateOfflineIndicator(true);
-                showFirebaseErrorMessage();
+                
+                // Only show error message if Firebase was previously available
+                if (window.firebaseWasAvailable !== false) {
+                    showFirebaseErrorMessage();
+                }
                 
                 // Show database down banner on error
                 const databaseDownBanner = document.getElementById('databaseDownBanner');
@@ -2851,6 +2892,7 @@
                     databaseDownBanner.style.display = 'flex';
                 }
                 window.isFirebaseOffline = true;
+                window.firebaseWasAvailable = false;
                 
                 // Update button states
                 updateButtonStates();
@@ -2865,11 +2907,6 @@
             
             // Store offline state globally
             window.isFirebaseOffline = isOffline;
-        }
-
-        // Check if Firebase is offline
-        function isFirebaseOffline() {
-            return window.isFirebaseOffline === true;
         }
 
         // Debug function to test image loading
