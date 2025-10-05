@@ -1112,8 +1112,11 @@
             </div>
             
             <div id="adminAddProduct" style="display: none; text-align: center; margin-bottom: 2rem;">
-                <button class="btn" onclick="addNewProduct()" style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 10px;">
+                <button class="btn" onclick="addNewProduct()" style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 10px; margin-right: 1rem;">
                     ➕ Add New Product
+                </button>
+                <button class="btn" onclick="testImageLoading()" style="background: linear-gradient(135deg, #17a2b8, #138496); color: white; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 10px;">
+                    🧪 Test Images
                 </button>
             </div>
             
@@ -1569,14 +1572,30 @@
                 img.onerror = function() {
                     if (isLocalFile) {
                         console.log(`❌ Local file not found for ${cardId}:`, imageUrl);
+                        console.log(`💡 Tip: Make sure the image file is in the same directory as the HTML file, or use a full URL`);
+                        placeholder.innerHTML = `
+                            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📁</div>
+                            <div>File not found: ${imageUrl}</div>
+                            <div style="font-size: 0.8rem; color: #999; margin-top: 0.5rem;">Check file location</div>
+                        `;
                     } else {
                         console.log(`❌ Image failed to load for ${cardId}:`, imageUrl);
+                        placeholder.innerHTML = `
+                            <div style="font-size: 3rem; margin-bottom: 0.5rem;">🌐</div>
+                            <div>Image failed to load</div>
+                            <div style="font-size: 0.8rem; color: #999; margin-top: 0.5rem;">Check URL</div>
+                        `;
                     }
                     img.style.display = 'none';
                     placeholder.style.display = 'flex';
                 };
             } else {
                 console.log(`⚠️ Invalid image URL for ${cardId}:`, imageUrl);
+                placeholder.innerHTML = `
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚠️</div>
+                    <div>Invalid image URL</div>
+                    <div style="font-size: 0.8rem; color: #999; margin-top: 0.5rem;">${imageUrl}</div>
+                `;
                 img.style.display = 'none';
                 placeholder.style.display = 'flex';
             }
@@ -2094,6 +2113,10 @@
                             <input type="text" id="newProductImage" placeholder="https://example.com/image.png or filename.png" required oninput="previewImage(this.value)">
                             <div id="imagePreview" style="margin-top: 10px; text-align: center;"></div>
                             <div id="imageValidation" style="margin-top: 5px; font-size: 0.9rem;"></div>
+                            <div style="margin-top: 8px; font-size: 0.8rem; color: #6c757d; background: #f8f9fa; padding: 8px; border-radius: 4px;">
+                                <strong>💡 For local files:</strong> Place your image in the same folder as this HTML file and enter just the filename (e.g., "myimage.png"). For web images, use the full URL.<br>
+                                <strong>Available test files:</strong> mike.png, PigPrincess.png, ceo.jpg, IMG_5055.PNG, etc.
+                            </div>
                         </div>
                     </form>
                     <div class="modal-buttons">
@@ -2847,6 +2870,24 @@
         // Check if Firebase is offline
         function isFirebaseOffline() {
             return window.isFirebaseOffline === true;
+        }
+
+        // Debug function to test image loading
+        function testImageLoading() {
+            console.log('🧪 Testing image loading...');
+            
+            const testImages = ['mike.png', 'PigPrincess.png', 'ceo.jpg', 'IMG_5055.PNG'];
+            
+            testImages.forEach(filename => {
+                const img = new Image();
+                img.onload = function() {
+                    console.log(`✅ Image loaded successfully: ${filename}`);
+                };
+                img.onerror = function() {
+                    console.log(`❌ Image failed to load: ${filename}`);
+                };
+                img.src = filename;
+            });
         }
     </script>
 </body>
