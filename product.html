@@ -395,7 +395,7 @@
                 if (disable) return;
                 
                 // Check if Firebase is offline
-                if (isFirebaseOffline()) {
+                if (window.isFirebaseOffline === true) {
                     showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
                     return;
                 }
@@ -407,7 +407,7 @@
                 if (disable) return;
                 
                 // Check if Firebase is offline
-                if (isFirebaseOffline()) {
+                if (window.isFirebaseOffline === true) {
                     showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
                     return;
                 }
@@ -473,11 +473,6 @@
             }
         }
 
-        // Check if Firebase is offline
-        function isFirebaseOffline() {
-            return window.isFirebaseOffline === true;
-        }
-
         // Custom Error Popup
         function showCustomErrorPopup(message) {
             // Create popup overlay
@@ -539,7 +534,7 @@
 
         // Disable/enable buttons based on Firebase status
         function updateButtonStates() {
-            const isOffline = isFirebaseOffline();
+            const isOffline = window.isFirebaseOffline === true;
             const buyButtons = document.querySelectorAll('.btn.buy, .btn.cart');
             
             // Update buy and cart buttons

@@ -1115,7 +1115,7 @@
 
         async function signInWithEmail() {
             // Check if Firebase is offline
-            if (isFirebaseOffline()) {
+            if (window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -1200,7 +1200,7 @@
 
         async function createAccountWithEmail() {
             // Check if Firebase is offline
-            if (isFirebaseOffline()) {
+            if (window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -1338,7 +1338,7 @@
 
         // Disable/enable buttons based on Firebase status
         function updateButtonStates() {
-            const isOffline = isFirebaseOffline();
+            const isOffline = window.isFirebaseOffline === true;
             const authButtons = document.querySelectorAll('.auth-btn, .sign-in-btn, .create-account-btn, .forgot-password-btn, .change-security-btn');
             
             // Update authentication buttons
@@ -1745,7 +1745,7 @@
 
         function saveAddressForm(addressId = null) {
             // Check if Firebase is offline
-            if (isFirebaseOffline()) {
+            if (window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -2057,7 +2057,7 @@
         
         async function updateSecurityQuestions() {
             // Check if Firebase is offline
-            if (isFirebaseOffline()) {
+            if (window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -2338,11 +2338,6 @@
             
             // Store offline state globally
             window.isFirebaseOffline = isOffline;
-        }
-
-        // Check if Firebase is offline
-        function isFirebaseOffline() {
-            return window.isFirebaseOffline === true;
         }
     </script>
 </body>

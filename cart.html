@@ -1353,7 +1353,7 @@
     <script>
         // Disable/enable buttons based on Firebase status
         function updateButtonStates() {
-            const isOffline = isFirebaseOffline();
+            const isOffline = window.isFirebaseOffline === true;
             const checkoutButtons = document.querySelectorAll('.checkout-btn, .checkout-paypal-btn, .checkout-venmo-btn, .checkout-apple-btn');
             
             // Update checkout buttons
@@ -1905,7 +1905,7 @@
 
         function checkout() {
             // Check if Firebase is offline
-            if (isFirebaseOffline()) {
+            if (window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -1940,7 +1940,7 @@
         
         function checkoutPayPal() {
             // Check if Firebase is offline
-            if (isFirebaseOffline()) {
+            if (window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -1978,7 +1978,7 @@
         
         function checkoutVenmo() {
             // Check if Firebase is offline
-            if (isFirebaseOffline()) {
+            if (window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -2016,7 +2016,7 @@
 
         function checkoutApplePay() {
             // Check if Firebase is offline
-            if (isFirebaseOffline()) {
+            if (window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -2825,11 +2825,6 @@
             
             // Store offline state globally
             window.isFirebaseOffline = isOffline;
-        }
-
-        // Check if Firebase is offline
-        function isFirebaseOffline() {
-            return window.isFirebaseOffline === true;
         }
     </script>
 </body>
