@@ -2284,7 +2284,7 @@
             try {
                 let isAvailable = true;
                 
-                if (window.firebaseService && window.firebaseService.isInitialized) {
+                if (window.firebaseService && window.firebaseService.isInitialized && typeof window.firebaseService.checkFirebaseAvailability === 'function') {
                     isAvailable = await window.firebaseService.checkFirebaseAvailability();
                     updateOfflineIndicator(!isAvailable);
                     

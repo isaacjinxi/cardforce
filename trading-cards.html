@@ -1324,13 +1324,9 @@
         }
         
         // Disable/enable buttons based on Firebase status
-        // Check if Firebase is offline
-        function isFirebaseOffline() {
-            return window.isFirebaseOffline === true;
-        }
 
         function updateButtonStates() {
-            const isOffline = isFirebaseOffline();
+            const isOffline = window.isFirebaseOffline === true;
             const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
             const buyNowButtons = document.querySelectorAll('.buy-btn');
             
@@ -2186,7 +2182,7 @@
 
         function buyCard(cardName) {
             // Check if Firebase is offline
-            if (isFirebaseOffline()) {
+            if (window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -2285,7 +2281,7 @@
 
         async function addToCart(cardName, price) {
             // Check if Firebase is offline
-            if (isFirebaseOffline()) {
+            if (window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }

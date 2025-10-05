@@ -1007,7 +1007,12 @@
                     }
                     
                     // Check Firebase availability
-                    isFirebaseAvailable = await window.firebaseService.checkFirebaseAvailability();
+                    if (typeof window.firebaseService.checkFirebaseAvailability === 'function') {
+                        isFirebaseAvailable = await window.firebaseService.checkFirebaseAvailability();
+                    } else {
+                        console.log('⚠️ checkFirebaseAvailability function not available');
+                        isFirebaseAvailable = false;
+                    }
                 }
                 
                 // Fallback to localStorage
@@ -1085,7 +1090,7 @@
         // Firebase Availability Check
         async function checkFirebaseAvailability() {
             try {
-                if (window.firebaseService && window.firebaseService.isInitialized) {
+                if (window.firebaseService && window.firebaseService.isInitialized && typeof window.firebaseService.checkFirebaseAvailability === 'function') {
                     const isAvailable = await window.firebaseService.checkFirebaseAvailability();
                     updateOfflineIndicator(!isAvailable);
                     

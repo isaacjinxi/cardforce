@@ -428,6 +428,11 @@ async function loadStockFromFirebase() {
         return;
     }
     
+    if (typeof window.firebaseService.loadStockFromFirebase !== 'function') {
+        console.log('⚠️ loadStockFromFirebase function not available in Firebase service');
+        return;
+    }
+    
     try {
         const firebaseStock = await window.firebaseService.loadStockFromFirebase();
         const localStockData = getStockData();
@@ -1518,8 +1523,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load stock from Firebase
     setTimeout(() => {
-        if (window.loadStockFromFirebase) {
+        if (window.loadStockFromFirebase && typeof window.loadStockFromFirebase === 'function') {
             window.loadStockFromFirebase();
+        } else {
+            console.log('⚠️ loadStockFromFirebase function not available yet');
         }
     }, 3000);
     
