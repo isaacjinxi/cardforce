@@ -1351,6 +1351,54 @@
     </div>
 
     <script>
+        // Disable/enable buttons based on Firebase status
+        function updateButtonStates() {
+            const isOffline = isFirebaseOffline();
+            const checkoutButtons = document.querySelectorAll('.checkout-btn, .checkout-paypal-btn, .checkout-venmo-btn, .checkout-apple-btn');
+            
+            // Update checkout buttons
+            checkoutButtons.forEach(button => {
+                if (isOffline) {
+                    button.disabled = true;
+                    button.style.opacity = '0.5';
+                    button.style.cursor = 'not-allowed';
+                    button.title = 'Service unavailable - Database is down';
+                } else {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.style.cursor = 'pointer';
+                    button.title = '';
+                }
+            });
+            
+            // Apply handlers to all buttons
+            applyButtonHandlers();
+        }
+
+        // Apply button handlers for disabled buttons
+        function applyButtonHandlers() {
+            // Override button onclick handlers directly
+            const checkoutButtons = document.querySelectorAll('.checkout-btn, .checkout-paypal-btn, .checkout-venmo-btn, .checkout-apple-btn');
+            
+            checkoutButtons.forEach(button => {
+                const originalOnclick = button.getAttribute('onclick');
+                if (originalOnclick && !originalOnclick.includes('window.isFirebaseOffline')) {
+                    button.setAttribute('onclick', `
+                        if (window.isFirebaseOffline === true) {
+                            showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                            return false;
+                        }
+                        ${originalOnclick}
+                    `);
+                }
+            });
+        }
+
+        // Add click handlers for disabled buttons
+        function addDisabledButtonHandlers() {
+            applyButtonHandlers();
+        }
+
         // Load cart items on page load
         window.onload = function() {
             checkSignIn();
@@ -1366,6 +1414,7 @@
             // Check Firebase availability
             setTimeout(() => {
                 checkFirebaseAvailability();
+                addDisabledButtonHandlers();
             }, 2000);
         };
 
@@ -2748,6 +2797,9 @@
                 // Update global offline state
                 window.isFirebaseOffline = !isAvailable;
                 
+                // Update button states
+                updateButtonStates();
+                
             } catch (error) {
                 console.error('Error checking Firebase availability:', error);
                 updateOfflineIndicator(true);
@@ -2759,6 +2811,9 @@
                     databaseDownBanner.style.display = 'flex';
                 }
                 window.isFirebaseOffline = true;
+                
+                // Update button states
+                updateButtonStates();
             }
         }
 

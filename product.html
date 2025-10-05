@@ -451,8 +451,11 @@
                     }
                 }
                 
-                // Update global offline state
-                window.isFirebaseOffline = !isAvailable;
+            // Update global offline state
+            window.isFirebaseOffline = !isAvailable;
+            
+            // Update button states
+            updateButtonStates();
                 
             } catch (error) {
                 console.error('Error checking Firebase availability:', error);
@@ -463,6 +466,9 @@
                     databaseDownBanner.style.display = 'flex';
                 }
                 window.isFirebaseOffline = true;
+            
+            // Update button states
+            updateButtonStates();
                 showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
             }
         }
@@ -531,6 +537,54 @@
             });
         }
 
+        // Disable/enable buttons based on Firebase status
+        function updateButtonStates() {
+            const isOffline = isFirebaseOffline();
+            const buyButtons = document.querySelectorAll('.btn.buy, .btn.cart');
+            
+            // Update buy and cart buttons
+            buyButtons.forEach(button => {
+                if (isOffline) {
+                    button.disabled = true;
+                    button.style.opacity = '0.5';
+                    button.style.cursor = 'not-allowed';
+                    button.title = 'Service unavailable - Database is down';
+                } else {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.style.cursor = 'pointer';
+                    button.title = '';
+                }
+            });
+            
+            // Apply handlers to all buttons
+            applyButtonHandlers();
+        }
+
+        // Apply button handlers for disabled buttons
+        function applyButtonHandlers() {
+            // Override button onclick handlers directly
+            const buyButtons = document.querySelectorAll('.btn.buy, .btn.cart');
+            
+            buyButtons.forEach(button => {
+                const originalOnclick = button.getAttribute('onclick');
+                if (originalOnclick && !originalOnclick.includes('window.isFirebaseOffline')) {
+                    button.setAttribute('onclick', `
+                        if (window.isFirebaseOffline === true) {
+                            showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                            return false;
+                        }
+                        ${originalOnclick}
+                    `);
+                }
+            });
+        }
+
+        // Add click handlers for disabled buttons
+        function addDisabledButtonHandlers() {
+            applyButtonHandlers();
+        }
+
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
             // Wait for admin-utils to load
@@ -540,10 +594,11 @@
                     addGlobalNavElements();
                 }
                 
-                // Check Firebase availability
-                setTimeout(() => {
-                    checkFirebaseAvailability();
-                }, 2000);
+            // Check Firebase availability
+            setTimeout(() => {
+                checkFirebaseAvailability();
+                addDisabledButtonHandlers();
+            }, 2000);
             }, 100);
         });
 

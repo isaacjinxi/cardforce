@@ -1320,6 +1320,84 @@
             console.log('Page initialization complete');
         }
         
+        // Disable/enable buttons based on Firebase status
+        function updateButtonStates() {
+            const isOffline = isFirebaseOffline();
+            const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+            const buyNowButtons = document.querySelectorAll('.buy-btn');
+            
+            // Update Add to Cart buttons
+            addToCartButtons.forEach(button => {
+                if (isOffline) {
+                    button.disabled = true;
+                    button.style.opacity = '0.5';
+                    button.style.cursor = 'not-allowed';
+                    button.title = 'Service unavailable - Database is down';
+                } else {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.style.cursor = 'pointer';
+                    button.title = '';
+                }
+            });
+            
+            // Update Buy Now buttons
+            buyNowButtons.forEach(button => {
+                if (isOffline) {
+                    button.disabled = true;
+                    button.style.opacity = '0.5';
+                    button.style.cursor = 'not-allowed';
+                    button.title = 'Service unavailable - Database is down';
+                } else {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.style.cursor = 'pointer';
+                    button.title = '';
+                }
+            });
+            
+            // Apply handlers to all buttons
+            applyButtonHandlers();
+        }
+
+        // Apply button handlers for disabled buttons
+        function applyButtonHandlers() {
+            // Override button onclick handlers directly
+            const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+            const buyNowButtons = document.querySelectorAll('.buy-btn');
+            
+            addToCartButtons.forEach(button => {
+                const originalOnclick = button.getAttribute('onclick');
+                if (originalOnclick && !originalOnclick.includes('window.isFirebaseOffline')) {
+                    button.setAttribute('onclick', `
+                        if (window.isFirebaseOffline === true) {
+                            showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                            return false;
+                        }
+                        ${originalOnclick}
+                    `);
+                }
+            });
+            
+            buyNowButtons.forEach(button => {
+                const originalOnclick = button.getAttribute('onclick');
+                if (originalOnclick && !originalOnclick.includes('window.isFirebaseOffline')) {
+                    button.setAttribute('onclick', `
+                        if (window.isFirebaseOffline === true) {
+                            showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                            return false;
+                        }
+                        ${originalOnclick}
+                    `);
+                }
+            });
+        }
+
+        // Add click handlers for disabled buttons
+        function addDisabledButtonHandlers() {
+            applyButtonHandlers();
+        }
+
         // Initialize page
         window.onload = function() {
             // Safari compatibility delay
@@ -1332,6 +1410,7 @@
             // Check Firebase availability
             setTimeout(() => {
                 checkFirebaseAvailability();
+                addDisabledButtonHandlers();
             }, 2000);
         };
 
@@ -1593,6 +1672,9 @@
                     if (adminCtl) adminCtl.style.display = 'block';
                 }
             });
+            
+            // Apply button handlers to dynamically created buttons
+            applyButtonHandlers();
         }
 
         function showAdminControls() {
@@ -2732,6 +2814,9 @@
                 // Update global offline state
                 window.isFirebaseOffline = !isAvailable;
                 
+                // Update button states
+                updateButtonStates();
+                
             } catch (error) {
                 console.error('Error checking Firebase availability:', error);
                 updateOfflineIndicator(true);
@@ -2743,6 +2828,9 @@
                     databaseDownBanner.style.display = 'flex';
                 }
                 window.isFirebaseOffline = true;
+                
+                // Update button states
+                updateButtonStates();
             }
         }
 
