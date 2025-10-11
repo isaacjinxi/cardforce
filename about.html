@@ -451,13 +451,6 @@
     </style>
 </head>
 <body>
-    <!-- Database Down Banner -->
-    <div id="databaseDownBanner" class="database-down-banner" style="display: none;">
-        <div class="database-down-text">
-            Database is down, many services are unavailable
-        </div>
-    </div>
-
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo">
@@ -704,9 +697,10 @@
 
         // Initialize on page load
         window.addEventListener('load', function() {
-            setTimeout(() => {
-                checkFirebaseAvailability();
-            }, 2000);
+            // Temporarily removed for AdSense crawler access
+            // setTimeout(() => {
+            //     checkFirebaseAvailability();
+            // }, 2000);
         });
     </script>
 </body>

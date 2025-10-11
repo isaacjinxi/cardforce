@@ -7,9 +7,6 @@
     <title>Account - Card Force</title>
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9986380390919018"
-     crossorigin="anonymous"></script>
     
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="admin-utils.js"></script>
@@ -748,13 +745,6 @@
     </style>
 </head>
 <body>
-    <!-- Database Down Banner -->
-    <div id="databaseDownBanner" class="database-down-banner" style="display: none;">
-        <div class="database-down-text">
-            Database is down, many services are unavailable
-        </div>
-    </div>
-
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
@@ -1121,7 +1111,8 @@
 
         async function signInWithEmail() {
             // Check if Firebase is offline
-            if (window.isFirebaseOffline === true) {
+            // Temporarily disabled for AdSense crawler access
+            if (false && window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -1206,7 +1197,8 @@
 
         async function createAccountWithEmail() {
             // Check if Firebase is offline
-            if (window.isFirebaseOffline === true) {
+            // Temporarily disabled for AdSense crawler access
+            if (false && window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -1342,52 +1334,22 @@
             }
         }
 
-        // Disable/enable buttons based on Firebase status
+        // Temporarily disabled for AdSense crawler access
         function updateButtonStates() {
-            const isOffline = window.isFirebaseOffline === true;
-            const authButtons = document.querySelectorAll('.auth-btn, .sign-in-btn, .create-account-btn, .forgot-password-btn, .change-security-btn');
-            
-            // Update authentication buttons
-            authButtons.forEach(button => {
-                if (isOffline) {
-                    button.disabled = true;
-                    button.style.opacity = '0.5';
-                    button.style.cursor = 'not-allowed';
-                    button.title = 'Service unavailable - Database is down';
-                } else {
-                    button.disabled = false;
-                    button.style.opacity = '1';
-                    button.style.cursor = 'pointer';
-                    button.title = '';
-                }
-            });
-            
-            // Apply handlers to all buttons
-            applyButtonHandlers();
+            // Disabled - buttons should always be enabled
+            return;
         }
 
-        // Apply button handlers for disabled buttons
+        // Temporarily disabled for AdSense crawler access
         function applyButtonHandlers() {
-            // Override button onclick handlers directly
-            const authButtons = document.querySelectorAll('.auth-btn, .sign-in-btn, .create-account-btn, .forgot-password-btn, .change-security-btn');
-            
-            authButtons.forEach(button => {
-                const originalOnclick = button.getAttribute('onclick');
-                if (originalOnclick && !originalOnclick.includes('window.isFirebaseOffline')) {
-                    button.setAttribute('onclick', `
-                        if (window.isFirebaseOffline === true) {
-                            showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
-                            return false;
-                        }
-                        ${originalOnclick}
-                    `);
-                }
-            });
+            // Disabled - buttons should work normally
+            return;
         }
 
-        // Add click handlers for disabled buttons
+        // Temporarily disabled for AdSense crawler access
         function addDisabledButtonHandlers() {
-            applyButtonHandlers();
+            // Disabled - buttons should work normally
+            return;
         }
 
         // Google Sign-In Configuration
@@ -1401,10 +1363,11 @@
             checkExistingSignIn();
             
             // Check Firebase availability
-            setTimeout(() => {
-                checkFirebaseAvailability();
-                addDisabledButtonHandlers();
-            }, 2000);
+            // Temporarily removed for AdSense crawler access
+            // setTimeout(() => {
+            //     checkFirebaseAvailability();
+            //     addDisabledButtonHandlers();
+            // }, 2000);
         };
 
         function checkExistingSignIn() {
@@ -1423,7 +1386,16 @@
         function displayUserInfo(userData) {
             document.getElementById('userName').textContent = userData.name;
             document.getElementById('userEmail').textContent = userData.email;
-            document.getElementById('userAvatar').src = userData.picture;
+            
+            // Set avatar with fallback
+            const avatarElement = document.getElementById('userAvatar');
+            if (userData.picture && !userData.picture.includes('via.placeholder.com')) {
+                avatarElement.src = userData.picture;
+            } else {
+                // Use data URI for default avatar
+                avatarElement.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%236a4c93"/><text x="50" y="65" font-size="50" fill="white" text-anchor="middle" font-family="Arial">👤</text></svg>';
+            }
+            
             document.getElementById('userInfo').classList.add('show');
             
             // Show/hide security questions button based on account type
@@ -1751,7 +1723,8 @@
 
         function saveAddressForm(addressId = null) {
             // Check if Firebase is offline
-            if (window.isFirebaseOffline === true) {
+            // Temporarily disabled for AdSense crawler access
+            if (false && window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -2063,7 +2036,8 @@
         
         async function updateSecurityQuestions() {
             // Check if Firebase is offline
-            if (window.isFirebaseOffline === true) {
+            // Temporarily disabled for AdSense crawler access
+            if (false && window.isFirebaseOffline === true) {
                 showFirebaseErrorMessage();
                 return;
             }
@@ -2207,12 +2181,17 @@
             alert("We're sorry, but our database is down. You cannot checkout, change account settings, or create accounts at this time.");
         }
 
+        // Temporarily disabled for AdSense crawler access
         function showFirebaseErrorMessage() {
-            showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+            // Disabled - no error messages for AdSense crawler
+            return;
         }
 
-        // Custom Error Popup
+        // Temporarily disabled for AdSense crawler access
         function showCustomErrorPopup(message) {
+            // Disabled - no error messages for AdSense crawler
+            return;
+            /*
             // Create popup overlay
             const overlay = document.createElement('div');
             overlay.style.cssText = `
@@ -2267,7 +2246,7 @@
                 if (e.target === overlay) {
                     overlay.remove();
                 }
-            });
+            }); */
         }
 
         // Enhanced Firebase error detection

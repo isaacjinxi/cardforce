@@ -980,13 +980,6 @@
     </style>
 </head>
 <body>
-    <!-- Database Down Banner -->
-    <div id="databaseDownBanner" class="database-down-banner" style="display: none;">
-        <div class="database-down-text">
-            Database is down, many services are unavailable
-        </div>
-    </div>
-
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
@@ -1253,9 +1246,10 @@
                 if (window.firebaseService && window.firebaseService.isInitialized) {
                     isAvailable = await window.firebaseService.checkFirebaseAvailability();
                     
-                    if (!isAvailable) {
-                        showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
-                    }
+                    // Temporarily disabled for AdSense crawler access
+                    // if (!isAvailable) {
+                    //     showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                    // }
                 } else {
                     // If Firebase service is not initialized, assume offline
                     isAvailable = false;
@@ -1283,7 +1277,8 @@
                     databaseDownBanner.style.display = 'flex';
                 }
                 window.isFirebaseOffline = true;
-                showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                // Temporarily disabled for AdSense crawler access
+                // showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
             }
         }
 
@@ -1292,8 +1287,11 @@
             return window.isFirebaseOffline === true;
         }
 
-        // Custom Error Popup
+        // Temporarily disabled for AdSense crawler access
         function showCustomErrorPopup(message) {
+            // Disabled - no error messages for AdSense crawler
+            return;
+            /*
             // Create popup overlay
             const overlay = document.createElement('div');
             overlay.style.cssText = `
@@ -1348,14 +1346,15 @@
                 if (e.target === overlay) {
                     overlay.remove();
                 }
-            });
+            }); */
         }
 
         // Initialize on page load
         window.addEventListener('load', function() {
-            setTimeout(() => {
-                checkFirebaseAvailability();
-            }, 2000);
+            // Temporarily removed for AdSense crawler access
+            // setTimeout(() => {
+            //     checkFirebaseAvailability();
+            // }, 2000);
         });
     </script>
 </body>

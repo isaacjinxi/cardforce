@@ -909,20 +909,6 @@
         <a href="trading-cards.html" class="go-to-shop-btn">Go to Shop</a>
     </div>
 
-    <!-- Maintenance Banner -->
-    <div id="maintenanceBanner" class="maintenance-banner" style="display: none;">
-        <div class="maintenance-text">
-            Due to database issues, many functions of our site are currently disabled. We are sorry for any inconveniences this might bring.
-        </div>
-    </div>
-
-    <!-- Database Down Banner -->
-    <div id="databaseDownBanner" class="database-down-banner" style="display: none;">
-        <div class="database-down-text">
-            Database is down, many services are unavailable
-        </div>
-    </div>
-
     <!-- Main Content -->
     <main class="main-content" id="mainContent" style="display: none;">
         <!-- Hero Section -->
@@ -956,7 +942,8 @@
                 hideLoadingScreen();
                 showDiscountBanner();
                 checkMaintenanceBanner();
-                checkFirebaseAvailability();
+                // Temporarily removed for AdSense crawler access
+                // checkFirebaseAvailability();
             }, 1500);
         };
 

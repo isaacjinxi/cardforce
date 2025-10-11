@@ -278,13 +278,6 @@
     </style>
     </head>
 <body>
-    <!-- Database Down Banner -->
-    <div id="databaseDownBanner" class="database-down-banner" style="display: none;">
-        <div class="database-down-text">
-            Database is down, many services are unavailable
-        </div>
-    </div>
-
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo">
@@ -325,7 +318,7 @@
                     <button class="btn buy" id="buyBtn">Buy Now</button>
                     <button class="btn cart" id="cartBtn">Add to Cart</button>
                 </div>
-                <div class="stock" id="productStock"></div>
+                <div class="stock" id="productStock" style="display: none;"></div>
             </div>
         </div>
     </main>
@@ -393,6 +386,13 @@
             statusEl.textContent = status === 'Backorder' ? `Backorder - Ships in ${(getProductData()[id]?.backorderDays || 7)} days` : status;
             descEl.textContent = p.description || '';
             stockEl.textContent = status === 'Retired' ? 'Retired' : `Stock: ${stock}`;
+            
+            // Show stock only for admins
+            if (typeof isAdmin === 'function' && isAdmin()) {
+                stockEl.style.display = 'block';
+            } else {
+                stockEl.style.display = 'none';
+            }
 
             const disable = status==='Retired' || status==='Out of Stock' || stock===0;
             ;[buyBtn, cartBtn].forEach(b => { if (!b) return; b.classList.toggle('disabled-btn', disable); b.disabled = disable; });
@@ -400,11 +400,11 @@
             buyBtn.onclick = function(){
                 if (disable) return;
                 
-                // Check if Firebase is offline
-                if (window.isFirebaseOffline === true) {
-                    showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
-                    return;
-                }
+                // Temporarily disabled for AdSense crawler access
+                // if (window.isFirebaseOffline === true) {
+                //     showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                //     return;
+                // }
                 
                 const paypalUrl = `https://www.paypal.com/paypalme/SongboJin/${(discount>0? discounted: basePrice).toFixed(2)}`;
                 window.open(paypalUrl, '_blank', 'noopener,noreferrer');
@@ -412,11 +412,11 @@
             cartBtn.onclick = function(){
                 if (disable) return;
                 
-                // Check if Firebase is offline
-                if (window.isFirebaseOffline === true) {
-                    showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
-                    return;
-                }
+                // Temporarily disabled for AdSense crawler access
+                // if (window.isFirebaseOffline === true) {
+                //     showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+                //     return;
+                // }
                 
                 const googleUser = localStorage.getItem('googleUser');
                 if (!googleUser) { alert('Please sign in to add to cart.'); return; }
@@ -479,8 +479,11 @@
             }
         }
 
-        // Custom Error Popup
+        // Temporarily disabled for AdSense crawler access
         function showCustomErrorPopup(message) {
+            // Disabled - no error messages for AdSense crawler
+            return;
+            /*
             // Create popup overlay
             const overlay = document.createElement('div');
             overlay.style.cssText = `
@@ -535,55 +538,25 @@
                 if (e.target === overlay) {
                     overlay.remove();
                 }
-            });
+            }); */
         }
 
-        // Disable/enable buttons based on Firebase status
+        // Temporarily disabled for AdSense crawler access
         function updateButtonStates() {
-            const isOffline = window.isFirebaseOffline === true;
-            const buyButtons = document.querySelectorAll('.btn.buy, .btn.cart');
-            
-            // Update buy and cart buttons
-            buyButtons.forEach(button => {
-                if (isOffline) {
-                    button.disabled = true;
-                    button.style.opacity = '0.5';
-                    button.style.cursor = 'not-allowed';
-                    button.title = 'Service unavailable - Database is down';
-                } else {
-                    button.disabled = false;
-                    button.style.opacity = '1';
-                    button.style.cursor = 'pointer';
-                    button.title = '';
-                }
-            });
-            
-            // Apply handlers to all buttons
-            applyButtonHandlers();
+            // Disabled - buttons should always be enabled for AdSense crawler
+            return;
         }
 
-        // Apply button handlers for disabled buttons
+        // Temporarily disabled for AdSense crawler access
         function applyButtonHandlers() {
-            // Override button onclick handlers directly
-            const buyButtons = document.querySelectorAll('.btn.buy, .btn.cart');
-            
-            buyButtons.forEach(button => {
-                const originalOnclick = button.getAttribute('onclick');
-                if (originalOnclick && !originalOnclick.includes('window.isFirebaseOffline')) {
-                    button.setAttribute('onclick', `
-                        if (window.isFirebaseOffline === true) {
-                            showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
-                            return false;
-                        }
-                        ${originalOnclick}
-                    `);
-                }
-            });
+            // Disabled - buttons should work normally for AdSense crawler
+            return;
         }
 
-        // Add click handlers for disabled buttons
+        // Temporarily disabled for AdSense crawler access
         function addDisabledButtonHandlers() {
-            applyButtonHandlers();
+            // Disabled - buttons should work normally for AdSense crawler
+            return;
         }
 
         // Initialize when DOM is loaded
@@ -595,11 +568,11 @@
                     addGlobalNavElements();
                 }
                 
-            // Check Firebase availability
-            setTimeout(() => {
-                checkFirebaseAvailability();
-                addDisabledButtonHandlers();
-            }, 2000);
+            // Temporarily removed for AdSense crawler access
+            // setTimeout(() => {
+            //     checkFirebaseAvailability();
+            //     addDisabledButtonHandlers();
+            // }, 2000);
             }, 100);
         });
 

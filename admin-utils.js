@@ -593,31 +593,29 @@ async function loadProductDataFromFirebase() {
         const firebaseProducts = await window.firebaseService.loadProductsFromFirebase();
         const localProductData = getProductData();
         
-        // Merge Firebase data with local data, but respect local deletions
+        // Ensure firebaseProducts is an array
+        if (!Array.isArray(firebaseProducts)) {
+            console.log('⚠️ Firebase products is not an array:', firebaseProducts);
+            return;
+        }
+        
+        // Merge Firebase data with local data
         firebaseProducts.forEach(product => {
-            // Only merge if the product exists locally (not deleted)
-            // This prevents deleted products from being restored
-            if (localProductData.hasOwnProperty(product.id) && localProductData[product.id] !== undefined) {
-                localProductData[product.id] = {
-                    ...localProductData[product.id], // Keep local data
-                    ...product // Override with Firebase data
-                };
-            } else {
-                console.log(`⚠️ Skipping deleted product ${product.id} from Firebase restore`);
-            }
+            // Add all Firebase products to local data
+            localProductData[product.id] = {
+                ...localProductData[product.id], // Keep any existing local data
+                ...product // Override with Firebase data
+            };
         });
         
-        // Also update the product catalog to include Firebase products (respecting deletions)
+        // Also update the product catalog to include Firebase products
         const catalog = getProductCatalog();
         firebaseProducts.forEach(product => {
-            // Only add/update if the product wasn't locally deleted
-            if (localProductData.hasOwnProperty(product.id) && localProductData[product.id] !== undefined) {
-                const existingIndex = catalog.findIndex(p => p.id === product.id);
-                if (existingIndex >= 0) {
-                    catalog[existingIndex] = { ...catalog[existingIndex], ...product };
-                } else {
-                    catalog.push(product);
-                }
+            const existingIndex = catalog.findIndex(p => p.id === product.id);
+            if (existingIndex >= 0) {
+                catalog[existingIndex] = { ...catalog[existingIndex], ...product };
+            } else {
+                catalog.push(product);
             }
         });
         

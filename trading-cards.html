@@ -654,6 +654,12 @@
             color: #8b4513;
             border: 1px solid #ffc107;
         }
+        
+        .chip-backorder {
+            background: linear-gradient(135deg, #17a2b8, #20c997);
+            color: white;
+            border: 1px solid #17a2b8;
+        }
 
         .card-title {
             color: #6a4c93;
@@ -1042,13 +1048,6 @@
     </style>
 </head>
 <body>
-    <!-- Database Down Banner -->
-    <div id="databaseDownBanner" class="database-down-banner" style="display: none;">
-        <div class="database-down-text">
-            Database is down, many services are unavailable
-        </div>
-    </div>
-
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
@@ -1084,19 +1083,6 @@
     <main class="main-content">
         <section class="trading-cards-section">
             <!-- Filters and Search Bar -->
-            <!-- Top Banner Ad -->
-            <div class="ad-container" style="text-align: center; margin: 2rem auto; max-width: 970px;">
-                <ins class="adsbygoogle"
-                     style="display:block"
-                     data-ad-client="ca-pub-9986380390919018"
-                     data-ad-slot="XXXXXXXXXX"
-                     data-ad-format="auto"
-                     data-full-width-responsive="true"></ins>
-                <script>
-                     (adsbygoogle = window.adsbygoogle || []).push({});
-                </script>
-            </div>
-
             <div class="filters-container" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
                 <div class="search-container" style="flex: 1; min-width: 200px;">
                     <div class="search-input-container">
@@ -1151,7 +1137,7 @@
                     <p class="card-description">A royal pig character with high defense and low damage. Special ability: "I'm so pretty" - reduces opponent's attack by 50% for one turn.</p>
                     <div class="card-price" data-price="7.99">$7.99</div>
                     <div class="card-actions">
-                        <button class="buy-btn" onclick="buyCard('Pig-princess')">Buy Now</button>
+                        <button class="buy-btn" onclick="buyCard('Pig-princess', event)">Buy Now</button>
                         <a class="add-to-cart-btn" href="product.html?id=pig-princess" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
                         <button class="add-to-cart-btn" onclick="addToCart('Pig-princess', 7.99)">Add to Cart</button>
                         <div class="admin-controls" id="admin-pig-princess" style="display: none;">
@@ -1172,7 +1158,7 @@
                     <p class="card-description">A fierce stick figure warrior with balanced stats. Special ability: "Sword Master" - increases attack by 25% when health is below 50%.</p>
                     <div class="card-price" data-price="5.99">$5.99</div>
                     <div class="card-actions">
-                        <button class="buy-btn" onclick="buyCard('Mike')">Buy Now</button>
+                        <button class="buy-btn" onclick="buyCard('Mike', event)">Buy Now</button>
                         <a class="add-to-cart-btn" href="product.html?id=mike" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
                         <button class="add-to-cart-btn" onclick="addToCart('Mike', 5.99)">Add to Cart</button>
                         <div class="admin-controls" id="admin-mike" style="display: none;">
@@ -1342,10 +1328,12 @@
             console.log('Page initialization complete');
         }
         
-        // Disable/enable buttons based on Firebase status
-
+        // Temporarily disabled for AdSense crawler access
         function updateButtonStates() {
-            const isOffline = window.isFirebaseOffline === true;
+            // Disabled - buttons should always be enabled for AdSense crawler
+            return;
+            
+            /* const isOffline = window.isFirebaseOffline === true;
             const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
             const buyNowButtons = document.querySelectorAll('.buy-btn');
             
@@ -1380,11 +1368,14 @@
             });
             
             // Apply handlers to all buttons
-            applyButtonHandlers();
+            applyButtonHandlers(); */
         }
 
-        // Apply button handlers for disabled buttons
+        // Temporarily disabled for AdSense crawler access
         function applyButtonHandlers() {
+            // Disabled - buttons should work normally for AdSense crawler
+            return;
+            /*
             // Override button onclick handlers directly
             const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
             const buyNowButtons = document.querySelectorAll('.buy-btn');
@@ -1413,12 +1404,13 @@
                         ${originalOnclick}
                     `);
                 }
-            });
+            }); */
         }
 
-        // Add click handlers for disabled buttons
+        // Temporarily disabled for AdSense crawler access
         function addDisabledButtonHandlers() {
-            applyButtonHandlers();
+            // Disabled - buttons should work normally for AdSense crawler
+            return;
         }
 
         // Initialize page
@@ -1430,12 +1422,11 @@
                 initializePage();
             }
             
-            // Check Firebase availability with more intelligent timing
-            setTimeout(() => {
-                // Always try to check Firebase availability, using fallback if needed
-                checkFirebaseAvailability();
-                addDisabledButtonHandlers();
-            }, 5000);
+            // Temporarily removed for AdSense crawler access
+            // setTimeout(() => {
+            //     checkFirebaseAvailability();
+            //     addDisabledButtonHandlers();
+            // }, 5000);
         };
 
         function loadProductData() {
@@ -1676,9 +1667,21 @@
                 if (p.isNew) {
                     chips.push('<span class="chip chip-new">New</span>');
                 }
-                if (p.stock && p.stock < 10) {
+                if (p.status === 'Backorder') {
+                    chips.push('<span class="chip chip-backorder">Backorder</span>');
+                }
+                if (p.stock && p.stock < 10 && p.status !== 'Backorder') {
                     chips.push('<span class="chip chip-almost-out">Almost Out</span>');
                 }
+                
+                const backorderInfo = p.status === 'Backorder' ? `<div class="backorder-info" style="color: #17a2b8; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;">Ships in ${p.backorderDays || 7} days</div>` : '';
+                
+                const isRetired = p.status === 'Retired';
+                const actionButtons = isRetired ? 
+                    `<div style="color: #dc3545; font-weight: 600; font-size: 1.1rem; padding: 1rem; text-align: center;">Retired</div>` :
+                    `<button class="buy-btn" onclick="buyCard('${p.name}', event)">Buy Now</button>
+                    <a class="add-to-cart-btn" href="product.html?id=${p.id}" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
+                    <button class="add-to-cart-btn" onclick="addToCart('${p.name}', ${p.price})">Add to Cart</button>`;
                 
                 card.innerHTML = `
                     <div class="card-chips">
@@ -1687,10 +1690,9 @@
                     <h3 class="card-title">${p.name}</h3>
                     <p class="card-description">${p.description || ''}</p>
                     <div class="card-price" data-price="${p.price}">$${(+p.price).toFixed(2)}</div>
+                    ${backorderInfo}
                     <div class="card-actions">
-                        <button class="buy-btn" onclick="buyCard('${p.name}')">Buy Now</button>
-                        <a class="add-to-cart-btn" href="product.html?id=${p.id}" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
-                        <button class="add-to-cart-btn" onclick="addToCart('${p.name}', ${p.price})">Add to Cart</button>
+                        ${actionButtons}
                         <div class="admin-controls" id="admin-${p.id}" style="display: none;">
                             <button class="btn btn-sm" onclick="editItem('${p.id}')">Edit</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteItem('${p.id}')">Delete</button>
@@ -1713,8 +1715,8 @@
                 }
             });
             
-            // Apply button handlers to dynamically created buttons
-            applyButtonHandlers();
+            // Temporarily removed for AdSense crawler access
+            // applyButtonHandlers();
         }
 
         function showAdminControls() {
@@ -1843,10 +1845,77 @@
 
         function updateProductDisplay(cardId) {
             const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+            if (!cardElement) return;
+            
             const price = getProductPrice(cardId);
             const stock = getStock(cardId);
             const status = getProductStatus(cardId);
             const discount = getProductDiscount(cardId);
+            const productData = getProductData();
+            const product = productData[cardId];
+            
+            // Update chips
+            const chipsContainer = cardElement.querySelector('.card-chips');
+            if (chipsContainer) {
+                const chips = [];
+                if (product?.isNew) {
+                    chips.push('<span class="chip chip-new">New</span>');
+                }
+                if (status === 'Backorder') {
+                    chips.push('<span class="chip chip-backorder">Backorder</span>');
+                }
+                if (stock && stock < 10 && status !== 'Backorder') {
+                    chips.push('<span class="chip chip-almost-out">Almost Out</span>');
+                }
+                chipsContainer.innerHTML = chips.join('');
+            }
+            
+            // Update backorder info
+            const existingBackorderInfo = cardElement.querySelector('.backorder-info');
+            if (existingBackorderInfo) {
+                existingBackorderInfo.remove();
+            }
+            if (status === 'Backorder') {
+                const backorderDays = product?.backorderDays || 7;
+                const backorderDiv = document.createElement('div');
+                backorderDiv.className = 'backorder-info';
+                backorderDiv.style.cssText = 'color: #17a2b8; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;';
+                backorderDiv.textContent = `Ships in ${backorderDays} days`;
+                const priceEl = cardElement.querySelector('.card-price');
+                if (priceEl) {
+                    priceEl.insertAdjacentElement('afterend', backorderDiv);
+                }
+            }
+            
+            // Update action buttons for retired items
+            const actionsContainer = cardElement.querySelector('.card-actions');
+            if (actionsContainer && status === 'Retired') {
+                // Find the buttons and replace with Retired message
+                const buttons = actionsContainer.querySelectorAll('.buy-btn, .add-to-cart-btn:not(a)');
+                buttons.forEach(btn => btn.remove());
+                
+                // Check if retired message already exists
+                if (!actionsContainer.querySelector('.retired-message')) {
+                    const retiredMsg = document.createElement('div');
+                    retiredMsg.className = 'retired-message';
+                    retiredMsg.style.cssText = 'color: #dc3545; font-weight: 600; font-size: 1.1rem; padding: 1rem; text-align: center;';
+                    retiredMsg.textContent = 'Retired';
+                    
+                    // Insert before admin controls if they exist
+                    const adminControls = actionsContainer.querySelector('.admin-controls');
+                    if (adminControls) {
+                        actionsContainer.insertBefore(retiredMsg, adminControls);
+                    } else {
+                        actionsContainer.insertBefore(retiredMsg, actionsContainer.firstChild);
+                    }
+                }
+            } else if (actionsContainer && status !== 'Retired') {
+                // Remove retired message if status changed
+                const retiredMsg = actionsContainer.querySelector('.retired-message');
+                if (retiredMsg) {
+                    retiredMsg.remove();
+                }
+            }
             
             // Update price: keep top price base, add discount chip and 'You pay' below
             if (price !== null) {
@@ -2199,16 +2268,26 @@
             alert('New product created successfully! 🎉');
         }
 
-        function buyCard(cardName) {
-            // Check if Firebase is offline
-            if (window.isFirebaseOffline === true) {
-                showFirebaseErrorMessage();
-                return;
+        function buyCard(cardName, event) {
+            // Temporarily disabled for AdSense crawler access
+            // if (window.isFirebaseOffline === true) {
+            //     showFirebaseErrorMessage();
+            //     return;
+            // }
+            
+            const cardElement = event ? event.target.closest('.card-placeholder') : null;
+            let price = 0;
+            
+            if (cardElement) {
+                const priceElement = cardElement.querySelector('.card-price');
+                price = parseFloat(priceElement.textContent.replace('$', ''));
+            } else {
+                // Fallback: get price from product data
+                const cardId = cardName.toLowerCase().replace(/\s+/g, '-');
+                const productData = getProductData();
+                price = productData[cardId]?.price || 0;
             }
             
-            const cardElement = event.target.closest('.card-placeholder');
-            const priceElement = cardElement.querySelector('.card-price');
-            const price = parseFloat(priceElement.textContent.replace('$', ''));
             const cardId = cardName.toLowerCase().replace(/\s+/g, '-');
             const status = getProductStatus(cardId);
             const currentStock = getStock(cardId);
@@ -2299,20 +2378,20 @@
         }
 
         async function addToCart(cardName, price) {
-            // Check if Firebase is offline
-            if (window.isFirebaseOffline === true) {
-                showFirebaseErrorMessage();
-                return;
-            }
+            // Temporarily disabled for AdSense crawler access
+            // if (window.isFirebaseOffline === true) {
+            //     showFirebaseErrorMessage();
+            //     return;
+            // }
             
-            // Check if site is frozen
-            const siteFrozen = await isSiteFrozen();
-            console.log('🔒 Site frozen check:', siteFrozen);
-            if (siteFrozen) {
-                console.log('🔒 Site is frozen, showing message');
-                showSiteFrozenMessage();
-                return;
-            }
+            // Temporarily disabled for AdSense crawler access
+            // const siteFrozen = await isSiteFrozen();
+            // console.log('🔒 Site frozen check:', siteFrozen);
+            // if (siteFrozen) {
+            //     console.log('🔒 Site is frozen, showing message');
+            //     showSiteFrozenMessage();
+            //     return;
+            // }
             
             console.log('=== ADDING TO CART ===');
             console.log('Card:', cardName, 'Price:', price);
@@ -2347,17 +2426,22 @@
             
             console.log('Card ID:', cardId, 'Status:', status, 'Stock:', currentStock);
             
-            if (status === 'Out of Stock' || currentStock <= 0) {
-                console.log('Item out of stock');
-                showModal('Out of Stock', 'Sorry, this item is currently out of stock!');
-                return;
-            }
-            
+            // Only block if explicitly Out of Stock or Retired
             if (status === 'Retired') {
                 console.log('Item retired');
                 showModal('Product Retired', 'Sorry, this product has been retired and is no longer available!');
                 return;
             }
+            
+            // For non-backorder items, check stock
+            if (status === 'Out of Stock') {
+                console.log('Item out of stock');
+                showModal('Out of Stock', 'Sorry, this item is currently out of stock!');
+                return;
+            }
+            
+            // Allow items with undefined status or backorder status
+            console.log('Item can be added to cart');
 
             // Safari-compatible cart operations
             let cart = [];
@@ -2410,9 +2494,9 @@
                 console.error('Safari cart verification error:', error);
             }
             
-            // Reduce stock
-            reduceStock(cardId, 1);
-            updateStockDisplays();
+            // Don't reduce stock when adding to cart (only reduce on actual purchase)
+            // reduceStock(cardId, 1);
+            // updateStockDisplays();
             
             // Safari-compatible event dispatch
             try {
@@ -2760,12 +2844,17 @@
             alert("We're sorry, but our database is down. You cannot checkout, change account settings, or create accounts at this time.");
         }
 
+        // Temporarily disabled for AdSense crawler access
         function showFirebaseErrorMessage() {
-            showCustomErrorPopup("Our database is unavailable. Unfortunately, many functions are unavailable at this time.");
+            // Disabled - no error messages for AdSense crawler
+            return;
         }
 
-        // Custom Error Popup
+        // Temporarily disabled for AdSense crawler access
         function showCustomErrorPopup(message) {
+            // Disabled - no error messages for AdSense crawler
+            return;
+            /*
             // Create popup overlay
             const overlay = document.createElement('div');
             overlay.style.cssText = `
@@ -2820,7 +2909,7 @@
                 if (e.target === overlay) {
                     overlay.remove();
                 }
-            });
+            }); */
         }
 
         // Enhanced Firebase error detection
@@ -2874,25 +2963,25 @@
                 
                 updateOfflineIndicator(!isAvailable);
                 
-                // Only show error message if Firebase was previously available and now isn't
-                if (!isAvailable && window.firebaseWasAvailable === true) {
-                    console.log('🔥 Firebase became unavailable, showing error message');
-                    showFirebaseErrorMessage();
-                } else if (!isAvailable) {
-                    console.log('🔥 Firebase unavailable on first check, not showing error message');
-                } else {
-                    console.log('✅ Firebase is available');
-                }
+                    // Temporarily disabled for AdSense crawler access
+                    // if (!isAvailable && window.firebaseWasAvailable === true) {
+                    //     console.log('🔥 Firebase became unavailable, showing error message');
+                    //     showFirebaseErrorMessage();
+                    // } else if (!isAvailable) {
+                    //     console.log('🔥 Firebase unavailable on first check, not showing error message');
+                    // } else {
+                        console.log('✅ Firebase check running (errors disabled for crawler)');
+                    // }
                 
-                // Update database down banner
-                const databaseDownBanner = document.getElementById('databaseDownBanner');
-                if (databaseDownBanner) {
-                    if (!isAvailable) {
-                        databaseDownBanner.style.display = 'flex';
-                    } else {
-                        databaseDownBanner.style.display = 'none';
-                    }
-                }
+                // Temporarily disabled for AdSense crawler access
+                // const databaseDownBanner = document.getElementById('databaseDownBanner');
+                // if (databaseDownBanner) {
+                //     if (!isAvailable) {
+                //         databaseDownBanner.style.display = 'flex';
+                //     } else {
+                //         databaseDownBanner.style.display = 'none';
+                //     }
+                // }
                 
                 // Update global offline state
                 window.isFirebaseOffline = !isAvailable;
@@ -2915,16 +3004,16 @@
                 
                 updateOfflineIndicator(true);
                 
-                // Only show error message if Firebase was previously available
-                if (window.firebaseWasAvailable === true) {
-                    showFirebaseErrorMessage();
-                }
+                // Temporarily disabled for AdSense crawler access
+                // if (window.firebaseWasAvailable === true) {
+                //     showFirebaseErrorMessage();
+                // }
                 
-                // Show database down banner on error
-                const databaseDownBanner = document.getElementById('databaseDownBanner');
-                if (databaseDownBanner) {
-                    databaseDownBanner.style.display = 'flex';
-                }
+                // Temporarily disabled for AdSense crawler access
+                // const databaseDownBanner = document.getElementById('databaseDownBanner');
+                // if (databaseDownBanner) {
+                //     databaseDownBanner.style.display = 'flex';
+                // }
                 window.isFirebaseOffline = true;
                 window.firebaseWasAvailable = false;
                 
