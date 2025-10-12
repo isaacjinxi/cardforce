@@ -16,8 +16,9 @@
         // Check if site is on GitHub Pages (outdated)
         (function() {
             const hostname = window.location.hostname;
+            const pathname = window.location.pathname;
             
-            if (hostname === 'isaacjinxi.github.io') {
+            if (hostname === 'isaacjinxi.github.io' && (pathname.startsWith('/cardforce') || pathname === '/cardforce/')) {
                 // Show outdated site warning
                 document.addEventListener('DOMContentLoaded', function() {
                     const overlay = document.createElement('div');
