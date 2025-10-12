@@ -976,6 +976,41 @@
                     </div>
                 </div>
 
+                <!-- Camera Modal -->
+                <div id="cameraModal" class="modal-overlay" style="display: none;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <button class="modal-close" onclick="closeCameraModal()">&times;</button>
+                        <h2>Update Profile Picture</h2>
+                        
+                        <div style="margin: 2rem 0;">
+                            <div style="margin-bottom: 1rem;">
+                                <button onclick="startCamera()" class="auth-toggle" style="margin-right: 1rem;">📷 Use Camera</button>
+                                <button onclick="document.getElementById('fileInput').click()" class="auth-toggle">📁 Upload File</button>
+                                <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+                            </div>
+                            
+                            <!-- Camera View -->
+                            <div id="cameraView" style="display: none; text-align: center;">
+                                <video id="cameraStream" autoplay playsinline style="max-width: 100%; border-radius: 10px; background: #000;"></video>
+                                <div style="margin-top: 1rem;">
+                                    <button onclick="capturePhoto()" class="auth-toggle">📸 Capture Photo</button>
+                                    <button onclick="stopCamera()" class="auth-toggle" style="background: #dc3545;">Stop Camera</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Preview -->
+                            <canvas id="photoCanvas" style="display: none; max-width: 100%; border-radius: 10px;"></canvas>
+                            <div id="photoPreview" style="display: none; text-align: center;">
+                                <img id="previewImage" src="" alt="Preview" style="max-width: 100%; border-radius: 10px; margin-bottom: 1rem;">
+                                <div>
+                                    <button onclick="saveProfilePicture()" class="auth-toggle">💾 Save as Profile Picture</button>
+                                    <button onclick="resetCamera()" class="auth-toggle" style="background: #666;">🔄 Try Again</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Change Security Questions Modal -->
                 <div id="changeSecurityQuestionsModal" class="modal" style="display: none;">
                     <div class="modal-content" style="max-width: 600px;">
@@ -1054,7 +1089,10 @@
                 </div>
 
                 <div class="user-info" id="userInfo">
-                    <img class="user-avatar" id="userAvatar" src="" alt="User Avatar">
+                    <div style="position: relative; display: inline-block;">
+                        <img class="user-avatar" id="userAvatar" src="" alt="User Avatar">
+                        <button onclick="openCameraModal()" style="position: absolute; bottom: 0; right: 0; background: #6a4c93; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">📷</button>
+                    </div>
                     <div class="user-name" id="userName"></div>
                     <div class="user-email" id="userEmail"></div>
                     <div class="user-actions">
@@ -1475,6 +1513,140 @@
             clearAuthMessage();
             
             console.log('User signed out successfully');
+        }
+
+        // ============================================
+        // CAMERA FUNCTIONALITY FOR PROFILE PICTURE
+        // ============================================
+        
+        let cameraStream = null;
+        let capturedImageData = null;
+        
+        function openCameraModal() {
+            document.getElementById('cameraModal').style.display = 'flex';
+        }
+        
+        function closeCameraModal() {
+            stopCamera();
+            resetCamera();
+            document.getElementById('cameraModal').style.display = 'none';
+        }
+        
+        async function startCamera() {
+            try {
+                const video = document.getElementById('cameraStream');
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                video.srcObject = cameraStream;
+                document.getElementById('cameraView').style.display = 'block';
+                document.getElementById('photoPreview').style.display = 'none';
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('Could not access camera. Please check permissions and try again.');
+            }
+        }
+        
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            document.getElementById('cameraView').style.display = 'none';
+        }
+        
+        function capturePhoto() {
+            const video = document.getElementById('cameraStream');
+            const canvas = document.getElementById('photoCanvas');
+            const context = canvas.getContext('2d');
+            
+            // Set canvas size to video size
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Draw video frame to canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to data URL
+            capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // Show preview
+            document.getElementById('previewImage').src = capturedImageData;
+            document.getElementById('photoPreview').style.display = 'block';
+            
+            // Stop camera
+            stopCamera();
+        }
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                capturedImageData = e.target.result;
+                document.getElementById('previewImage').src = capturedImageData;
+                document.getElementById('photoPreview').style.display = 'block';
+                document.getElementById('cameraView').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function resetCamera() {
+            capturedImageData = null;
+            document.getElementById('photoPreview').style.display = 'none';
+            document.getElementById('cameraView').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+        }
+        
+        async function saveProfilePicture() {
+            if (!capturedImageData) {
+                alert('No image captured');
+                return;
+            }
+            
+            const googleUser = localStorage.getItem('googleUser');
+            if (!googleUser) {
+                alert('Please sign in first');
+                return;
+            }
+            
+            try {
+                const userData = JSON.parse(googleUser);
+                
+                // Update user data with new picture
+                userData.picture = capturedImageData;
+                localStorage.setItem('googleUser', JSON.stringify(userData));
+                
+                // Update avatar display
+                document.getElementById('userAvatar').src = capturedImageData;
+                
+                // Save to Firebase if available
+                if (window.firebaseService && window.firebaseService.isInitialized) {
+                    const db = window.firebaseService.db;
+                    const userRef = window.doc(db, 'users', userData.sub);
+                    await window.setDoc(userRef, {
+                        picture: capturedImageData,
+                        lastUpdated: new Date().toISOString()
+                    }, { merge: true });
+                    console.log('✅ Profile picture saved to Firebase');
+                }
+                
+                alert('Profile picture updated successfully!');
+                closeCameraModal();
+            } catch (error) {
+                console.error('Error saving profile picture:', error);
+                alert('Failed to save profile picture. Please try again.');
+            }
         }
 
         // Hamburger menu functions

@@ -1,4 +1,5 @@
 // Admin utilities and common functions
+console.log('🚀 admin-utils.js starting to load...');
 const ADMIN_EMAIL = 'cardforcehelp@gmail.com';
 
 // Check if current user is admin
@@ -2172,3 +2173,103 @@ function loadSavedDesignsFromFirebase() {
         }
     });
 }
+
+// ============================================
+// PRODUCT REVIEWS SYSTEM
+// ============================================
+
+// Get all reviews for a product from localStorage
+function getProductReviews(productId) {
+    const reviewsKey = `reviews_${productId}`;
+    const reviews = localStorage.getItem(reviewsKey);
+    return reviews ? JSON.parse(reviews) : [];
+}
+
+// Add a review for a product
+function addProductReview(productId, review) {
+    const reviewsKey = `reviews_${productId}`;
+    const reviews = getProductReviews(productId);
+    
+    // Add timestamp and ID
+    review.id = Date.now();
+    review.timestamp = new Date().toISOString();
+    review.productId = productId;
+    
+    reviews.push(review);
+    localStorage.setItem(reviewsKey, JSON.stringify(reviews));
+    
+    // Note: Firebase sync is handled at the page level
+    console.log('✅ Review added to localStorage:', review);
+    
+    return review;
+}
+
+// Delete a review (admin only)
+function deleteProductReview(productId, reviewId) {
+    if (!isAdmin()) {
+        console.error('Only admins can delete reviews');
+        return false;
+    }
+    
+    const reviewsKey = `reviews_${productId}`;
+    let reviews = getProductReviews(productId);
+    reviews = reviews.filter(r => r.id !== reviewId);
+    localStorage.setItem(reviewsKey, JSON.stringify(reviews));
+    
+    // Note: Firebase deletion is handled at the page level
+    console.log('✅ Review deleted from localStorage:', reviewId);
+    
+    return true;
+}
+
+// Calculate average rating for a product
+function getAverageRating(productId) {
+    const reviews = getProductReviews(productId);
+    if (reviews.length === 0) return 0;
+    
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return (sum / reviews.length).toFixed(1);
+}
+
+// Save review to Firebase (called from page-level Firebase code)
+async function saveReviewToFirebase(review) {
+    // This will be implemented in the product page where Firebase is available
+    console.log('Review queued for Firebase sync:', review);
+    return Promise.resolve();
+}
+
+// Delete review from Firebase (called from page-level Firebase code)
+async function deleteReviewFromFirebase(reviewId) {
+    // This will be implemented in the product page where Firebase is available
+    console.log('Review deletion queued for Firebase:', reviewId);
+    return Promise.resolve();
+}
+
+// Load all reviews from Firebase for a product (called from page-level Firebase code)
+async function loadReviewsFromFirebase(productId) {
+    // This will be implemented in the product page where Firebase is available
+    console.log('Review loading from Firebase for:', productId);
+    return Promise.resolve([]);
+}
+
+// Explicitly add review functions to window object
+window.getProductReviews = getProductReviews;
+window.addProductReview = addProductReview;
+window.getAverageRating = getAverageRating;
+window.deleteProductReview = deleteProductReview;
+
+// Signal that admin-utils.js has loaded
+window.adminUtilsLoaded = true;
+console.log('✅ admin-utils.js loaded successfully');
+console.log('Review functions available:', {
+    getProductReviews: typeof getProductReviews,
+    addProductReview: typeof addProductReview,
+    getAverageRating: typeof getAverageRating,
+    deleteProductReview: typeof deleteProductReview
+});
+console.log('Window review functions:', {
+    getProductReviews: typeof window.getProductReviews,
+    addProductReview: typeof window.addProductReview,
+    getAverageRating: typeof window.getAverageRating,
+    deleteProductReview: typeof window.deleteProductReview
+});

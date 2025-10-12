@@ -9,8 +9,19 @@
     ],
     "rewrites": [
       {
-        "source": "**",
+        "source": "!**/*.{js,css,png,jpg,jpeg,gif,svg,ico,json,txt,md,html}",
         "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript"
+          }
+        ]
       }
     ]
   }

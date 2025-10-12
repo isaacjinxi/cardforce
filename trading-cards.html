@@ -1677,11 +1677,12 @@
                 const backorderInfo = p.status === 'Backorder' ? `<div class="backorder-info" style="color: #17a2b8; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;">Ships in ${p.backorderDays || 7} days</div>` : '';
                 
                 const isRetired = p.status === 'Retired';
+                const safeName = (p.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 const actionButtons = isRetired ? 
                     `<div style="color: #dc3545; font-weight: 600; font-size: 1.1rem; padding: 1rem; text-align: center;">Retired</div>` :
-                    `<button class="buy-btn" onclick="buyCard('${p.name}', event)">Buy Now</button>
+                    `<button class="buy-btn" onclick="buyCard('${safeName}', event)">Buy Now</button>
                     <a class="add-to-cart-btn" href="product.html?id=${p.id}" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">View</a>
-                    <button class="add-to-cart-btn" onclick="addToCart('${p.name}', ${p.price})">Add to Cart</button>`;
+                    <button class="add-to-cart-btn" onclick="addToCart('${safeName}', ${p.price})">Add to Cart</button>`;
                 
                 card.innerHTML = `
                     <div class="card-chips">
@@ -1745,10 +1746,17 @@
 
         function editItem(cardId) {
             const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+            const productData = getProductData();
+            const product = productData[cardId] || {};
+            const currentName = cardElement.querySelector('.card-title')?.textContent || '';
+            const currentDescription = cardElement.querySelector('.card-description')?.textContent || '';
             const currentPrice = parseFloat(cardElement.querySelector('.card-price').dataset.price);
             const currentStock = getStock(cardId);
             const currentStatus = getProductStatus(cardId);
             const currentDiscount = getProductDiscount(cardId);
+            const currentAdditionalDesc = product.additionalDescription || '';
+            const currentReturnPolicy = product.returnPolicy || '';
+            const currentAdditionalImages = product.additionalImages ? product.additionalImages.join(', ') : '';
             
             // Create edit modal
             const modal = document.createElement('div');
@@ -1759,6 +1767,14 @@
                     <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
                     <h2>Edit Product: ${cardId}</h2>
                     <form id="editForm">
+                        <div class="form-group">
+                            <label for="editName">Product Name:</label>
+                            <input type="text" id="editName" value="${currentName}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDescription">Description:</label>
+                            <textarea id="editDescription" rows="3" required>${currentDescription}</textarea>
+                        </div>
                         <div class="form-group">
                             <label for="editPrice">Price:</label>
                             <input type="number" id="editPrice" value="${currentPrice}" step="0.01" min="0" required>
@@ -1784,6 +1800,18 @@
                             <label for="editDiscount">Discount (%):</label>
                             <input type="number" id="editDiscount" value="${currentDiscount}" min="0" max="100" step="1">
                         </div>
+                        <div class="form-group">
+                            <label for="editAdditionalImages">Additional Images (comma-separated):</label>
+                            <input type="text" id="editAdditionalImages" value="${currentAdditionalImages}" placeholder="image2.png, image3.png">
+                        </div>
+                        <div class="form-group">
+                            <label for="editAdditionalDesc">Additional Description:</label>
+                            <textarea id="editAdditionalDesc" rows="4" placeholder="Detailed description">${currentAdditionalDesc}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="editReturnPolicy">Return Policy:</label>
+                            <textarea id="editReturnPolicy" rows="3" placeholder="Return policy">${currentReturnPolicy}</textarea>
+                        </div>
                     </form>
                     <div class="modal-buttons">
                         <button class="modal-btn modal-btn-primary" onclick="saveProductEdit('${cardId}')">Save Changes</button>
@@ -1805,15 +1833,50 @@
         }
 
         function saveProductEdit(cardId) {
+            const name = document.getElementById('editName').value.trim();
+            const description = document.getElementById('editDescription').value.trim();
             const price = parseFloat(document.getElementById('editPrice').value);
             const stock = parseInt(document.getElementById('editStock').value);
             const status = document.getElementById('editStatus').value;
             const discount = parseInt(document.getElementById('editDiscount').value);
             const backorderDays = document.getElementById('editBackorderDays').value;
+            const additionalImages = document.getElementById('editAdditionalImages').value.trim();
+            const additionalDesc = document.getElementById('editAdditionalDesc').value.trim();
+            const returnPolicy = document.getElementById('editReturnPolicy').value.trim();
             
-            if (isNaN(price) || isNaN(stock) || isNaN(discount)) {
-                alert('Please enter valid numbers');
+            if (!name || !description || isNaN(price) || isNaN(stock) || isNaN(discount)) {
+                alert('Please fill in all fields with valid values');
                 return;
+            }
+            
+            // Parse additional images
+            const additionalImagesArray = additionalImages ? 
+                additionalImages.split(',').map(img => img.trim()).filter(img => img) : [];
+            
+            // Update name and description in card element
+            const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+            if (cardElement) {
+                const titleElement = cardElement.querySelector('.card-title');
+                const descElement = cardElement.querySelector('.card-description');
+                if (titleElement) titleElement.textContent = name;
+                if (descElement) descElement.textContent = description;
+            }
+            
+            // Update in product catalog
+            const catalog = getProductCatalog();
+            const productIndex = catalog.findIndex(p => p.id === cardId);
+            if (productIndex >= 0) {
+                catalog[productIndex].name = name;
+                catalog[productIndex].description = description;
+                catalog[productIndex].price = price;
+                catalog[productIndex].stock = stock;
+                catalog[productIndex].status = status;
+                catalog[productIndex].discount = discount;
+                catalog[productIndex].backorderDays = backorderDays ? parseInt(backorderDays) : null;
+                catalog[productIndex].additionalImages = additionalImagesArray;
+                catalog[productIndex].additionalDescription = additionalDesc;
+                catalog[productIndex].returnPolicy = returnPolicy;
+                localStorage.setItem('productCatalog', JSON.stringify(catalog));
             }
             
             // Update price (keep top bar showing base price in admin preview externally)
@@ -1827,6 +1890,23 @@
             
             // Update discount (does not change top price display)
             setProductDiscount(cardId, discount);
+            
+            // Sync to Firebase
+            if (typeof upsertCatalogProduct === 'function') {
+                upsertCatalogProduct({
+                    id: cardId,
+                    name: name,
+                    description: description,
+                    price: price,
+                    stock: stock,
+                    status: status,
+                    discount: discount,
+                    backorderDays: backorderDays ? parseInt(backorderDays) : null,
+                    additionalImages: additionalImagesArray,
+                    additionalDescription: additionalDesc,
+                    returnPolicy: returnPolicy
+                });
+            }
             
             // Update display
             updateProductDisplay(cardId);
@@ -2199,14 +2279,23 @@
                             <textarea id="newProductDescription" rows="3" placeholder="Enter product description" required></textarea>
                         </div>
                         <div class="form-group">
-                            <label for="newProductImage">Image URL or Filename:</label>
+                            <label for="newProductImage">Primary Image URL or Filename:</label>
                             <input type="text" id="newProductImage" placeholder="https://example.com/image.png or filename.png" required oninput="previewImage(this.value)">
                             <div id="imagePreview" style="margin-top: 10px; text-align: center;"></div>
                             <div id="imageValidation" style="margin-top: 5px; font-size: 0.9rem;"></div>
-                            <div style="margin-top: 8px; font-size: 0.8rem; color: #6c757d; background: #f8f9fa; padding: 8px; border-radius: 4px;">
-                                <strong>💡 For local files:</strong> Place your image in the same folder as this HTML file and enter just the filename (e.g., "myimage.png"). For web images, use the full URL.<br>
-                                <strong>Available test files:</strong> mike.png, PigPrincess.png, ceo.jpg, IMG_5055.PNG, etc.
-                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="newProductAdditionalImages">Additional Images (comma-separated):</label>
+                            <input type="text" id="newProductAdditionalImages" placeholder="image2.png, image3.png, https://example.com/image4.png">
+                            <div style="font-size: 0.8rem; color: #6c757d; margin-top: 5px;">Optional: Enter multiple image URLs or filenames separated by commas</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="newProductAdditionalDesc">Additional Description:</label>
+                            <textarea id="newProductAdditionalDesc" rows="4" placeholder="Enter detailed description, features, specifications, etc."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="newProductReturnPolicy">Return Policy:</label>
+                            <textarea id="newProductReturnPolicy" rows="3" placeholder="Enter return policy (e.g., 30-day return, no refunds on opened items, etc.)"></textarea>
                         </div>
                     </form>
                     <div class="modal-buttons">
@@ -2238,6 +2327,9 @@
             const backorderDays = document.getElementById('newBackorderDays').value;
             const description = document.getElementById('newProductDescription').value.trim();
             const imageUrl = document.getElementById('newProductImage').value.trim();
+            const additionalImages = document.getElementById('newProductAdditionalImages').value.trim();
+            const additionalDesc = document.getElementById('newProductAdditionalDesc').value.trim();
+            const returnPolicy = document.getElementById('newProductReturnPolicy').value.trim();
             
             if (!name || !id || isNaN(price) || isNaN(stock) || isNaN(discount) || !description || !imageUrl) {
                 alert('Please fill in all required fields');
@@ -2250,6 +2342,10 @@
                 return;
             }
             
+            // Parse additional images
+            const additionalImagesArray = additionalImages ? 
+                additionalImages.split(',').map(img => img.trim()).filter(img => img) : [];
+            
             // Persist to catalog and re-render
             upsertCatalogProduct({ 
                 id, 
@@ -2261,6 +2357,9 @@
                 discount, 
                 description, 
                 imageUrl,
+                additionalImages: additionalImagesArray,
+                additionalDescription: additionalDesc,
+                returnPolicy: returnPolicy,
                 isNew: true // Mark new products
             });
             document.querySelector('.modal').remove();
@@ -2454,13 +2553,29 @@
                 cart = [];
             }
             
+            // Get the product image from catalog or builtin
+            let productImage = 'placeholder.png';
+            const catalog = getProductCatalog();
+            const builtinImages = {
+                'pig-princess': 'PigPrincess.png',
+                'mike': 'mike.png'
+            };
+            
+            // Check catalog first
+            const catalogProduct = catalog.find(p => p.id === cardId);
+            if (catalogProduct && catalogProduct.imageUrl) {
+                productImage = catalogProduct.imageUrl;
+            } else if (builtinImages[cardId]) {
+                productImage = builtinImages[cardId];
+            }
+            
             // Create new item
             const newItem = {
                 id: Date.now(),
                 name: cardName,
                 price: parseFloat(price),
                 type: 'trading-card',
-                image: cardName === 'Pig-princess' ? 'PigPrincess.png' : 'mike.png',
+                image: productImage,
                 cardId: cardId
             };
             
