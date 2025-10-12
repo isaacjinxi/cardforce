@@ -145,12 +145,14 @@
                             // Add 2014-style outdated styling to the entire site
                             const outdatedStyle = document.createElement('style');
                             outdatedStyle.innerHTML = 
-                                '* { animation: none !important; transition: none !important; }' +
+                                '* { animation: none !important; transition: none !important; border-radius: 0 !important; }' +
                                 'button:hover, a:hover { transition: none !important; transform: none !important; }' +
                                 '.card:hover { transition: none !important; transform: none !important; box-shadow: none !important; }' +
                                 'body { font-family: Arial, sans-serif !important; }' +
                                 '.hero { border-radius: 0 !important; }' +
-                                'button { border-radius: 5px !important; box-shadow: none !important; }';
+                                'button { border-radius: 0 !important; box-shadow: none !important; }' +
+                                'input, textarea, select { border-radius: 0 !important; }' +
+                                '.card, .product-card, img { border-radius: 0 !important; }';
                             document.head.appendChild(outdatedStyle);
                             
                             // Add a permanent banner at the top
@@ -163,6 +165,17 @@
                                 '<a href="https://card-force-472100.firebaseapp.com/index.html" style="color: white; text-decoration: underline; font-weight: bold;">Click here for the latest version</a>';
                             document.body.style.paddingTop = '50px';
                             document.body.insertBefore(banner, document.body.firstChild);
+                            
+                            // Replace hero image with OUTDATED SITE warning
+                            const hero = document.querySelector('.hero');
+                            if (hero) {
+                                hero.innerHTML = 
+                                    '<div style="background: #fff3cd; border: 3px solid #856404; padding: 40px; text-align: center; min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center;">' +
+                                    '<h1 style="color: #856404; font-size: 48px; font-weight: bold; margin: 0 0 20px 0; font-family: Arial, sans-serif;">⚠️ OUTDATED SITE! ⚠️</h1>' +
+                                    '<p style="color: #856404; font-size: 18px; margin-bottom: 30px; font-family: Arial, sans-serif;">This version is no longer maintained. Please visit the new site.</p>' +
+                                    '<button onclick="window.location.href=\'https://card-force-472100.firebaseapp.com/index.html\'" style="background: #856404; color: white; border: none; padding: 15px 40px; font-size: 18px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif;">Go to New Site</button>' +
+                                    '</div>';
+                            }
                             
                             // Add slow loading screen on all link clicks
                             document.addEventListener('click', function(e) {
@@ -179,23 +192,28 @@
                                     
                                     loadingOverlay.innerHTML = 
                                         '<div style="text-align: center;">' +
-                                        '<div style="width: 50px; height: 50px; border: 5px solid #ddd; border-top: 5px solid #6a4c93; border-radius: 50%; margin: 0 auto 20px;"></div>' +
-                                        '<p style="color: #666; font-size: 18px; font-family: Arial, sans-serif;">Loading...</p>' +
+                                        '<div style="display: flex; gap: 15px; margin-bottom: 30px; justify-content: center;">' +
+                                        '<div class="beep-square" style="width: 30px; height: 30px; background: #333;"></div>' +
+                                        '<div class="beep-square" style="width: 30px; height: 30px; background: #333;"></div>' +
+                                        '<div class="beep-square" style="width: 30px; height: 30px; background: #333;"></div>' +
+                                        '</div>' +
+                                        '<p style="color: #333; font-size: 16px; font-family: Arial, sans-serif; font-weight: normal;">One moment, please...</p>' +
                                         '</div>';
                                     
                                     document.body.appendChild(loadingOverlay);
                                     
-                                    // Animate the spinner
-                                    const spinner = loadingOverlay.querySelector('div div');
-                                    let rotation = 0;
-                                    const spinInterval = setInterval(function() {
-                                        rotation += 6;
-                                        spinner.style.transform = 'rotate(' + rotation + 'deg)';
-                                    }, 30);
+                                    // Animate the squares to blink
+                                    const squares = loadingOverlay.querySelectorAll('.beep-square');
+                                    let currentSquare = 0;
+                                    const blinkInterval = setInterval(function() {
+                                        squares.forEach(function(sq) { sq.style.background = '#333'; });
+                                        squares[currentSquare].style.background = '#6a4c93';
+                                        currentSquare = (currentSquare + 1) % 3;
+                                    }, 400);
                                     
                                     // Navigate after delay
                                     setTimeout(function() {
-                                        clearInterval(spinInterval);
+                                        clearInterval(blinkInterval);
                                         window.location.href = target.href;
                                     }, 2000);
                                 }
@@ -219,12 +237,14 @@
                 // Add 2014-style outdated styling
                 const outdatedStyle = document.createElement('style');
                 outdatedStyle.innerHTML = 
-                    '* { animation: none !important; transition: none !important; }' +
+                    '* { animation: none !important; transition: none !important; border-radius: 0 !important; }' +
                     'button:hover, a:hover { transition: none !important; transform: none !important; }' +
                     '.card:hover { transition: none !important; transform: none !important; box-shadow: none !important; }' +
                     'body { font-family: Arial, sans-serif !important; }' +
                     '.hero { border-radius: 0 !important; }' +
-                    'button { border-radius: 5px !important; box-shadow: none !important; }';
+                    'button { border-radius: 0 !important; box-shadow: none !important; }' +
+                    'input, textarea, select { border-radius: 0 !important; }' +
+                    '.card, .product-card, img { border-radius: 0 !important; }';
                 document.head.appendChild(outdatedStyle);
                 
                 // Add banner when DOM is ready
@@ -246,6 +266,19 @@
                     document.body.insertBefore(banner, document.body.firstChild);
                 }
                 
+                // Replace hero image with OUTDATED SITE warning
+                document.addEventListener('DOMContentLoaded', function() {
+                    const hero = document.querySelector('.hero');
+                    if (hero) {
+                        hero.innerHTML = 
+                            '<div style="background: #fff3cd; border: 3px solid #856404; padding: 40px; text-align: center; min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center;">' +
+                            '<h1 style="color: #856404; font-size: 48px; font-weight: bold; margin: 0 0 20px 0; font-family: Arial, sans-serif;">⚠️ OUTDATED SITE! ⚠️</h1>' +
+                            '<p style="color: #856404; font-size: 18px; margin-bottom: 30px; font-family: Arial, sans-serif;">This version is no longer maintained. Please visit the new site.</p>' +
+                            '<button onclick="window.location.href=\'https://card-force-472100.firebaseapp.com/index.html\'" style="background: #856404; color: white; border: none; padding: 15px 40px; font-size: 18px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif;">Go to New Site</button>' +
+                            '</div>';
+                    }
+                });
+                
                 // Add slow loading screen on all link clicks
                 document.addEventListener('click', function(e) {
                     const target = e.target.closest('a, button[onclick*="location"]');
@@ -261,23 +294,28 @@
                         
                         loadingOverlay.innerHTML = 
                             '<div style="text-align: center;">' +
-                            '<div style="width: 50px; height: 50px; border: 5px solid #ddd; border-top: 5px solid #6a4c93; border-radius: 50%; margin: 0 auto 20px;"></div>' +
-                            '<p style="color: #666; font-size: 18px; font-family: Arial, sans-serif;">Loading...</p>' +
+                            '<div style="display: flex; gap: 15px; margin-bottom: 30px; justify-content: center;">' +
+                            '<div class="beep-square" style="width: 30px; height: 30px; background: #333;"></div>' +
+                            '<div class="beep-square" style="width: 30px; height: 30px; background: #333;"></div>' +
+                            '<div class="beep-square" style="width: 30px; height: 30px; background: #333;"></div>' +
+                            '</div>' +
+                            '<p style="color: #333; font-size: 16px; font-family: Arial, sans-serif; font-weight: normal;">One moment, please...</p>' +
                             '</div>';
                         
                         document.body.appendChild(loadingOverlay);
                         
-                        // Animate the spinner
-                        const spinner = loadingOverlay.querySelector('div div');
-                        let rotation = 0;
-                        const spinInterval = setInterval(function() {
-                            rotation += 6;
-                            spinner.style.transform = 'rotate(' + rotation + 'deg)';
-                        }, 30);
+                        // Animate the squares to blink
+                        const squares = loadingOverlay.querySelectorAll('.beep-square');
+                        let currentSquare = 0;
+                        const blinkInterval = setInterval(function() {
+                            squares.forEach(function(sq) { sq.style.background = '#333'; });
+                            squares[currentSquare].style.background = '#6a4c93';
+                            currentSquare = (currentSquare + 1) % 3;
+                        }, 400);
                         
                         // Navigate after delay
                         setTimeout(function() {
-                            clearInterval(spinInterval);
+                            clearInterval(blinkInterval);
                             window.location.href = target.href;
                         }, 2000);
                     }
