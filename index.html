@@ -17,39 +17,61 @@
         (function() {
             const hostname = window.location.hostname;
             const pathname = window.location.pathname;
+            const href = window.location.href;
             
-            if (hostname === 'isaacjinxi.github.io' && (pathname.startsWith('/cardforce') || pathname === '/cardforce/')) {
-                // Show outdated site warning
-                document.addEventListener('DOMContentLoaded', function() {
-                    const overlay = document.createElement('div');
-                    overlay.style.cssText = `
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        background: rgba(0, 0, 0, 0.9);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        z-index: 99999;
-                    `;
-                    
-                    overlay.innerHTML = \`
-                        <div style="background: white; padding: 3rem; border-radius: 20px; text-align: center; max-width: 500px; margin: 1rem;">
-                            <h1 style="color: #6a4c93; font-size: 2rem; margin-bottom: 1rem;">⚠️ Outdated Version</h1>
-                            <p style="color: #555; font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem;">
-                                This is an outdated version of the site. Please visit our new official site for the latest features and updates.
-                            </p>
-                            <button onclick="window.location.href='https://card-force-472100.firebaseapp.com/index.html'" 
-                                style="background: linear-gradient(135deg, #6a4c93, #8e44ad); color: white; border: none; padding: 1rem 2rem; border-radius: 25px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s;">
-                                Go to New Site →
-                            </button>
-                        </div>
-                    \`;
-                    
+            console.log('Checking for outdated site...');
+            console.log('Hostname:', hostname);
+            console.log('Pathname:', pathname);
+            console.log('Full URL:', href);
+            
+            // Check if on GitHub Pages with cardforce path
+            const isGitHub = hostname === 'isaacjinxi.github.io';
+            const hasCardforce = pathname.includes('cardforce');
+            
+            console.log('Is GitHub?', isGitHub);
+            console.log('Has cardforce?', hasCardforce);
+            
+            if (isGitHub && hasCardforce) {
+                console.log('✅ Showing outdated site warning');
+                // Show outdated site warning immediately
+                const overlay = document.createElement('div');
+                overlay.id = 'outdatedWarning';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.9);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 99999;
+                `;
+                
+                overlay.innerHTML = \`
+                    <div style="background: white; padding: 3rem; border-radius: 20px; text-align: center; max-width: 500px; margin: 1rem;">
+                        <h1 style="color: #6a4c93; font-size: 2rem; margin-bottom: 1rem;">⚠️ Outdated Version</h1>
+                        <p style="color: #555; font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem;">
+                            This is an outdated version of the site. Please visit our new official site for the latest features and updates.
+                        </p>
+                        <button onclick="window.location.href='https://card-force-472100.firebaseapp.com/index.html'" 
+                            style="background: linear-gradient(135deg, #6a4c93, #8e44ad); color: white; border: none; padding: 1rem 2rem; border-radius: 25px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s;">
+                            Go to New Site →
+                        </button>
+                    </div>
+                \`;
+                
+                // Add immediately, don't wait for DOMContentLoaded
+                if (document.body) {
                     document.body.appendChild(overlay);
-                });
+                } else {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.body.appendChild(overlay);
+                    });
+                }
+            } else {
+                console.log('Not outdated site, continuing normally');
             }
         })();
         
