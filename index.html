@@ -72,14 +72,15 @@
                     document.getElementById('noThanksBtn').addEventListener('click', function() {
                         overlay.remove();
                         
-                        // Add outdated styling to the entire site
+                        // Add 2014-style outdated styling to the entire site
                         const outdatedStyle = document.createElement('style');
                         outdatedStyle.innerHTML = 
-                            '* { filter: grayscale(50%) sepia(30%) hue-rotate(15deg) !important; }' +
-                            'body { animation: slowLoad 2s ease-in !important; }' +
-                            '@keyframes slowLoad { from { opacity: 0; } to { opacity: 1; } }' +
-                            'button, a, .card { transition: all 0.8s ease !important; }' +
-                            'button:hover, a:hover, .card:hover { transform: scale(1.02) !important; transition: all 0.8s ease !important; }';
+                            '* { animation: none !important; transition: none !important; }' +
+                            'button:hover, a:hover { transition: none !important; transform: none !important; }' +
+                            '.card:hover { transition: none !important; transform: none !important; box-shadow: none !important; }' +
+                            'body { font-family: Arial, sans-serif !important; }' +
+                            '.hero { border-radius: 0 !important; }' +
+                            'button { border-radius: 5px !important; box-shadow: none !important; }';
                         document.head.appendChild(outdatedStyle);
                         
                         // Add a permanent banner at the top
@@ -87,19 +88,51 @@
                         banner.style.cssText = 
                             'position: fixed; top: 0; left: 0; right: 0; background: #f39c12; color: white; ' +
                             'padding: 0.75rem; text-align: center; z-index: 9999; font-weight: 600; ' +
-                            'box-shadow: 0 2px 10px rgba(0,0,0,0.3);';
+                            'box-shadow: none; border-bottom: 2px solid #e67e22;';
                         banner.innerHTML = '⚠️ You are viewing an outdated version - ' +
                             '<a href="https://card-force-472100.firebaseapp.com/index.html" style="color: white; text-decoration: underline; font-weight: bold;">Click here for the latest version</a>';
                         document.body.style.paddingTop = '50px';
                         document.body.insertBefore(banner, document.body.firstChild);
                         
-                        // Slow down all interactions
+                        // Add slow loading screen on all link clicks
                         document.addEventListener('click', function(e) {
-                            e.target.style.pointerEvents = 'none';
-                            setTimeout(function() {
-                                e.target.style.pointerEvents = 'auto';
-                            }, 300);
+                            const target = e.target.closest('a, button[onclick*="location"]');
+                            if (target && target.href && !target.href.includes('#') && !target.href.includes('javascript:')) {
+                                e.preventDefault();
+                                
+                                // Create loading overlay
+                                const loadingOverlay = document.createElement('div');
+                                loadingOverlay.style.cssText = 
+                                    'position: fixed; top: 0; left: 0; width: 100%; height: 100%; ' +
+                                    'background: white; z-index: 999999; display: flex; flex-direction: column; ' +
+                                    'align-items: center; justify-content: center;';
+                                
+                                loadingOverlay.innerHTML = 
+                                    '<div style="text-align: center;">' +
+                                    '<div style="width: 50px; height: 50px; border: 5px solid #ddd; border-top: 5px solid #6a4c93; border-radius: 50%; margin: 0 auto 20px;"></div>' +
+                                    '<p style="color: #666; font-size: 18px; font-family: Arial, sans-serif;">Loading...</p>' +
+                                    '</div>';
+                                
+                                document.body.appendChild(loadingOverlay);
+                                
+                                // Animate the spinner
+                                const spinner = loadingOverlay.querySelector('div div');
+                                let rotation = 0;
+                                const spinInterval = setInterval(function() {
+                                    rotation += 6;
+                                    spinner.style.transform = 'rotate(' + rotation + 'deg)';
+                                }, 30);
+                                
+                                // Navigate after delay
+                                setTimeout(function() {
+                                    clearInterval(spinInterval);
+                                    window.location.href = target.href;
+                                }, 2000);
+                            }
                         }, true);
+                        
+                        // Store flag in sessionStorage to apply styling on other pages
+                        sessionStorage.setItem('outdatedMode', 'true');
                     });
                 } else {
                     document.addEventListener('DOMContentLoaded', function() {
@@ -109,14 +142,15 @@
                         document.getElementById('noThanksBtn').addEventListener('click', function() {
                             overlay.remove();
                             
-                            // Add outdated styling to the entire site
+                            // Add 2014-style outdated styling to the entire site
                             const outdatedStyle = document.createElement('style');
                             outdatedStyle.innerHTML = 
-                                '* { filter: grayscale(50%) sepia(30%) hue-rotate(15deg) !important; }' +
-                                'body { animation: slowLoad 2s ease-in !important; }' +
-                                '@keyframes slowLoad { from { opacity: 0; } to { opacity: 1; } }' +
-                                'button, a, .card { transition: all 0.8s ease !important; }' +
-                                'button:hover, a:hover, .card:hover { transform: scale(1.02) !important; transition: all 0.8s ease !important; }';
+                                '* { animation: none !important; transition: none !important; }' +
+                                'button:hover, a:hover { transition: none !important; transform: none !important; }' +
+                                '.card:hover { transition: none !important; transform: none !important; box-shadow: none !important; }' +
+                                'body { font-family: Arial, sans-serif !important; }' +
+                                '.hero { border-radius: 0 !important; }' +
+                                'button { border-radius: 5px !important; box-shadow: none !important; }';
                             document.head.appendChild(outdatedStyle);
                             
                             // Add a permanent banner at the top
@@ -124,24 +158,130 @@
                             banner.style.cssText = 
                                 'position: fixed; top: 0; left: 0; right: 0; background: #f39c12; color: white; ' +
                                 'padding: 0.75rem; text-align: center; z-index: 9999; font-weight: 600; ' +
-                                'box-shadow: 0 2px 10px rgba(0,0,0,0.3);';
+                                'box-shadow: none; border-bottom: 2px solid #e67e22;';
                             banner.innerHTML = '⚠️ You are viewing an outdated version - ' +
                                 '<a href="https://card-force-472100.firebaseapp.com/index.html" style="color: white; text-decoration: underline; font-weight: bold;">Click here for the latest version</a>';
                             document.body.style.paddingTop = '50px';
                             document.body.insertBefore(banner, document.body.firstChild);
                             
-                            // Slow down all interactions
+                            // Add slow loading screen on all link clicks
                             document.addEventListener('click', function(e) {
-                                e.target.style.pointerEvents = 'none';
-                                setTimeout(function() {
-                                    e.target.style.pointerEvents = 'auto';
-                                }, 300);
+                                const target = e.target.closest('a, button[onclick*="location"]');
+                                if (target && target.href && !target.href.includes('#') && !target.href.includes('javascript:')) {
+                                    e.preventDefault();
+                                    
+                                    // Create loading overlay
+                                    const loadingOverlay = document.createElement('div');
+                                    loadingOverlay.style.cssText = 
+                                        'position: fixed; top: 0; left: 0; width: 100%; height: 100%; ' +
+                                        'background: white; z-index: 999999; display: flex; flex-direction: column; ' +
+                                        'align-items: center; justify-content: center;';
+                                    
+                                    loadingOverlay.innerHTML = 
+                                        '<div style="text-align: center;">' +
+                                        '<div style="width: 50px; height: 50px; border: 5px solid #ddd; border-top: 5px solid #6a4c93; border-radius: 50%; margin: 0 auto 20px;"></div>' +
+                                        '<p style="color: #666; font-size: 18px; font-family: Arial, sans-serif;">Loading...</p>' +
+                                        '</div>';
+                                    
+                                    document.body.appendChild(loadingOverlay);
+                                    
+                                    // Animate the spinner
+                                    const spinner = loadingOverlay.querySelector('div div');
+                                    let rotation = 0;
+                                    const spinInterval = setInterval(function() {
+                                        rotation += 6;
+                                        spinner.style.transform = 'rotate(' + rotation + 'deg)';
+                                    }, 30);
+                                    
+                                    // Navigate after delay
+                                    setTimeout(function() {
+                                        clearInterval(spinInterval);
+                                        window.location.href = target.href;
+                                    }, 2000);
+                                }
                             }, true);
+                            
+                            // Store flag in sessionStorage to apply styling on other pages
+                            sessionStorage.setItem('outdatedMode', 'true');
                         });
                     });
                 }
             } else {
                 console.log('Not outdated site, continuing normally');
+            }
+        })();
+        
+        // Check if outdated mode was previously enabled
+        (function() {
+            if (sessionStorage.getItem('outdatedMode') === 'true') {
+                console.log('Applying outdated mode styling...');
+                
+                // Add 2014-style outdated styling
+                const outdatedStyle = document.createElement('style');
+                outdatedStyle.innerHTML = 
+                    '* { animation: none !important; transition: none !important; }' +
+                    'button:hover, a:hover { transition: none !important; transform: none !important; }' +
+                    '.card:hover { transition: none !important; transform: none !important; box-shadow: none !important; }' +
+                    'body { font-family: Arial, sans-serif !important; }' +
+                    '.hero { border-radius: 0 !important; }' +
+                    'button { border-radius: 5px !important; box-shadow: none !important; }';
+                document.head.appendChild(outdatedStyle);
+                
+                // Add banner when DOM is ready
+                if (document.body) {
+                    addOutdatedBanner();
+                } else {
+                    document.addEventListener('DOMContentLoaded', addOutdatedBanner);
+                }
+                
+                function addOutdatedBanner() {
+                    const banner = document.createElement('div');
+                    banner.style.cssText = 
+                        'position: fixed; top: 0; left: 0; right: 0; background: #f39c12; color: white; ' +
+                        'padding: 0.75rem; text-align: center; z-index: 9999; font-weight: 600; ' +
+                        'box-shadow: none; border-bottom: 2px solid #e67e22;';
+                    banner.innerHTML = '⚠️ You are viewing an outdated version - ' +
+                        '<a href="https://card-force-472100.firebaseapp.com/index.html" style="color: white; text-decoration: underline; font-weight: bold;">Click here for the latest version</a>';
+                    document.body.style.paddingTop = '50px';
+                    document.body.insertBefore(banner, document.body.firstChild);
+                }
+                
+                // Add slow loading screen on all link clicks
+                document.addEventListener('click', function(e) {
+                    const target = e.target.closest('a, button[onclick*="location"]');
+                    if (target && target.href && !target.href.includes('#') && !target.href.includes('javascript:')) {
+                        e.preventDefault();
+                        
+                        // Create loading overlay
+                        const loadingOverlay = document.createElement('div');
+                        loadingOverlay.style.cssText = 
+                            'position: fixed; top: 0; left: 0; width: 100%; height: 100%; ' +
+                            'background: white; z-index: 999999; display: flex; flex-direction: column; ' +
+                            'align-items: center; justify-content: center;';
+                        
+                        loadingOverlay.innerHTML = 
+                            '<div style="text-align: center;">' +
+                            '<div style="width: 50px; height: 50px; border: 5px solid #ddd; border-top: 5px solid #6a4c93; border-radius: 50%; margin: 0 auto 20px;"></div>' +
+                            '<p style="color: #666; font-size: 18px; font-family: Arial, sans-serif;">Loading...</p>' +
+                            '</div>';
+                        
+                        document.body.appendChild(loadingOverlay);
+                        
+                        // Animate the spinner
+                        const spinner = loadingOverlay.querySelector('div div');
+                        let rotation = 0;
+                        const spinInterval = setInterval(function() {
+                            rotation += 6;
+                            spinner.style.transform = 'rotate(' + rotation + 'deg)';
+                        }, 30);
+                        
+                        // Navigate after delay
+                        setTimeout(function() {
+                            clearInterval(spinInterval);
+                            window.location.href = target.href;
+                        }, 2000);
+                    }
+                }, true);
             }
         })();
         
