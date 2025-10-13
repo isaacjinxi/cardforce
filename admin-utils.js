@@ -414,11 +414,20 @@ function updateStock(itemId, newStock) {
     // Sync stock update to Firebase (works for both signed-in and anonymous users)
     if (window.firebaseService && window.firebaseService.isInitialized) {
         console.log(`🔄 Syncing stock update for ${itemId}: ${newStock}`);
-        window.firebaseService.saveStockToFirebase(itemId, newStock).then(() => {
-            console.log(`✅ Stock synced to Firebase: ${itemId} = ${newStock}`);
-        }).catch(error => {
-            console.error(`❌ Failed to sync stock to Firebase:`, error);
-        });
+        
+        // Check if the function exists
+        if (typeof window.firebaseService.saveStockToFirebase === 'function') {
+            window.firebaseService.saveStockToFirebase(itemId, newStock).then(() => {
+                console.log(`✅ Stock synced to Firebase: ${itemId} = ${newStock}`);
+            }).catch(error => {
+                console.error(`❌ Failed to sync stock to Firebase:`, error);
+            });
+        } else {
+            console.warn('⚠️ saveStockToFirebase function not available on firebaseService');
+            console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.firebaseService)));
+        }
+    } else {
+        console.log('⚠️ Firebase service not initialized, stock update saved locally only');
     }
 }
 
