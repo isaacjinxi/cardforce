@@ -21,6 +21,7 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9986380390919018"
      crossorigin="anonymous"></script>
     
+    <script src="maintenance-mode.js"></script>
     <script src="outdated-mode.js"></script>
     <script src="admin-utils.js?v=2.4"></script>
     <!-- Firebase CDN -->
@@ -2741,8 +2742,8 @@
                 const origin = window.location.origin || '';
                 if (origin.startsWith('http')) {
                     return { 
-                        returnUrl: `${origin}/cardforce/success.html`, 
-                        cancelUrl: `${origin}/cardforce/trading-cards.html` 
+                        returnUrl: `${origin}/success.html`, 
+                        cancelUrl: `${origin}/trading-cards.html` 
                     };
                 }
             } catch {}

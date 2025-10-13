@@ -7,6 +7,7 @@
     <title>Cart - Card Force</title>
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <script src="maintenance-mode.js"></script>
     <script src="outdated-mode.js"></script>
     <script src="admin-utils.js"></script>
     <!-- Firebase CDN -->
@@ -2222,8 +2223,8 @@
                 const origin = window.location.origin || '';
                 if (origin.startsWith('http')) {
                     return { 
-                        returnUrl: `${origin}/cardforce/success.html`, 
-                        cancelUrl: `${origin}/cardforce/cart.html` 
+                        returnUrl: `${origin}/success.html`, 
+                        cancelUrl: `${origin}/cart.html` 
                     };
                 }
             } catch {}
