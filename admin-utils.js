@@ -594,14 +594,24 @@ async function loadProductDataFromFirebase() {
         const firebaseProducts = await window.firebaseService.loadProductsFromFirebase();
         const localProductData = getProductData();
         
+        // Get list of permanently deleted products
+        const deletedProducts = JSON.parse(localStorage.getItem('deletedProducts') || '[]');
+        console.log('🗑️ Deleted products list:', deletedProducts);
+        
         // Ensure firebaseProducts is an array
         if (!Array.isArray(firebaseProducts)) {
             console.log('⚠️ Firebase products is not an array:', firebaseProducts);
             return;
         }
         
-        // Merge Firebase data with local data
+        // Merge Firebase data with local data, but skip deleted products
         firebaseProducts.forEach(product => {
+            // Skip if product is in deleted list
+            if (deletedProducts.includes(product.id)) {
+                console.log('🚫 Skipping deleted product:', product.id);
+                return;
+            }
+            
             // Add all Firebase products to local data
             localProductData[product.id] = {
                 ...localProductData[product.id], // Keep any existing local data
@@ -609,9 +619,14 @@ async function loadProductDataFromFirebase() {
             };
         });
         
-        // Also update the product catalog to include Firebase products
+        // Also update the product catalog to include Firebase products (excluding deleted)
         const catalog = getProductCatalog();
         firebaseProducts.forEach(product => {
+            // Skip if product is in deleted list
+            if (deletedProducts.includes(product.id)) {
+                return;
+            }
+            
             const existingIndex = catalog.findIndex(p => p.id === product.id);
             if (existingIndex >= 0) {
                 catalog[existingIndex] = { ...catalog[existingIndex], ...product };
@@ -620,13 +635,16 @@ async function loadProductDataFromFirebase() {
             }
         });
         
+        // Remove any deleted products from catalog that might still be there
+        const filteredCatalog = catalog.filter(p => !deletedProducts.includes(p.id));
+        
         // Save updated catalog to localStorage
-        localStorage.setItem('productCatalog', JSON.stringify(catalog));
+        localStorage.setItem('productCatalog', JSON.stringify(filteredCatalog));
         
         // Update local storage with merged data (skip Firebase sync to avoid circular calls)
         updateProductData(localProductData, true);
-        console.log('✅ Product data synced from Firebase (respecting local deletions)');
-        console.log('✅ Product catalog updated with Firebase products:', catalog.length);
+        console.log('✅ Product data synced from Firebase (excluding', deletedProducts.length, 'deleted products)');
+        console.log('✅ Product catalog updated with Firebase products:', filteredCatalog.length);
         
         // Trigger page refresh if needed
         triggerProductDataRefresh();
@@ -656,10 +674,17 @@ function setupProductDataListener() {
         console.log('Changes:', snapshot.docChanges().length);
         
         const localProductData = getProductData();
+        const deletedProducts = JSON.parse(localStorage.getItem('deletedProducts') || '[]');
         let hasChanges = false;
         
         snapshot.docChanges().forEach((change) => {
             const product = { id: change.doc.id, ...change.doc.data() };
+            
+            // Skip if product is in deleted list
+            if (deletedProducts.includes(product.id)) {
+                console.log('🚫 Skipping deleted product in real-time update:', product.id);
+                return;
+            }
             
             if (change.type === 'added' || change.type === 'modified') {
                 console.log(`📦 Product ${product.id} ${change.type}:`, product);
@@ -671,6 +696,11 @@ function setupProductDataListener() {
             } else if (change.type === 'removed') {
                 console.log(`🗑️ Product ${product.id} removed`);
                 delete localProductData[product.id];
+                // Add to deleted list
+                if (!deletedProducts.includes(product.id)) {
+                    deletedProducts.push(product.id);
+                    localStorage.setItem('deletedProducts', JSON.stringify(deletedProducts));
+                }
                 hasChanges = true;
             }
         });
@@ -683,6 +713,11 @@ function setupProductDataListener() {
                 const catalog = getProductCatalog();
                 snapshot.docChanges().forEach((change) => {
                     const product = { id: change.doc.id, ...change.doc.data() };
+                    
+                    // Skip if product is in deleted list
+                    if (deletedProducts.includes(product.id)) {
+                        return;
+                    }
                     
                     if (change.type === 'added' || change.type === 'modified') {
                         const existingIndex = catalog.findIndex(p => p.id === product.id);

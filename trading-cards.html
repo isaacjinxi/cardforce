@@ -2209,6 +2209,14 @@
                     }, 2000);
                 }
                 
+                // Mark as deleted in localStorage to prevent Firebase from re-adding it
+                const deletedProducts = JSON.parse(localStorage.getItem('deletedProducts') || '[]');
+                if (!deletedProducts.includes(cardId)) {
+                    deletedProducts.push(cardId);
+                    localStorage.setItem('deletedProducts', JSON.stringify(deletedProducts));
+                    console.log('✅ Product marked as permanently deleted:', deletedProducts);
+                }
+                
                 // Remove DOM element
                 const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
                 console.log('Card element found:', !!cardElement);
