@@ -2,8 +2,8 @@
 (function() {
     'use strict';
     
-    // Check if maintenance mode is enabled (ENABLED BY DEFAULT)
-    const maintenanceEnabled = localStorage.getItem('maintenanceMode') !== 'false'; // Enabled unless explicitly disabled
+    // Check if maintenance mode is enabled
+    const maintenanceEnabled = localStorage.getItem('maintenanceMode') === 'true';
     const adminUnlocked = sessionStorage.getItem('adminUnlocked') === 'true';
     
     if (maintenanceEnabled && !adminUnlocked) {
