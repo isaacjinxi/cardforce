@@ -1,21 +1,25 @@
-// Outdated Mode Script - Apply 2014 styling and slow loading to all pages
+// Outdated Mode Script - Apply 2015 styling and slow loading to all pages
 (function() {
     'use strict';
     
     if (sessionStorage.getItem('outdatedMode') === 'true') {
         console.log('Applying outdated mode styling...');
         
-        // Add 2014-style outdated styling
+        // Add 2015-style outdated styling
         const outdatedStyle = document.createElement('style');
         outdatedStyle.innerHTML = 
             '* { animation: none !important; transition: none !important; border-radius: 0 !important; }' +
             'button:hover, a:hover { transition: none !important; transform: none !important; }' +
             '.card:hover { transition: none !important; transform: none !important; box-shadow: none !important; }' +
-            'body { font-family: Arial, sans-serif !important; }' +
-            '.hero { border-radius: 0 !important; }' +
-            'button { border-radius: 0 !important; box-shadow: none !important; }' +
-            'input, textarea, select { border-radius: 0 !important; }' +
-            '.card, .product-card, img { border-radius: 0 !important; }';
+            'body { font-family: "Helvetica Neue", Arial, sans-serif !important; background: #f5f5f5 !important; }' +
+            '.hero { border-radius: 0 !important; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; }' +
+            'button { border-radius: 0 !important; box-shadow: none !important; background: #4CAF50 !important; color: white !important; border: 2px solid #45a049 !important; }' +
+            'input, textarea, select { border-radius: 0 !important; border: 2px solid #ddd !important; }' +
+            '.card, .product-card, img { border-radius: 0 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; }' +
+            'h1, h2, h3 { color: #333 !important; font-weight: 300 !important; }' +
+            '.navbar { background: #2c3e50 !important; }' +
+            '.navbar a { color: #ecf0f1 !important; }' +
+            'footer { background: #34495e !important; color: #bdc3c7 !important; }';
         document.head.appendChild(outdatedStyle);
         
         // Add banner when DOM is ready
