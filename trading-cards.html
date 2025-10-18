@@ -2164,48 +2164,69 @@
                     console.log('⚠️ Product not found in catalog');
                 }
                 
-                // Remove from Firebase if available
-                if (window.firebaseService && window.firebaseService.isInitialized) {
-                    console.log('🔥 Attempting Firebase deletion...');
-                    console.log('Firebase service methods:', Object.getOwnPropertyNames(window.firebaseService));
-                    console.log('deleteProductFromFirebase exists:', typeof window.firebaseService.deleteProductFromFirebase);
-                    
-                    // Double-check that the function exists and is callable
-                    if (typeof window.firebaseService.deleteProductFromFirebase === 'function') {
-                        try {
-                            await window.firebaseService.deleteProductFromFirebase(cardId);
-                            console.log('✅ Product deleted from Firebase');
-                            // Trigger a product data refresh to ensure consistency
-                            if (typeof triggerProductDataRefresh === 'function') {
-                                triggerProductDataRefresh();
+                // Remove from Firebase - ensure complete deletion
+                const deleteFromFirebase = async () => {
+                    try {
+                        // Delete using direct Firebase functions if available
+                        if (window.db && window.deleteDoc && window.doc && window.COLLECTIONS) {
+                            console.log('🔥 Deleting product from Firebase using direct methods...');
+                            
+                            // Delete product document
+                            const productRef = window.doc(window.db, window.COLLECTIONS.PRODUCTS, cardId);
+                            await window.deleteDoc(productRef);
+                            console.log('✅ Product document deleted from Firebase');
+                            
+                            // Also delete stock document if it exists
+                            try {
+                                const stockRef = window.doc(window.db, window.COLLECTIONS.STOCK, cardId);
+                                await window.deleteDoc(stockRef);
+                                console.log('✅ Stock document deleted from Firebase');
+                            } catch (stockError) {
+                                console.log('⚠️ Stock document may not exist or already deleted');
                             }
-                        } catch (error) {
-                            console.error('❌ Failed to delete from Firebase:', error);
-                            // Still show success message even if Firebase fails
-                            alert('Product deleted locally. Firebase sync failed, but deletion was successful.');
+                            
+                            return true;
+                        }
+                        // Fallback to firebaseService
+                        else if (window.firebaseService && window.firebaseService.isInitialized) {
+                            console.log('🔥 Deleting product from Firebase using firebaseService...');
+                            
+                            if (typeof window.firebaseService.deleteProductFromFirebase === 'function') {
+                                await window.firebaseService.deleteProductFromFirebase(cardId);
+                                console.log('✅ Product deleted from Firebase via service');
+                                return true;
+                            }
+                        }
+                        return false;
+                    } catch (error) {
+                        console.error('❌ Firebase deletion error:', error);
+                        throw error;
+                    }
+                };
+                
+                // Attempt deletion
+                try {
+                    const deleted = await deleteFromFirebase();
+                    if (deleted) {
+                        console.log('✅ Product completely deleted from Firebase');
+                        // Trigger a product data refresh to ensure consistency
+                        if (typeof triggerProductDataRefresh === 'function') {
+                            triggerProductDataRefresh();
                         }
                     } else {
-                        console.error('❌ deleteProductFromFirebase function not available');
-                        console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.firebaseService)));
-                        alert('Product deleted locally. Firebase deletion function not available.');
+                        console.warn('⚠️ Firebase not available, deletion saved locally only');
                     }
-                } else {
-                    console.log('⚠️ Firebase service not available or not initialized');
-                    console.log('Firebase service exists:', !!window.firebaseService);
-                    console.log('Firebase service initialized:', window.firebaseService?.isInitialized);
-                    
-                    // Try to wait a bit and retry
-                    console.log('⏳ Waiting for Firebase service to initialize...');
+                } catch (error) {
+                    console.error('❌ Failed to delete from Firebase:', error);
+                    // Retry once after a delay
+                    console.log('⏳ Retrying Firebase deletion in 2 seconds...');
                     setTimeout(async () => {
-                        if (window.firebaseService && window.firebaseService.isInitialized && typeof window.firebaseService.deleteProductFromFirebase === 'function') {
-                            try {
-                                await window.firebaseService.deleteProductFromFirebase(cardId);
-                                console.log('✅ Product deleted from Firebase (retry)');
-                            } catch (error) {
-                                console.error('❌ Failed to delete from Firebase (retry):', error);
-                            }
-                        } else {
-                            console.log('⚠️ Firebase service still not ready after retry');
+                        try {
+                            await deleteFromFirebase();
+                            console.log('✅ Product deleted from Firebase (retry successful)');
+                        } catch (retryError) {
+                            console.error('❌ Retry failed:', retryError);
+                            alert('Warning: Product deleted locally but Firebase sync may have failed. The product is marked as deleted and won\'t reappear.');
                         }
                     }, 2000);
                 }
