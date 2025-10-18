@@ -1708,11 +1708,16 @@
             
             const googleUser = JSON.parse(localStorage.getItem('googleUser') || 'null');
             const userSub = googleUser?.sub || null;
+            const firebaseUser = auth?.currentUser;
+            const firebaseUid = firebaseUser?.uid || null;
+            const firebaseEmail = firebaseUser?.email || null;
             
             console.log('🔍 Order Debug Info:', {
                 totalOrders: orders.length,
                 userSub: userSub,
+                firebaseUid: firebaseUid,
                 userEmail: googleUser?.email,
+                firebaseEmail: firebaseEmail,
                 orders: orders.map(o => ({
                     id: o.id,
                     userSub: o.userSub,
@@ -1725,10 +1730,11 @@
             const myOrders = orders.filter(o => {
                 const matchesUserSub = o.userSub === userSub;
                 const matchesUserId = o.userId === userSub;
-                const matchesEmail = o.userEmail === googleUser?.email;
+                const matchesFirebaseUid = o.userId === firebaseUid || o.userSub === firebaseUid;
+                const matchesEmail = o.userEmail === googleUser?.email || o.userEmail === firebaseEmail;
                 
-                console.log(`Order ${o.id}: userSub=${o.userSub}, userId=${o.userId}, email=${o.userEmail}, matches=${matchesUserSub || matchesUserId || matchesEmail}`);
-                return matchesUserSub || matchesUserId || matchesEmail;
+                console.log(`Order ${o.id}: userSub=${o.userSub}, userId=${o.userId}, email=${o.userEmail}, matches=${matchesUserSub || matchesUserId || matchesFirebaseUid || matchesEmail}`);
+                return matchesUserSub || matchesUserId || matchesFirebaseUid || matchesEmail;
             });
             
             console.log('🔍 Filtered My Orders:', myOrders.length);
@@ -1810,7 +1816,26 @@
             }
         }
 
-        function loadAddresses() {
+        async function loadAddresses() {
+            // Try to load from Firebase first if user is logged in
+            if (window.firebaseService && auth && auth.currentUser) {
+                try {
+                    const firebaseUser = auth.currentUser;
+                    console.log('Loading addresses from Firebase for user:', firebaseUser.uid);
+                    const firebaseAddresses = await firebaseService.loadAddressesFromFirebase(firebaseUser.uid);
+                    
+                    if (firebaseAddresses && firebaseAddresses.length > 0) {
+                        console.log('✅ Loaded addresses from Firebase:', firebaseAddresses.length);
+                        // Merge with localStorage
+                        firebaseAddresses.forEach(addr => {
+                            saveAddress(addr);
+                        });
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to load addresses from Firebase:', error);
+                }
+            }
+            
             const addresses = getAddresses();
             const addressList = document.getElementById('addressList');
             
@@ -1927,11 +1952,15 @@
             
             saveAddress(address);
             
-            // Sync with Firebase
-            if (window.firebaseService && window.firebaseService.currentUser) {
-                const googleUser = localStorage.getItem('googleUser');
-                const userData = JSON.parse(googleUser);
-                firebaseService.saveAddressToFirebase(userData.sub, address);
+            // Sync with Firebase using Firebase UID
+            if (window.firebaseService && auth && auth.currentUser) {
+                const firebaseUser = auth.currentUser;
+                console.log('Syncing address to Firebase for user:', firebaseUser.uid);
+                firebaseService.saveAddressToFirebase(firebaseUser.uid, address).then(() => {
+                    console.log('✅ Address synced to Firebase');
+                }).catch(error => {
+                    console.error('❌ Failed to sync address to Firebase:', error);
+                });
             }
             
             closeAddressFormModal();
