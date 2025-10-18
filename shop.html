@@ -820,6 +820,146 @@
             50% { transform: skewY(1deg); }
         }
 
+        /* Featured Cards Grid with Roll-in Animation */
+        .featured-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            padding: 1rem;
+        }
+
+        .featured-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transform: translateX(-100%) rotate(-5deg);
+            opacity: 0;
+            animation: rollIn 0.6s ease-out forwards;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .featured-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.3);
+        }
+
+        @keyframes rollIn {
+            0% {
+                transform: translateX(-100%) rotate(-5deg);
+                opacity: 0;
+            }
+            60% {
+                transform: translateX(10px) rotate(2deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateX(0) rotate(0);
+                opacity: 1;
+            }
+        }
+
+        .featured-card:nth-child(1) { animation-delay: 0.1s; }
+        .featured-card:nth-child(2) { animation-delay: 0.2s; }
+        .featured-card:nth-child(3) { animation-delay: 0.3s; }
+        .featured-card:nth-child(4) { animation-delay: 0.4s; }
+        .featured-card:nth-child(5) { animation-delay: 0.5s; }
+        .featured-card:nth-child(6) { animation-delay: 0.6s; }
+
+        .featured-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+        }
+
+        .featured-card h3 {
+            color: #6a4c93;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .featured-card .price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0.5rem 0;
+        }
+
+        .featured-card .discount-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+
+        .featured-card .new-badge {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Halloween Section Styles */
+        .halloween-section {
+            position: relative;
+        }
+
+        .halloween-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, transparent 0%, transparent 10%, rgba(255,107,53,0.1) 10%, transparent 20%),
+                radial-gradient(circle at 80% 80%, transparent 0%, transparent 10%, rgba(255,165,0,0.1) 10%, transparent 20%),
+                radial-gradient(circle at 40% 30%, transparent 0%, transparent 10%, rgba(255,107,53,0.1) 10%, transparent 20%);
+            animation: floatSpooky 10s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes floatSpooky {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(1deg); }
+            66% { transform: translateY(-10px) rotate(-1deg); }
+        }
+
+        @keyframes spookyGlow {
+            0%, 100% { 
+                text-shadow: 0 0 20px rgba(255,107,53,0.8), 0 0 40px rgba(255,107,53,0.4);
+            }
+            50% { 
+                text-shadow: 0 0 30px rgba(255,107,53,1), 0 0 60px rgba(255,107,53,0.6), 0 0 80px rgba(255,165,0,0.4);
+            }
+        }
+
+        .halloween-grid .featured-card {
+            background: linear-gradient(135deg, rgba(26,26,46,0.8) 0%, rgba(22,33,62,0.8) 100%);
+            border: 2px solid rgba(255,107,53,0.3);
+            box-shadow: 0 0 20px rgba(255,107,53,0.2);
+        }
+
+        .halloween-grid .featured-card h3 {
+            color: #ff6b35;
+        }
+
+        .halloween-grid .featured-card:hover {
+            border-color: #ff6b35;
+            box-shadow: 0 0 40px rgba(255,107,53,0.5);
+            transform: translateY(-10px) scale(1.05) rotate(2deg);
+        }
+
         /* Custom Modal Styles */
         .modal {
             display: none;
@@ -1017,40 +1157,53 @@
         <!-- Category Top Bar -->
         <div class="shop-topbar">
             <div class="shop-topbar-inner">
-                <div class="left-buttons">
-                    <button onclick="showComingSoon('Custom Cards Editor')" style="opacity: 0.6; cursor: not-allowed;">Custom Cards (Coming Soon)</button>
-                    <button onclick="goToTradingCards()">Trading Cards</button>
-                </div>
-                <button onclick="showComingSoon('Design Help Page')" style="opacity: 0.6; cursor: not-allowed;">We help you design (Coming Soon)</button>
+                <button onclick="goToTradingCards()" style="background: linear-gradient(135deg, #6a4c93, #8e44ad); color: white; border: none; padding: 12px 24px; border-radius: 25px; font-weight: 600; cursor: pointer;">Browse Cards</button>
             </div>
         </div>
 
         <!-- Online Shopping Banner -->
         <div class="shop-banner">Shop online securely with PayPal • Fast order processing • Track your orders in Account → My Orders</div>
+        
         <section class="shop-section">
             <div class="shop-container">
                 <h1 class="shop-title">Card Force Shop</h1>
-                <p class="shop-subtitle">Choose your card experience - collect trading cards or create your own custom designs</p>
+                <p class="shop-subtitle">Discover amazing trading cards and exclusive collections</p>
                 
-                <div class="shop-buttons">
-                    <button class="shop-btn" onclick="goToTradingCards()">
+                <!-- Browse Cards Button -->
+                <div style="text-align: center; margin: 2rem 0;">
+                    <button class="shop-btn" onclick="goToTradingCards()" style="background: linear-gradient(135deg, #6a4c93, #8e44ad); border: none; font-size: 1.2rem; padding: 1.2rem 3rem;">
                         <span class="shop-btn-icon">🃏</span>
-                        <span>Trading Cards</span>
+                        <span>Browse All Cards</span>
                     </button>
-                    
-                    <button class="shop-btn" onclick="showComingSoon('Custom Cards Editor')" style="opacity: 0.6; cursor: not-allowed;">
-                        <span class="shop-btn-icon">✏</span>
-                        <span>Custom Cards (Coming Soon)</span>
-                    </button>
-                    
-                    <div class="design-help">
-                        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-                            <div style="font-weight:700;color:#6a4c93;">We help you design</div>
-                            <button class="shop-btn" style="padding:0.8rem 1.2rem;font-size:1rem;border-radius:12px;opacity:0.6;cursor:not-allowed;" onclick="showComingSoon('Design Help Chat')">Coming Soon</button>
-                        </div>
-                        <div class="chat-helpnote" style="color:#999;">Design help feature is coming soon!</div>
-                    </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- New Cards Section -->
+        <section class="shop-section" style="background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%); padding: 3rem 0;">
+            <div class="shop-container" style="background: transparent; box-shadow: none;">
+                <h2 style="text-align: center; color: #6a4c93; font-size: 2.5rem; margin-bottom: 1rem; font-weight: 700;">✨ New Arrivals</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 3rem; font-size: 1.1rem;">Fresh cards just added to our collection</p>
+                <div id="newCardsGrid" class="featured-cards-grid"></div>
+            </div>
+        </section>
+
+        <!-- Discounted Cards Section -->
+        <section class="shop-section" style="padding: 3rem 0;">
+            <div class="shop-container" style="background: transparent; box-shadow: none;">
+                <h2 style="text-align: center; color: #e74c3c; font-size: 2.5rem; margin-bottom: 1rem; font-weight: 700;">🔥 Special Deals</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 3rem; font-size: 1.1rem;">Limited time discounts on popular cards</p>
+                <div id="discountedCardsGrid" class="featured-cards-grid"></div>
+            </div>
+        </section>
+
+        <!-- Halloween Cards Section - Extra Spooky -->
+        <section class="shop-section halloween-section" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 4rem 0; position: relative; overflow: hidden;">
+            <div class="halloween-bg"></div>
+            <div class="shop-container" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); border: 2px solid #ff6b35; box-shadow: 0 0 30px rgba(255,107,53,0.3);">
+                <h2 style="text-align: center; color: #ff6b35; font-size: 3rem; margin-bottom: 1rem; font-weight: 800; text-shadow: 0 0 20px rgba(255,107,53,0.8), 0 0 40px rgba(255,107,53,0.4); animation: spookyGlow 2s ease-in-out infinite;">🎃 HALLOWEEN COLLECTION 👻</h2>
+                <p style="text-align: center; color: #ffa500; margin-bottom: 3rem; font-size: 1.2rem; text-shadow: 0 0 10px rgba(255,165,0,0.5);">Limited edition spooky cards for the season!</p>
+                <div id="halloweenCardsGrid" class="featured-cards-grid halloween-grid"></div>
             </div>
         </section>
     </main>
@@ -1150,6 +1303,85 @@
             hamburger.classList.toggle('active');
         }
 
+        // Load Featured Cards
+        function loadFeaturedCards() {
+            const catalog = getProductCatalog();
+            const productData = getProductData();
+            
+            // Get new cards (recently added - check for cards with "new" status or chips)
+            const newCards = catalog.filter(p => {
+                const data = productData[p.id] || {};
+                return data.chips && data.chips.includes('New');
+            }).slice(0, 6);
+            
+            // Get discounted cards
+            const discountedCards = catalog.filter(p => {
+                const data = productData[p.id] || {};
+                return data.discount && data.discount > 0 && data.status !== 'Retired';
+            }).slice(0, 6);
+            
+            // Get Halloween cards (cards with halloween in name or id)
+            const halloweenCards = catalog.filter(p => {
+                return p.id.toLowerCase().includes('halloween') || 
+                       p.name.toLowerCase().includes('halloween') ||
+                       p.name.toLowerCase().includes('spooky') ||
+                       p.name.toLowerCase().includes('ghost') ||
+                       p.id.toLowerCase().includes('corgi'); // Include seasonal corgi cards
+            }).slice(0, 6);
+            
+            // Render cards
+            renderFeaturedSection('newCardsGrid', newCards, 'new');
+            renderFeaturedSection('discountedCardsGrid', discountedCards, 'discount');
+            renderFeaturedSection('halloweenCardsGrid', halloweenCards, 'halloween');
+        }
+        
+        function renderFeaturedSection(gridId, cards, type) {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+            
+            if (cards.length === 0) {
+                grid.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1/-1;">No cards available at the moment. Check back soon!</p>';
+                return;
+            }
+            
+            const productData = getProductData();
+            
+            grid.innerHTML = cards.map(card => {
+                const data = productData[card.id] || {};
+                const price = data.price || card.price || 7.99;
+                const discount = data.discount || 0;
+                const finalPrice = discount > 0 ? (price * (1 - discount / 100)).toFixed(2) : price;
+                
+                let badge = '';
+                if (type === 'new') {
+                    badge = '<div class="new-badge">NEW ✨</div>';
+                } else if (type === 'discount' && discount > 0) {
+                    badge = `<div class="discount-badge">-${discount}% OFF</div>`;
+                } else if (type === 'halloween') {
+                    badge = '<div class="discount-badge" style="background: #ff6b35;">🎃 SPOOKY</div>';
+                }
+                
+                const priceHtml = discount > 0 ? 
+                    `<div class="price"><span style="text-decoration: line-through; color: #999; font-size: 1.1rem;">$${price}</span> $${finalPrice}</div>` :
+                    `<div class="price">$${finalPrice}</div>`;
+                
+                return `
+                    <div class="featured-card" onclick="window.location.href='product.html?id=${card.id}'">
+                        ${badge}
+                        <img src="${card.image || 'PigPrincess.png'}" alt="${card.name}" onerror="this.src='PigPrincess.png'">
+                        <h3>${card.name || card.id}</h3>
+                        ${priceHtml}
+                        <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">${(card.description || '').substring(0, 80)}${card.description && card.description.length > 80 ? '...' : ''}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Load featured cards when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            loadFeaturedCards();
+        });
+        
         function closeMenu() {
             const navMenu = document.getElementById('navMenu');
             const hamburger = document.querySelector('.hamburger');
