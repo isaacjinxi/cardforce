@@ -271,6 +271,10 @@
          return JSON.parse(localStorage.getItem('productData') || '{}');
        }
 
+       function getProductCatalog() {
+         return JSON.parse(localStorage.getItem('productCatalog') || '[]');
+       }
+
         function updateProductData(productData, skipFirebaseSync = false) {
           localStorage.setItem('productData', JSON.stringify(productData));
           
@@ -1305,14 +1309,43 @@
 
         // Load Featured Cards
         function loadFeaturedCards() {
-            const catalog = getProductCatalog();
+            let catalog = getProductCatalog();
             const productData = getProductData();
+            
+            console.log('Loading featured cards...');
+            console.log('Catalog:', catalog);
+            console.log('Product Data:', productData);
+            
+            // If catalog is empty, show all available cards from any source
+            if (catalog.length === 0) {
+                console.log('Catalog is empty, loading from product data or defaults');
+                // Try to build catalog from productData
+                catalog = Object.keys(productData).map(id => ({
+                    id: id,
+                    name: productData[id].name || id,
+                    image: productData[id].image || 'PigPrincess.png',
+                    price: productData[id].price || 7.99,
+                    description: productData[id].description || ''
+                }));
+            }
+            
+            // If still empty, use some default examples
+            if (catalog.length === 0) {
+                console.log('No products found, using defaults');
+                catalog = [
+                    { id: 'pig-princess', name: 'Pig Princess', image: 'PigPrincess.png', price: 7.99, description: 'A royal pig character' },
+                    { id: 'mike', name: 'Mike', image: 'mike.png', price: 5.99, description: 'A fierce stick figure warrior' }
+                ];
+            }
             
             // Get new cards (recently added - check for cards with "new" status or chips)
             const newCards = catalog.filter(p => {
                 const data = productData[p.id] || {};
                 return data.chips && data.chips.includes('New');
             }).slice(0, 6);
+            
+            // If no new cards, show first 6 from catalog
+            const displayNewCards = newCards.length > 0 ? newCards : catalog.slice(0, 6);
             
             // Get discounted cards
             const discountedCards = catalog.filter(p => {
@@ -1329,8 +1362,12 @@
                        p.id.toLowerCase().includes('corgi'); // Include seasonal corgi cards
             }).slice(0, 6);
             
+            console.log('New cards:', displayNewCards.length);
+            console.log('Discounted cards:', discountedCards.length);
+            console.log('Halloween cards:', halloweenCards.length);
+            
             // Render cards
-            renderFeaturedSection('newCardsGrid', newCards, 'new');
+            renderFeaturedSection('newCardsGrid', displayNewCards, 'new');
             renderFeaturedSection('discountedCardsGrid', discountedCards, 'discount');
             renderFeaturedSection('halloweenCardsGrid', halloweenCards, 'halloween');
         }
