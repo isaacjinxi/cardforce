@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Raleway', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #6a4c93 0%, #8e44ad 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -73,11 +73,17 @@
             cursor: pointer;
             margin-top: 2rem;
             transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(106, 76, 147, 0.3);
         }
 
         .btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.4);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.5);
+        }
+
+        h1 {
+            font-weight: 700;
         }
     </style>
 </head>
@@ -121,15 +127,53 @@
         orders.push(order);
         localStorage.setItem('orders', JSON.stringify(orders));
 
-        // Try to save to Firebase
-        if (window.firebaseService && window.auth && window.auth.currentUser) {
-            const firebaseUser = window.auth.currentUser;
-            window.firebaseService.saveOrderToFirebase({
-                ...order,
-                userId: firebaseUser.uid,
-                userEmail: firebaseUser.email
-            });
+        // Try to save to Firebase - attempt multiple methods
+        async function saveToFirebase() {
+            try {
+                // Method 1: Use firebaseService if available
+                if (window.firebaseService && window.firebaseService.saveOrderToFirebase) {
+                    console.log('Saving via firebaseService...');
+                    await window.firebaseService.saveOrderToFirebase(order);
+                    console.log('✅ Order saved to Firebase via firebaseService');
+                    return;
+                }
+
+                // Method 2: Direct Firebase calls
+                if (window.db && window.doc && window.setDoc && window.COLLECTIONS) {
+                    console.log('Saving via direct Firebase...');
+                    const orderRef = window.doc(window.db, window.COLLECTIONS.ORDERS, order.id);
+                    await window.setDoc(orderRef, {
+                        ...order,
+                        firebaseCreated: new Date().toISOString()
+                    });
+                    console.log('✅ Order saved to Firebase via direct method');
+                    return;
+                }
+
+                // Method 3: Wait a bit and retry if Firebase is still initializing
+                console.log('Firebase not ready, retrying in 2 seconds...');
+                setTimeout(async () => {
+                    if (window.firebaseService && window.firebaseService.saveOrderToFirebase) {
+                        await window.firebaseService.saveOrderToFirebase(order);
+                        console.log('✅ Order saved to Firebase (retry)');
+                    } else if (window.db && window.doc && window.setDoc && window.COLLECTIONS) {
+                        const orderRef = window.doc(window.db, window.COLLECTIONS.ORDERS, order.id);
+                        await window.setDoc(orderRef, {
+                            ...order,
+                            firebaseCreated: new Date().toISOString()
+                        });
+                        console.log('✅ Order saved to Firebase (retry)');
+                    } else {
+                        console.warn('⚠️ Could not save to Firebase. Order saved locally only.');
+                    }
+                }, 2000);
+            } catch (error) {
+                console.error('❌ Error saving to Firebase:', error);
+            }
         }
+
+        // Attempt to save to Firebase
+        saveToFirebase();
 
         // Display order number
         if (name && total) {
