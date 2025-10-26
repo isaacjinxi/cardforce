@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Pickup Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="admin-utils.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 2.5rem;
+        }
+
+        .admin-section {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .admin-section h2 {
+            color: #6a4c93;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-right: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(106, 76, 147, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .toggle-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .orders-list {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .order-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 1.5rem;
+            background: #f8f9fa;
+        }
+
+        .order-card.pending {
+            border-left: 5px solid #ffc107;
+        }
+
+        .order-card.ready {
+            border-left: 5px solid #28a745;
+        }
+
+        .order-card.completed {
+            border-left: 5px solid #6c757d;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .status-badge {
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .status-badge.pending {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .status-badge.ready {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-badge.completed {
+            background: #6c757d;
+            color: white;
+        }
+
+        .order-items {
+            margin: 1rem 0;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .order-footer {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #6a4c93;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .order-total {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6a4c93;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .product-toggle-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .product-toggle-card.active {
+            border-color: #6a4c93;
+            background: #f8f9fa;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #6a4c93;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏪 Admin Pickup Management</h1>
+
+        <div class="admin-section">
+            <div class="toggle-btn">
+                <label class="switch">
+                    <input type="checkbox" id="pickupEnabled" onchange="togglePickup(this.checked)">
+                    <span class="slider"></span>
+                </label>
+                <span style="margin-left: 10px;">Pickup: <span id="pickupStatus">Enabled</span></span>
+            </div>
+            
+            <h2>📦 Manage Products for Pickup</h2>
+            <div id="productsGrid" class="products-grid">
+                <!-- Products will be loaded here -->
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h2>📋 Pickup Orders</h2>
+            <div id="ordersList" class="orders-list">
+                <!-- Orders will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function isAdmin() {
+            const googleUser = JSON.parse(localStorage.getItem('googleUser') || '{}');
+            const adminEmails = ['cardforcehelp@gmail.com', 'imsongbo@gmail.com', 'isaacjinxi@gmail.com'];
+            return adminEmails.includes(googleUser.email);
+        }
+
+        function loadPickupOrders() {
+            const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+            const pickupOrders = orders.filter(o => o.type === 'pickup');
+            
+            const ordersList = document.getElementById('ordersList');
+            
+            if (pickupOrders.length === 0) {
+                ordersList.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No pickup orders yet.</p>';
+                return;
+            }
+
+            ordersList.innerHTML = pickupOrders.map(order => {
+                const statusClass = order.status || 'pending';
+                return `
+                    <div class="order-card ${statusClass}">
+                        <div class="order-header">
+                            <div>
+                                <h3>Order #${order.id}</h3>
+                                <p style="color: #666;">Customer: ${order.name}</p>
+                                <p style="color: #666;">${new Date(order.createdAt).toLocaleString()}</p>
+                            </div>
+                            <select onchange="updateOrderStatus('${order.id}', this.value)" class="status-badge ${statusClass}" style="border: none; border-radius: 20px; padding: 0.3rem 1rem; font-weight: 700;">
+                                <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                <option value="ready" ${order.status === 'ready' ? 'selected' : ''}>Ready</option>
+                                <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                            </select>
+                        </div>
+                        
+                        <div class="order-items">
+                            ${order.items.map(item => `
+                                <div class="order-item">
+                                    <span>${item.name} × ${item.quantity}</span>
+                                    <span>$${item.total.toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="order-footer">
+                            <strong>Total: <span class="order-total">$${order.total.toFixed(2)}</span></strong>
+                        </div>
+                    
+                `;
+            }).join('');
+        }
+
+        function updateOrderStatus(orderId, newStatus) {
+            const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+            const order = orders.find(o => o.id === orderId);
+            
+            if (order) {
+                order.status = newStatus;
+                localStorage.setItem('orders', JSON.stringify(orders));
+                
+                // Announce new order
+                if (newStatus === 'ready') {
+                    announceOrder(order);
+                }
+                
+                loadPickupOrders();
+            }
+        }
+
+        function announceOrder(order) {
+            // Use Web Speech API to announce the order
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(
+                    `New order ready! Order ${order.id.substring(order.id.length - 4)} for ${order.name} is ready for pickup.`
+                );
+                utterance.rate = 1;
+                utterance.pitch = 1;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function loadProducts() {
+            const catalog = getProductCatalog();
+            const productData = getProductData();
+            
+            const productsGrid = document.getElementById('productsGrid');
+            productsGrid.innerHTML = catalog.map(product => {
+                const data = productData[product.id] || {};
+                const pickupAvailable = data.pickupAvailable !== false;
+                
+                return `
+                    <div class="product-toggle-card ${pickupAvailable ? 'active' : ''}" onclick="toggleProductPickup('${product.id}')">
+                        <img src="${product.image || 'PigPrincess.png'}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 10px; margin-bottom: 0.5rem;" onerror="this.src='PigPrincess.png'">
+                        <h4>${product.name || product.id}</h4>
+                        <p style="color: #666; margin-top: 0.5rem;">$${(product.price || 7.99).toFixed(2)}</p>
+                        <div style="margin-top: 0.5rem; font-weight: 700; color: ${pickupAvailable ? '#28a745' : '#e74c3c'};">
+                            ${pickupAvailable ? '✓ Enabled' : '✗ Disabled'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleProductPickup(productId) {
+            const productData = getProductData();
+            const product = productData[productId] || {};
+            
+            product.pickupAvailable = product.pickupAvailable === false ? true : false;
+            productData[productId] = product;
+            
+            localStorage.setItem('productData', JSON.stringify(productData));
+            
+            // Sync to Firebase
+            if (window.firebaseService && window.firebaseService.isInitialized) {
+                const catalog = getProductCatalog();
+                const productObj = catalog.find(p => p.id === productId);
+                if (productObj) {
+                    window.firebaseService.saveProductToFirebase({
+                        id: productId,
+                        ...productObj,
+                        ...product
+                    });
+                }
+            }
+            
+            loadProducts();
+        }
+
+        function togglePickup(enabled) {
+            localStorage.setItem('pickupEnabled', enabled ? 'true' : 'false');
+            document.getElementById('pickupStatus').textContent = enabled ? 'Enabled' : 'Disabled';
+        }
+
+        function getProductCatalog() {
+            return JSON.parse(localStorage.getItem('productCatalog') || '[]');
+        }
+
+        function getProductData() {
+            return JSON.parse(localStorage.getItem('productData') || '{}');
+        }
+
+        // Check if pickup is enabled
+        const pickupEnabled = localStorage.getItem('pickupEnabled') !== 'false';
+        document.getElementById('pickupEnabled').checked = pickupEnabled;
+        document.getElementById('pickupStatus').textContent = pickupEnabled ? 'Enabled' : 'Disabled';
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            if (!isAdmin()) {
+                alert('Access denied. Admin only.');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            loadProducts();
+            loadPickupOrders();
+            
+            // Refresh orders every 5 seconds
+            setInterval(loadPickupOrders, 5000);
+        });
+    </script>
+</body>
+</html>
+

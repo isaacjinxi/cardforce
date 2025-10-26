@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmed - Card Force Pickup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .success-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 2rem;
+            border-radius: 50px;
+            font-weight: 700;
+            margin: 1rem 0;
+            background: #ffc107;
+            color: #000;
+        }
+
+        .pickup-info {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            text-align: left;
+        }
+
+        .pickup-info h3 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            border: none;
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(106, 76, 147, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✅</div>
+        <h1>Order Confirmed!</h1>
+        <div class="status-badge" id="orderStatus">Pending</div>
+        
+        <div class="pickup-info">
+            <h3>📍 Pickup Instructions</h3>
+            <p><strong>Pick Up At:</strong> Card Force Store</p>
+            <p><strong>Address:</strong> 21121 Stevens Creek Blvd, Cupertino, CA 95014</p>
+            <p><strong>Hours:</strong> 4:00 PM - 6:00 PM</p>
+            <p style="margin-top: 1rem; color: #666;">Your order is being prepared. You'll be notified when it's ready for pickup.</p>
+        </div>
+
+        <button class="btn" onclick="window.location.href='index.html'">Go Home</button>
+    </div>
+
+    <script>
+        // Get order details from URL
+        const params = new URLSearchParams(window.location.search);
+        const name = params.get('name');
+        const total = params.get('total');
+        const items = JSON.parse(decodeURIComponent(params.get('items') || '[]'));
+
+        // Store order in localStorage
+        const order = {
+            id: Date.now().toString(),
+            type: 'pickup',
+            name: name,
+            total: parseFloat(total),
+            items: items,
+            status: 'pending',
+            createdAt: new Date().toISOString()
+        };
+
+        // Save to localStorage
+        let orders = JSON.parse(localStorage.getItem('orders') || '[]');
+        orders.push(order);
+        localStorage.setItem('orders', JSON.stringify(orders));
+
+        // Try to save to Firebase
+        if (window.firebaseService && window.auth && window.auth.currentUser) {
+            const firebaseUser = window.auth.currentUser;
+            window.firebaseService.saveOrderToFirebase({
+                ...order,
+                userId: firebaseUser.uid,
+                userEmail: firebaseUser.email
+            });
+        }
+
+        // Display order number
+        if (name && total) {
+            document.getElementById('orderStatus').textContent = `Order #${order.id}`;
+        }
+    </script>
+</body>
+</html>
+

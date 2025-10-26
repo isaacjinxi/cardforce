@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-adsense-account" content="ca-pub-9986380390919018">
+    <title>Pickup Orders - Card Force</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="admin-utils.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #6a4c93;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 2.5rem;
+        }
+
+        .pickup-info {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .pickup-info h2 {
+            margin-bottom: 1rem;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .product-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(106, 76, 147, 0.3);
+            border-color: #6a4c93;
+        }
+
+        .product-card.selected {
+            border-color: #6a4c93;
+            background: #f8f9fa;
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .product-card h3 {
+            color: #6a4c93;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-card .price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0.5rem 0;
+        }
+
+        .quantity-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .quantity-controls button {
+            background: #6a4c93;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .quantity-controls span {
+            font-weight: 700;
+            min-width: 40px;
+        }
+
+        .total-section {
+            background: linear-gradient(135deg, #6a4c93, #8e44ad);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .total-section h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .confirm-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 1.5rem 4rem;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .confirm-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.4);
+        }
+
+        .confirm-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .order-status-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .order-status-content {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .order-status-content h2 {
+            color: #6a4c93;
+            margin-bottom: 1rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 2rem;
+            border-radius: 50px;
+            font-weight: 700;
+            margin: 1rem 0;
+        }
+
+        .status-badge.pending {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .status-badge.ready {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-badge.completed {
+            background: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏪 Store Pickup Order</h1>
+        
+        <div class="pickup-info">
+            <h2>📍 Pick Up At Card Force Store</h2>
+            <p><strong>Address:</strong> 21121 Stevens Creek Blvd, Cupertino, CA 95014</p>
+            <p><strong>Hours:</strong> 4:00 PM - 6:00 PM</p>
+        </div>
+
+        <div id="productsGrid" class="products-grid">
+            <!-- Products will be loaded here -->
+        </div>
+
+        <div class="total-section">
+            <h2>Total: <span id="totalPrice">$0.00</span></h2>
+            <p id="totalItems">0 items</p>
+        </div>
+
+        <button class="confirm-btn" id="confirmBtn" onclick="confirmOrder()">Confirm Order</button>
+    </div>
+
+    <div class="order-status-modal" id="orderStatusModal">
+        <div class="order-status-content">
+            <h2>Order Placed! ✅</h2>
+            <div class="status-badge pending">Status: Pending</div>
+            <p id="orderNumber"></p>
+            <p style="margin: 1rem 0; color: #666;">Your order is being prepared. You'll receive a notification when it's ready for pickup.</p>
+            <button class="confirm-btn" onclick="window.location.href='index.html'">Go Home</button>
+        </div>
+    </div>
+
+    <script>
+        let pickupProducts = [];
+        let orderSummary = {};
+
+        // Load available pickup products
+        function loadPickupProducts() {
+            // Get products marked as available for pickup
+            const allProducts = getProductCatalog();
+            const productData = getProductData();
+            
+            // Filter products available for pickup
+            pickupProducts = allProducts.filter(p => {
+                const data = productData[p.id] || {};
+                return data.pickupAvailable !== false; // Only exclude explicitly disabled
+            });
+
+            renderProducts();
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            
+            if (pickupProducts.length === 0) {
+                grid.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1/-1; padding: 2rem;">No products available for pickup at this time.</p>';
+                return;
+            }
+
+            grid.innerHTML = pickupProducts.map(product => {
+                const count = orderSummary[product.id] || 0;
+                return `
+                    <div class="product-card ${count > 0 ? 'selected' : ''}">
+                        <img src="${product.image || 'PigPrincess.png'}" alt="${product.name}" onerror="this.src='PigPrincess.png'">
+                        <h3>${product.name}</h3>
+                        <div class="price">$${(product.price || 7.99).toFixed(2)}</div>
+                        <div class="quantity-controls">
+                            <button onclick="updateQuantity('${product.id}', -1)">-</button>
+                            <span>${count}</span>
+                            <button onclick="updateQuantity('${product.id}', 1)">+</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            updateTotal();
+        }
+
+        function updateQuantity(productId, change) {
+            const current = orderSummary[productId] || 0;
+            const newCount = Math.max(0, current + change);
+            
+            if (newCount === 0) {
+                delete orderSummary[productId];
+            } else {
+                orderSummary[productId] = newCount;
+            }
+
+            renderProducts();
+        }
+
+        function updateTotal() {
+            let total = 0;
+            let itemCount = 0;
+
+            Object.keys(orderSummary).forEach(productId => {
+                const product = pickupProducts.find(p => p.id === productId);
+                const count = orderSummary[productId];
+                const price = (product?.price || 7.99) * count;
+                total += price;
+                itemCount += count;
+            });
+
+            document.getElementById('totalPrice').textContent = '$' + total.toFixed(2);
+            document.getElementById('totalItems').textContent = itemCount + ' items';
+            
+            const confirmBtn = document.getElementById('confirmBtn');
+            confirmBtn.disabled = itemCount === 0;
+        }
+
+        function confirmOrder() {
+            if (Object.keys(orderSummary).length === 0) {
+                alert('Please select at least one item.');
+                return;
+            }
+
+            // Prompt for name
+            const customerName = prompt('Please enter your name for the pickup order:');
+            if (!customerName || customerName.trim() === '') {
+                return;
+            }
+
+            // Calculate total
+            let total = 0;
+            const items = [];
+            Object.keys(orderSummary).forEach(productId => {
+                const product = pickupProducts.find(p => p.id === productId);
+                const count = orderSummary[productId];
+                const price = (product?.price || 7.99) * count;
+                total += price;
+                items.push({
+                    productId,
+                    name: product?.name || productId,
+                    quantity: count,
+                    price: product?.price || 7.99,
+                    total: price
+                });
+            });
+
+            // Redirect to PayPal
+            redirectToPayPal(total, customerName, items);
+        }
+
+        function redirectToPayPal(total, customerName, items) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'https://www.paypal.com/cgi-bin/webscr';
+            
+            // PayPal fields
+            form.innerHTML = `
+                <input type="hidden" name="cmd" value="_xclick">
+                <input type="hidden" name="business" value="imsongbo@gmail.com">
+                <input type="hidden" name="item_name" value="Card Force Pickup Order - ${customerName}">
+                <input type="hidden" name="amount" value="${total.toFixed(2)}">
+                <input type="hidden" name="currency_code" value="USD">
+                <input type="hidden" name="return" value="${window.location.origin}/pickup-success.html?name=${encodeURIComponent(customerName)}&total=${total}&items=${encodeURIComponent(JSON.stringify(items))}">
+                <input type="hidden" name="cancel_return" value="${window.location.origin}/pickup.html">
+            `;
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function getProductCatalog() {
+            return JSON.parse(localStorage.getItem('productCatalog') || '[]');
+        }
+
+        function getProductData() {
+            return JSON.parse(localStorage.getItem('productData') || '{}');
+        }
+
+        // Load products when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            loadPickupProducts();
+        });
+    </script>
+</body>
+</html>
+
