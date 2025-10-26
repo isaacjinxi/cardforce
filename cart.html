@@ -1019,6 +1019,17 @@
             background: #26d065;
             transform: translateY(-2px);
         }
+
+        .checkout-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .checkout-btn:disabled:hover {
+            background: #ccc;
+            transform: none;
+        }
         
         .venmo-btn {
             background: #3d95ce;
@@ -1258,6 +1269,11 @@
     </style>
 </head>
 <body>
+    <!-- Out of Business Banner -->
+    <div style="background: #dc3545; color: white; padding: 15px; text-align: center; font-weight: 700; font-size: 1.2rem; position: sticky; top: 0; z-index: 10000; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+        ⚠️ Cardforce has gone out of business! ⚠️
+    </div>
+
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
@@ -1304,7 +1320,7 @@
                 <div class="total-price">Total: $<span id="totalPrice">0.00</span></div>
                 <div class="cart-actions">
                     <button class="clear-cart-btn" onclick="clearCart()">Clear Cart</button>
-                    <button class="checkout-btn" onclick="goToCheckout()">Checkout</button>
+                    <button class="checkout-btn" onclick="goToCheckout()" disabled>Checkout Disabled</button>
                 </div>
             </div>
 
@@ -1402,6 +1418,14 @@
         }
 
         function goToCheckout() {
+            // Cardforce has gone out of business - checkout disabled
+            showModal(
+                'Out of Business',
+                'Cardforce has gone out of business. Checkout is no longer available.',
+                null
+            );
+            return;
+            
             const googleUser = localStorage.getItem('googleUser');
             if (!googleUser) {
                 showModal('Sign In Required', 'Please sign in to checkout.', function() {
